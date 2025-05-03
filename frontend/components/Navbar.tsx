@@ -17,7 +17,7 @@ export default function Navbar() {
             <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     <div className="flex items-center">
-                        <Link href="/" className="text-xl font-bold text-white">
+                        <Link href="/" className="text-2xl font-bold text-white">
                             FinLearn <span className="text-blue-400">AI</span>
                         </Link>
                     </div>
@@ -28,13 +28,13 @@ export default function Navbar() {
                             Features
                         </Link>
                         <Link href="#technology" className="text-gray-300 hover:text-blue-400 transition-colors">
-                            Technology
+                            HowItWorks
                         </Link>
                         <Link href="#team" className="text-gray-300 hover:text-blue-400 transition-colors">
                             Team
                         </Link>
                         <Link href="#roadmap" className="text-gray-300 hover:text-blue-400 transition-colors">
-                            Roadmap
+                            Plans
                         </Link>
                         <Button className="bg-blue-600 hover:bg-blue-700 text-white">Try It Now</Button>
                     </div>

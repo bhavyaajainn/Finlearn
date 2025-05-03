@@ -16,12 +16,12 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="container max-w-6xl mx-auto text-center">
-          <Badge className="mb-4 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all duration-300">
-            Hackathon Project
+          <Badge className="mb-4 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all duration-300 p-2">
+            Built for Perplexity AI using Sonar
           </Badge>
 
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-white">
-            Master Finance with <span className="text-blue-400">AI-Powered</span> Micro-Learning
+            Master Web3 Finance with <span className="text-blue-400">AI-Powered</span> Micro-Learning
           </h1>
 
           <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
@@ -30,10 +30,10 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer">
               Try It Now <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="border-blue-500 text-blue-400 hover:bg-blue-950/50">
+            <Button size="lg" variant="ghost" className="border-blue-500 bg-zinc-800 text-white hover:bg-zinc-700 hover:text-whitef cursor-pointer">
               <Github className="mr-2 h-4 w-4" /> View on GitHub
             </Button>
           </div>
@@ -41,7 +41,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-black">
+      <section className="py-24 bg-black" id="features">
         <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">Core Features</Badge>
@@ -90,7 +90,7 @@ export default function Home() {
       </section>
 
       {/* Tech Stack Section */}
-      <section className="py-24 bg-zinc-950">
+      <section className="py-24 bg-zinc-950" id="technology">
         <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">Powered By</Badge>
@@ -151,7 +151,7 @@ export default function Home() {
       </section>
 
       {/* Team Section */}
-      <section className="py-24 bg-black">
+      <section className="py-24 bg-black" id="team">
         <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">Our Team</Badge>
@@ -159,46 +159,39 @@ export default function Home() {
               Meet the <span className="text-blue-400">Hackers</span>
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
-              A passionate team of developers, designers, and finance enthusiasts building the future of financial
+              A passionate team of developers building the future of financial
               education.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <TeamMember
-              name="Alex Chen"
+              name="Bhavya Jain"
               role="Full Stack Developer"
               image="/placeholder.svg?height=300&width=300"
               github="https://github.com/alexchen"
               linkedin="https://linkedin.com/in/alexchen"
             />
             <TeamMember
-              name="Sarah Johnson"
-              role="AI Engineer"
+              name="Athul"
+              role="Backend Developer"
               image="/placeholder.svg?height=300&width=300"
               github="https://github.com/sarahjohnson"
               linkedin="https://linkedin.com/in/sarahjohnson"
             />
             <TeamMember
-              name="Michael Rodriguez"
-              role="UI/UX Designer"
+              name="Rohan Singla"
+              role="Frontend and Web3 Dev"
               image="/placeholder.svg?height=300&width=300"
               github="https://github.com/michaelrodriguez"
               linkedin="https://linkedin.com/in/michaelrodriguez"
-            />
-            <TeamMember
-              name="Priya Patel"
-              role="Finance Specialist"
-              image="/placeholder.svg?height=300&width=300"
-              github="https://github.com/priyapatel"
-              linkedin="https://linkedin.com/in/priyapatel"
             />
           </div>
         </div>
       </section>
 
       {/* Roadmap Section */}
-      <section className="py-24 bg-zinc-950">
+      <section className="py-24 bg-zinc-950" id="roadmap">
         <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">Roadmap</Badge>
@@ -239,88 +232,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 bg-black">
-        <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-zinc-900 rounded-xl p-8 md:p-12 border border-zinc-800">
-            <div className="text-center max-w-3xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Start Your Financial Learning Journey Today</h2>
-              <p className="text-xl text-gray-300 mb-8">
-                Join our hackathon project and help us revolutionize financial education with just 5 minutes a day.
-              </p>
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
-                Try FinLearn AI <Zap className="ml-2 h-4 w-4" />
-              </Button>
-              <p className="mt-4 text-gray-400">Free for everyone. No credit card required.</p>
-            </div>
+      {/* Footer */}
+      <footer className="py-8 bg-zinc-950 border-t border-zinc-900">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+          <div className="text-white text-xl font-semibold mb-4 md:mb-0">
+            FinLearn <span className="text-blue-400">AI</span>
+          </div>
+          <div className="flex space-x-6 text-sm text-gray-400">
+            <Link href="#" className="hover:text-blue-400 transition-colors">Features</Link>
+            <Link href="#" className="hover:text-blue-400 transition-colors">GitHub</Link>
+            <Link href="#" className="hover:text-blue-400 transition-colors">Privacy</Link>
           </div>
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-12 bg-zinc-950 border-t border-zinc-900">
-        <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-white">Product</h3>
-              <ul className="space-y-2">
-                {["Features", "Demo", "FAQ", "Roadmap"].map((item) => (
-                  <li key={item}>
-                    <Link href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
-                      {item}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-white">Resources</h3>
-              <ul className="space-y-2">
-                {["Documentation", "API", "Community", "GitHub"].map((item) => (
-                  <li key={item}>
-                    <Link href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
-                      {item}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-white">Team</h3>
-              <ul className="space-y-2">
-                {["About Us", "Contact", "Join Us", "Sponsors"].map((item) => (
-                  <li key={item}>
-                    <Link href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
-                      {item}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-white">Legal</h3>
-              <ul className="space-y-2">
-                {["Privacy Policy", "Terms of Service", "Code of Conduct"].map((item) => (
-                  <li key={item}>
-                    <Link href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
-                      {item}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 mt-8 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0">
-              <span className="text-2xl font-bold text-white">
-                FinLearn <span className="text-blue-400">AI</span>
-              </span>
-            </div>
-            <div className="text-gray-400 text-sm">© {new Date().getFullYear()} FinLearn AI. Hackathon Project.</div>
-          </div>
+        <div className="text-center text-gray-400 text-sm">
+          © {new Date().getFullYear()} FinLearn AI. Powered by Perplexity AI.
         </div>
       </footer>
+
     </div>
   )
 }
