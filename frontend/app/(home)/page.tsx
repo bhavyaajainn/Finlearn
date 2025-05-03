@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, BookOpen, Award, Users, Zap, Brain, TrendingUp, Lightbulb, Github } from "lucide-react"
+import { ArrowRight, BookOpen, Award, Users, Brain, TrendingUp, Lightbulb, Github } from "lucide-react"
 import Link from "next/link"
 import FeatureCard from "./components/Feature"
 import Navbar from "@/components/Navbar"
