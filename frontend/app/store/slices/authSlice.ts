@@ -11,7 +11,6 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/firebase';
 
-
 type SerializableUser = {
   uid: string;
   email: string | null;
@@ -28,10 +27,8 @@ type AuthState = {
   verificationEmailSent: boolean;
 };
 
-
-const createSerializableUser = (user: FirebaseUser | null) => {
+const createSerializableUser = (user: FirebaseUser | null): SerializableUser | null => {
   if (!user) return null;
-  
   return {
     uid: user.uid,
     email: user.email,
@@ -39,35 +36,56 @@ const createSerializableUser = (user: FirebaseUser | null) => {
     photoURL: user.photoURL,
     emailVerified: user.emailVerified,
     phoneNumber: user.phoneNumber,
-    
   };
 };
 
+// Session Storage Helpers
+const SESSION_STORAGE_KEY = 'finlearn_user';
 
-const initialState: AuthState = {
-  user: null,
-  loading: true,
-  error: null,
-  verificationEmailSent: false
+const saveUserToSessionStorage = (user: SerializableUser | null) => {
+  if (user) {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(user));
+  } else {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  }
 };
 
+const getUserFromSessionStorage = (): SerializableUser | null => {
+  if (typeof window === "undefined") return null;
+
+  const storedUser = sessionStorage.getItem(SESSION_STORAGE_KEY);
+  if (storedUser) {
+    try {
+      return JSON.parse(storedUser);
+    } catch {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+  }
+  return null;
+};
+
+const initialState: AuthState = {
+  user: getUserFromSessionStorage(),
+  loading: true,
+  error: null,
+  verificationEmailSent: false,
+};
+
+// Clear session storage when tab/window is closed
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  });
+}
 
 export const signInWithEmail = createAsyncThunk(
   'auth/signInWithEmail',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      return createSerializableUser(userCredential.user);
+      const serializableUser = createSerializableUser(userCredential.user);
+      saveUserToSessionStorage(serializableUser);
+      return serializableUser;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -79,13 +97,12 @@ export const signUpWithEmail = createAsyncThunk(
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      
       await sendEmailVerification(userCredential.user);
-      
+      const serializableUser = createSerializableUser(userCredential.user);
+      saveUserToSessionStorage(serializableUser);
       return {
-        user: createSerializableUser(userCredential.user),
-        verificationEmailSent: true
+        user: serializableUser,
+        verificationEmailSent: true,
       };
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -99,7 +116,9 @@ export const signInWithGoogle = createAsyncThunk(
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
-      return createSerializableUser(userCredential.user);
+      const serializableUser = createSerializableUser(userCredential.user);
+      saveUserToSessionStorage(serializableUser);
+      return serializableUser;
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -111,6 +130,7 @@ export const signOut = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await firebaseSignOut(auth);
+      saveUserToSessionStorage(null);
       return null;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -120,24 +140,32 @@ export const signOut = createAsyncThunk(
 
 export const checkAuthState = createAsyncThunk(
   'auth/checkAuthState',
-  async (_, { dispatch }) => {
-    return new Promise<any>((resolve) => {
+  async () => {
+    return new Promise<SerializableUser | null>((resolve) => {
+      const sessionUser = getUserFromSessionStorage();
+      if (sessionUser) {
+        resolve(sessionUser);
+        return;
+      }
+
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         unsubscribe();
-        resolve(createSerializableUser(user));
+        const serializableUser = createSerializableUser(user);
+        saveUserToSessionStorage(serializableUser);
+        resolve(serializableUser);
       });
     });
   }
 );
-
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
     setUser: (state, action: PayloadAction<FirebaseUser | null>) => {
-      state.user = action.payload;
+      state.user = createSerializableUser(action.payload);
       state.loading = false;
+      saveUserToSessionStorage(state.user);
     },
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
@@ -147,11 +175,10 @@ const authSlice = createSlice({
     },
     clearVerificationStatus: (state) => {
       state.verificationEmailSent = false;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
-      
       .addCase(checkAuthState.pending, (state) => {
         state.loading = true;
       })
@@ -159,7 +186,6 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.loading = false;
       })
-      
       .addCase(signInWithEmail.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -172,16 +198,13 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.loading = false;
       })
-      
       .addCase(signUpWithEmail.pending, (state) => {
         state.loading = true;
         state.error = null;
         state.verificationEmailSent = false;
       })
       .addCase(signUpWithEmail.fulfilled, (state, action) => {
-        if (action.payload.user) {
-          state.user = action.payload.user;
-        }
+        state.user = action.payload.user;
         state.verificationEmailSent = action.payload.verificationEmailSent;
         state.loading = false;
       })
@@ -189,7 +212,6 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.loading = false;
       })
-      
       .addCase(signInWithGoogle.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -202,7 +224,6 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.loading = false;
       })
-      
       .addCase(signOut.pending, (state) => {
         state.loading = true;
       })
