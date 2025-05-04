@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { User, KeyRound, Mail, UserPlus, X, LogIn, LogOut } from "lucide-react"
+import { User, KeyRound, Mail, UserPlus, X, LogIn, LogOut, Eye, EyeOff, AlertCircle, CheckCircle, Info } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks"
 import { 
   signInWithEmail, 
   signUpWithEmail, 
   signInWithGoogle, 
   signOut,
-  checkAuthState
+  checkAuthState,
+  clearVerificationStatus
 } from "@/app/store/slices/authSlice"
+import { useRouter } from "next/navigation"
 
 // Tab interface
 type TabType = "signin" | "signup"
@@ -18,13 +20,51 @@ type TabType = "signin" | "signup"
 export default function UserAvatar() {
   // Redux
   const dispatch = useAppDispatch()
-  const { user, loading, error } = useAppSelector((state) => state.auth)
+  const { user, loading, error, verificationEmailSent } = useAppSelector((state) => state.auth)
+  const router = useRouter()
   
-  // Local state
+  // Local state for both forms separately
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<TabType>("signin")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  
+  // Separate state for signin and signup forms
+  const [signinEmail, setSigninEmail] = useState("")
+  const [signinPassword, setSigninPassword] = useState("")
+  const [showSigninPassword, setShowSigninPassword] = useState(false)
+  
+  const [signupEmail, setSignupEmail] = useState("")
+  const [signupPassword, setSignupPassword] = useState("")
+  const [showSignupPassword, setShowSignupPassword] = useState(false)
+  
+  // Password validation states
+  const [passwordValid, setPasswordValid] = useState({
+    length: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+    hasSpecial: false
+  })
+
+  // Check password strength
+  useEffect(() => {
+    if (signupPassword) {
+      setPasswordValid({
+        length: signupPassword.length >= 8,
+        hasUppercase: /[A-Z]/.test(signupPassword),
+        hasLowercase: /[a-z]/.test(signupPassword),
+        hasNumber: /[0-9]/.test(signupPassword),
+        hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(signupPassword)
+      })
+    } else {
+      setPasswordValid({
+        length: false,
+        hasUppercase: false,
+        hasLowercase: false,
+        hasNumber: false,
+        hasSpecial: false
+      })
+    }
+  }, [signupPassword])
 
   // Check authentication state on mount
   useEffect(() => {
@@ -34,47 +74,147 @@ export default function UserAvatar() {
   // Toggle modal visibility
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen)
+    if (!isModalOpen) {
+      dispatch(clearVerificationStatus())
+    }
   }
 
   // Switch between signin and signup tabs
   const switchTab = (tab: TabType) => {
     setActiveTab(tab)
+    // Clear verification status when switching tabs
+    dispatch(clearVerificationStatus())
+  }
+  
+  // Toggle password visibility
+  const toggleSigninPasswordVisibility = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setShowSigninPassword(!showSigninPassword)
+  }
+  
+  const toggleSignupPasswordVisibility = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setShowSignupPassword(!showSignupPassword)
   }
   
   // Reset form fields when modal is closed
   useEffect(() => {
     if (!isModalOpen) {
-      setEmail("")
-      setPassword("")
+      setSigninEmail("")
+      setSigninPassword("")
+      setSignupEmail("")
+      setSignupPassword("")
+      setShowSigninPassword(false)
+      setShowSignupPassword(false)
     }
   }, [isModalOpen])
+
+  // Also reset fields when switching tabs
+  useEffect(() => {
+    if (activeTab === "signin") {
+      setSignupEmail("")
+      setSignupPassword("")
+      setShowSignupPassword(false)
+    } else {
+      setSigninEmail("")
+      setSigninPassword("")
+      setShowSigninPassword(false)
+    }
+    
+    // Reset validation when switching tabs
+    if (activeTab === "signup") {
+      setPasswordValid({
+        length: false,
+        hasUppercase: false,
+        hasLowercase: false,
+        hasNumber: false,
+        hasSpecial: false
+      })
+    }
+  }, [activeTab])
 
   // Authentication handlers
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    await dispatch(signInWithEmail({ email, password }))
-    if (!error) {
+    try {
+      await dispatch(signInWithEmail({ email: signinEmail, password: signinPassword })).unwrap()
       setIsModalOpen(false)
+      router.push('/dashboard') // Redirect to dashboard on successful signin
+    } catch (err) {
+      console.error("Sign-in failed:", err)
     }
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    await dispatch(signUpWithEmail({ email, password }))
-    if (!error) {
-      setIsModalOpen(false)
+    
+    // Check if password meets all requirements
+    const allRequirementsMet = Object.values(passwordValid).every(value => value === true)
+    
+    if (!allRequirementsMet) {
+      return // Don't submit if password requirements are not met
+    }
+    
+    try {
+      await dispatch(signUpWithEmail({ email: signupEmail, password: signupPassword })).unwrap()
+      // Don't close modal, instead show success message
+      // The verification email sent status will be handled in the UI
+    } catch (err) {
+      console.error("Sign-up failed:", err)
     }
   }
 
   const handleGoogleSignIn = async () => {
-    await dispatch(signInWithGoogle())
-    if (!error) {
+    try {
+      await dispatch(signInWithGoogle()).unwrap()
       setIsModalOpen(false)
+      router.push('/dashboard') // Redirect to dashboard
+    } catch (err) {
+      console.error("Google sign-in failed:", err)
     }
   }
 
-  const handleSignOut = () => {
-    dispatch(signOut())
+  const handleSignOut = async () => {
+    try {
+      await dispatch(signOut()).unwrap()
+      router.push('/') // Redirect to home page after sign out
+    } catch (err) {
+      console.error("Sign-out failed:", err)
+    }
+  }
+
+  // Get password strength score (0-4)
+  const getPasswordStrength = () => {
+    const criteria = Object.values(passwordValid)
+    return criteria.filter(Boolean).length
+  }
+
+  // Password strength indicator
+  const renderPasswordStrengthIndicator = () => {
+    const strength = getPasswordStrength()
+    const strengthLabels = ["Very weak", "Weak", "Medium", "Good", "Strong"]
+    const strengthColors = [
+      "bg-red-500", 
+      "bg-orange-500", 
+      "bg-yellow-500", 
+      "bg-lime-500",
+      "bg-green-500"
+    ]
+    
+    return (
+      <div className="mt-2">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-xs">{strengthLabels[strength]}</span>
+          <span className="text-xs">{strength}/5</span>
+        </div>
+        <div className="w-full h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+          <div 
+            className={`h-full ${strengthColors[strength]} transition-all duration-300`} 
+            style={{ width: `${(strength / 5) * 100}%` }}
+          ></div>
+        </div>
+      </div>
+    )
   }
 
   // If loading, show a loading indicator
@@ -123,6 +263,7 @@ export default function UserAvatar() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ type: "spring", duration: 0.5 }}
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-6 z-50"
+              onClick={(e) => e.stopPropagation()} // Prevent modal closing when clicking inside
             >
               {/* Close button */}
               <button
@@ -132,10 +273,22 @@ export default function UserAvatar() {
                 <X size={20} />
               </button>
 
+              {/* Verification email sent success message */}
+              {verificationEmailSent && (
+                <div className="mb-4 p-3 bg-green-400/10 border border-green-400/20 rounded-md text-green-400 text-sm flex items-start">
+                  <CheckCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Verification email sent!</p>
+                    <p>Please check your email to verify your account before signing in.</p>
+                  </div>
+                </div>
+              )}
+
               {/* Error message */}
               {error && (
-                <div className="mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-md text-red-400 text-sm">
-                  {error}
+                <div className="mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-md text-red-400 text-sm flex items-start">
+                  <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+                  <div>{error}</div>
                 </div>
               )}
 
@@ -186,8 +339,8 @@ export default function UserAvatar() {
                         <input
                           id="signin-email"
                           type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          value={signinEmail}
+                          onChange={(e) => setSigninEmail(e.target.value)}
                           className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                           placeholder="you@example.com"
                           required
@@ -204,13 +357,20 @@ export default function UserAvatar() {
                         </div>
                         <input
                           id="signin-password"
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                          type={showSigninPassword ? "text" : "password"}
+                          value={signinPassword}
+                          onChange={(e) => setSigninPassword(e.target.value)}
+                          className="w-full pl-10 pr-10 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                           placeholder="••••••••"
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={toggleSigninPasswordVisibility}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-200"
+                        >
+                          {showSigninPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
                       </div>
                     </div>
                     <button
@@ -270,8 +430,8 @@ export default function UserAvatar() {
                         <input
                           id="signup-email"
                           type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          value={signupEmail}
+                          onChange={(e) => setSignupEmail(e.target.value)}
                           className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                           placeholder="you@example.com"
                           required
@@ -288,20 +448,58 @@ export default function UserAvatar() {
                         </div>
                         <input
                           id="signup-password"
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                          type={showSignupPassword ? "text" : "password"}
+                          value={signupPassword}
+                          onChange={(e) => setSignupPassword(e.target.value)}
+                          className="w-full pl-10 pr-10 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                           placeholder="••••••••"
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={toggleSignupPasswordVisibility}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-200"
+                        >
+                          {showSignupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      
+                      {/* Password strength meter */}
+                      {signupPassword && renderPasswordStrengthIndicator()}
+                      
+                      {/* Password requirements */}
+                      <div className="mt-3 space-y-1.5">
+                        <p className="text-sm text-gray-400 flex items-center mb-1">
+                          <Info size={14} className="mr-1.5" />
+                          Password requirements:
+                        </p>
+                        <p className={`text-xs ${passwordValid.length ? 'text-green-400' : 'text-gray-500'}`}>
+                          • At least 8 characters
+                        </p>
+                        <p className={`text-xs ${passwordValid.hasUppercase ? 'text-green-400' : 'text-gray-500'}`}>
+                          • At least 1 uppercase letter (A-Z)
+                        </p>
+                        <p className={`text-xs ${passwordValid.hasLowercase ? 'text-green-400' : 'text-gray-500'}`}>
+                          • At least 1 lowercase letter (a-z)
+                        </p>
+                        <p className={`text-xs ${passwordValid.hasNumber ? 'text-green-400' : 'text-gray-500'}`}>
+                          • At least 1 number (0-9)
+                        </p>
+                        <p className={`text-xs ${passwordValid.hasSpecial ? 'text-green-400' : 'text-gray-500'}`}>
+                          • At least 1 special character (!@#$%^&*...)
+                        </p>
                       </div>
                     </div>
                     <button
                       type="submit"
-                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                      className={`w-full px-4 py-2 ${
+                        getPasswordStrength() === 5 
+                          ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' 
+                          : 'bg-blue-600/50 cursor-not-allowed'
+                      } text-white rounded-md transition-colors`}
+                      disabled={getPasswordStrength() < 5 || verificationEmailSent}
                     >
-                      Sign Up
+                      {verificationEmailSent ? "Account Created" : "Sign Up"}
                     </button>
                   </form>
                   <div className="mt-4">
