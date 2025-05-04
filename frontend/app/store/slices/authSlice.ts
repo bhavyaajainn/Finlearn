@@ -11,7 +11,6 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/firebase';
 
-
 type SerializableUser = {
   uid: string;
   email: string | null;
@@ -28,10 +27,8 @@ type AuthState = {
   verificationEmailSent: boolean;
 };
 
-
-const createSerializableUser = (user: FirebaseUser | null) => {
+const createSerializableUser = (user: FirebaseUser | null): SerializableUser | null => {
   if (!user) return null;
-  
   return {
     uid: user.uid,
     email: user.email,
@@ -42,35 +39,44 @@ const createSerializableUser = (user: FirebaseUser | null) => {
   };
 };
 
-// Helper functions for session storage
+// Session Storage Helpers
+const SESSION_STORAGE_KEY = 'finlearn_user';
+
 const saveUserToSessionStorage = (user: SerializableUser | null) => {
   if (user) {
-    sessionStorage.setItem('finlearn_user', JSON.stringify(user));
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(user));
   } else {
-    sessionStorage.removeItem('finlearn_user');
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
   }
 };
 
 const getUserFromSessionStorage = (): SerializableUser | null => {
-  const storedUser = sessionStorage.getItem('finlearn_user');
+  if (typeof window === "undefined") return null;
+
+  const storedUser = sessionStorage.getItem(SESSION_STORAGE_KEY);
   if (storedUser) {
     try {
       return JSON.parse(storedUser);
-    } catch (error) {
-      console.error('Failed to parse user from session storage:', error);
-      return null;
+    } catch {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
     }
   }
   return null;
 };
 
 const initialState: AuthState = {
-  user: getUserFromSessionStorage(), // Initialize from session storage
+  user: getUserFromSessionStorage(),
   loading: true,
   error: null,
-  verificationEmailSent: false
+  verificationEmailSent: false,
 };
 
+// Clear session storage when tab/window is closed
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  });
+}
 
 export const signInWithEmail = createAsyncThunk(
   'auth/signInWithEmail',
@@ -78,7 +84,7 @@ export const signInWithEmail = createAsyncThunk(
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const serializableUser = createSerializableUser(userCredential.user);
-      saveUserToSessionStorage(serializableUser); // Save to session storage
+      saveUserToSessionStorage(serializableUser);
       return serializableUser;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -93,10 +99,10 @@ export const signUpWithEmail = createAsyncThunk(
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await sendEmailVerification(userCredential.user);
       const serializableUser = createSerializableUser(userCredential.user);
-      saveUserToSessionStorage(serializableUser); // Save to session storage
+      saveUserToSessionStorage(serializableUser);
       return {
         user: serializableUser,
-        verificationEmailSent: true
+        verificationEmailSent: true,
       };
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -111,7 +117,7 @@ export const signInWithGoogle = createAsyncThunk(
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       const serializableUser = createSerializableUser(userCredential.user);
-      saveUserToSessionStorage(serializableUser); // Save to session storage
+      saveUserToSessionStorage(serializableUser);
       return serializableUser;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -124,7 +130,7 @@ export const signOut = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await firebaseSignOut(auth);
-      saveUserToSessionStorage(null); // Clear from session storage
+      saveUserToSessionStorage(null);
       return null;
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -134,26 +140,23 @@ export const signOut = createAsyncThunk(
 
 export const checkAuthState = createAsyncThunk(
   'auth/checkAuthState',
-  async (_, { dispatch }) => {
+  async () => {
     return new Promise<SerializableUser | null>((resolve) => {
-      // First check session storage for quick loading
       const sessionUser = getUserFromSessionStorage();
       if (sessionUser) {
         resolve(sessionUser);
         return;
       }
 
-      // Then check Firebase auth state
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         unsubscribe();
         const serializableUser = createSerializableUser(user);
-        saveUserToSessionStorage(serializableUser); // Save to session storage
+        saveUserToSessionStorage(serializableUser);
         resolve(serializableUser);
       });
     });
   }
 );
-
 
 const authSlice = createSlice({
   name: 'auth',
@@ -172,7 +175,7 @@ const authSlice = createSlice({
     },
     clearVerificationStatus: (state) => {
       state.verificationEmailSent = false;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -201,9 +204,7 @@ const authSlice = createSlice({
         state.verificationEmailSent = false;
       })
       .addCase(signUpWithEmail.fulfilled, (state, action) => {
-        if (action.payload.user) {
-          state.user = action.payload.user;
-        }
+        state.user = action.payload.user;
         state.verificationEmailSent = action.payload.verificationEmailSent;
         state.loading = false;
       })
