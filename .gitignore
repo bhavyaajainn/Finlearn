@@ -1,2 +1,4 @@
 __pycache__/
 service_account.json
+frontend/node_modules
+
