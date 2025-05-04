@@ -1,17 +1,14 @@
-import type { Metadata } from "next";
+"use client"; 
+
 import { Poppins } from "next/font/google";
 import "./globals.css";
+import { Provider } from "react-redux";
+import { store } from "@/app/store";
 
 const geistSans = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600"]
+  weight: ["400", "500", "600"],
 });
-
-
-export const metadata: Metadata = {
-  title: "Finlearn",
-  description: "Learn money. Live smart. Every day, with FinLearn AI.",
-};
 
 export default function RootLayout({
   children,
@@ -20,10 +17,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.className} antialiased`}
-      >
-        {children}
+      <body className={`${geistSans.className} antialiased`}>
+        <Provider store={store}>
+          {children}
+        </Provider>
       </body>
     </html>
   );
