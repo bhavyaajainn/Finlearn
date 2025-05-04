@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
-import UserAvatar from "./UserAvatar" 
+import UserAvatar from "./UserAvatar"
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -56,8 +56,8 @@ export default function Navbar() {
                 </div>
             </div>
 
-   {/* Mobile menu */}
-   {isMenuOpen && (
+            {/* Mobile menu */}
+            {isMenuOpen && (
                 <div className="md:hidden bg-zinc-900 border-b border-zinc-800">
                     <div className="container max-w-6xl mx-auto px-4 py-4 space-y-4">
                         <Link
