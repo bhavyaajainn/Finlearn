@@ -11,7 +11,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/firebase';
 
-// Types
+
 type SerializableUser = {
   uid: string;
   email: string | null;
@@ -28,7 +28,7 @@ type AuthState = {
   verificationEmailSent: boolean;
 };
 
-// Helper function to create a serializable user object
+
 const createSerializableUser = (user: FirebaseUser | null) => {
   if (!user) return null;
   
@@ -39,11 +39,11 @@ const createSerializableUser = (user: FirebaseUser | null) => {
     photoURL: user.photoURL,
     emailVerified: user.emailVerified,
     phoneNumber: user.phoneNumber,
-    // Add any other serializable properties you need
+    
   };
 };
 
-// Initial state
+
 const initialState: AuthState = {
   user: null,
   loading: true,
@@ -51,21 +51,21 @@ const initialState: AuthState = {
   verificationEmailSent: false
 };
 
-// Async thunks
+
 export const signInWithEmail = createAsyncThunk(
   'auth/signInWithEmail',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Uncomment this section if you want to require email verification before login
-      // if (!userCredential.user.emailVerified) {
-      //   // Option 1: Block login until email is verified
-      //   return rejectWithValue("Please verify your email before signing in.");
-      //   
-      //   // Option 2: Allow login but send another verification email
-      //   // await sendEmailVerification(userCredential.user);
-      // }
+      
+      
+      
+      
+      
+      
+      
+      
       
       return createSerializableUser(userCredential.user);
     } catch (error: any) {
@@ -80,7 +80,7 @@ export const signUpWithEmail = createAsyncThunk(
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Send email verification
+      
       await sendEmailVerification(userCredential.user);
       
       return {
@@ -130,7 +130,7 @@ export const checkAuthState = createAsyncThunk(
   }
 );
 
-// Auth slice
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -151,7 +151,7 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Check auth state
+      
       .addCase(checkAuthState.pending, (state) => {
         state.loading = true;
       })
@@ -159,7 +159,7 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.loading = false;
       })
-      // Sign in with email
+      
       .addCase(signInWithEmail.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -172,7 +172,7 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.loading = false;
       })
-      // Sign up with email
+      
       .addCase(signUpWithEmail.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -189,7 +189,7 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.loading = false;
       })
-      // Sign in with Google
+      
       .addCase(signInWithGoogle.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -202,7 +202,7 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.loading = false;
       })
-      // Sign out
+      
       .addCase(signOut.pending, (state) => {
         state.loading = true;
       })

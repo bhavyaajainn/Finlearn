@@ -1,4 +1,4 @@
-// app/components/ProtectedRoute.tsx
+
 "use client"
 
 import { useEffect } from 'react'
@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }
 
   if (!user) {
-    return null // Don't render anything before redirect happens
+    return null 
   }
 
   return <>{children}</>

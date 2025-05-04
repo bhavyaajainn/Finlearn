@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
-import UserAvatar from "./UserAvatar" // Import the new component
+import UserAvatar from "./UserAvatar" 
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
