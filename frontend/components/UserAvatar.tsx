@@ -252,7 +252,7 @@ export default function UserAvatar() {
 
   return (
     <>
-      {/* Avatar button */}
+      {/* Avatar button - Always show a user icon, even when logged in */}
       <button
         onClick={user ? handleSignOut : toggleModal}
         className={`flex items-center justify-center w-8 h-8 rounded-full ${
@@ -262,11 +262,7 @@ export default function UserAvatar() {
         } transition-colors`}
         aria-label="User profile"
       >
-        {user ? (
-          <LogOut size={16} className="text-white" />
-        ) : (
-          <User size={16} className="text-blue-400" />
-        )}
+        <User size={16} className="text-white" />
       </button>
 
       {/* Modal */}
@@ -591,30 +587,7 @@ export default function UserAvatar() {
                       {verificationEmailSent ? "Account Created" : "Sign Up"}
                     </button>
                   </form>
-                  <div className="mt-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-zinc-700"></div>
-                      </div>
-                      <div className="relative flex justify-center text-sm">
-                        <span className="px-2 bg-zinc-900 text-gray-400">
-                          Or continue with
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <button
-                        onClick={handleGoogleSignIn}
-                        className="w-full px-4 py-2 border border-zinc-700 rounded-md hover:bg-zinc-800 transition-colors flex items-center justify-center"
-                      >
-                        <AiOutlineGoogle
-                          size={20}
-                          className="mr-2 text-blue-400"
-                        />
-                        Sign up with Google
-                      </button>
-                    </div>
-                  </div>
+                  {/* Google sign-up section removed */}
                 </motion.div>
               )}
             </motion.div>
