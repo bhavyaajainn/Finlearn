@@ -15,6 +15,7 @@ import {
   AlertCircle,
   CheckCircle,
   Info,
+  RefreshCw,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
 import {
@@ -24,9 +25,11 @@ import {
   signOut,
   checkAuthState,
   clearVerificationStatus,
+  resendVerificationEmail,
 } from "@/app/store/slices/authSlice";
 import { useRouter } from "next/navigation";
 import { AiOutlineGoogle } from "react-icons/ai";
+import { Button } from "@/components/ui/button";
 
 // Tab interface
 type TabType = "signin" | "signup";
@@ -51,6 +54,10 @@ export default function UserAvatar() {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  
+  // State for resending verification email
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   // Password validation states
   const [passwordValid, setPasswordValid] = useState({
@@ -94,6 +101,7 @@ export default function UserAvatar() {
     setIsModalOpen(!isModalOpen);
     if (!isModalOpen) {
       dispatch(clearVerificationStatus());
+      setResendSuccess(false);
     }
   };
 
@@ -102,6 +110,7 @@ export default function UserAvatar() {
     setActiveTab(tab);
     // Clear verification status when switching tabs
     dispatch(clearVerificationStatus());
+    setResendSuccess(false);
   };
 
   // Toggle password visibility
@@ -151,6 +160,19 @@ export default function UserAvatar() {
     }
   }, [activeTab]);
 
+  // Handle resend verification email
+  const handleResendVerificationEmail = async () => {
+    setResendingEmail(true);
+    try {
+      await dispatch(resendVerificationEmail()).unwrap();
+      setResendSuccess(true);
+    } catch (err) {
+      console.error("Failed to resend verification email:", err);
+    } finally {
+      setResendingEmail(false);
+    }
+  };
+
   // Authentication handlers
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +184,10 @@ export default function UserAvatar() {
       router.push("/dashboard"); // Redirect to dashboard on successful signin
     } catch (err) {
       console.error("Sign-in failed:", err);
+      // Don't close modal if email is not verified
+      if (err !== 'email-not-verified') {
+        // Handle other errors normally
+      }
     }
   };
 
@@ -241,6 +267,55 @@ export default function UserAvatar() {
     );
   };
 
+  // Render email verification message
+  const renderEmailVerificationMessage = () => {
+    return (
+      <div className="mb-4 p-3 bg-amber-400/10 border border-amber-400/20 rounded-md text-amber-400 text-sm">
+        <div className="flex items-start mb-2">
+          <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Email verification required</p>
+            <p>
+              Please verify your email address before signing in. A verification email 
+              has been sent to your inbox.
+            </p>
+          </div>
+        </div>
+        <div className="mt-2">
+          <button
+            onClick={handleResendVerificationEmail}
+            disabled={resendingEmail || resendSuccess}
+            className={`flex items-center text-xs font-medium px-3 py-1.5 rounded-md 
+              ${
+                resendSuccess 
+                  ? "bg-green-500/20 text-green-400 cursor-not-allowed" 
+                  : resendingEmail 
+                  ? "bg-blue-500/20 text-blue-400 cursor-wait" 
+                  : "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+              }`}
+          >
+            {resendingEmail ? (
+              <>
+                <RefreshCw size={14} className="mr-1.5 animate-spin" />
+                Sending...
+              </>
+            ) : resendSuccess ? (
+              <>
+                <CheckCircle size={14} className="mr-1.5" />
+                Email sent!
+              </>
+            ) : (
+              <>
+                <RefreshCw size={14} className="mr-1.5" />
+                Resend verification email
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // If loading, show a loading indicator
   if (loading) {
     return (
@@ -297,8 +372,11 @@ export default function UserAvatar() {
                 </button>
               </div>
 
+              {/* Email verification message */}
+              {error === 'email-not-verified' && renderEmailVerificationMessage()}
+
               {/* Error message - with custom user-friendly messages */}
-              {error && (
+              {error && error !== 'email-not-verified' && (
                 <div className="mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-md text-red-400 text-sm flex items-start">
                   <AlertCircle
                     size={18}
@@ -317,7 +395,7 @@ export default function UserAvatar() {
               )}
 
               {/* Verification email sent success message */}
-              {verificationEmailSent && (
+              {verificationEmailSent && !error && (
                 <div className="mb-4 p-3 bg-green-400/10 border border-green-400/20 rounded-md text-green-400 text-sm flex items-start">
                   <CheckCircle
                     size={18}
@@ -326,7 +404,7 @@ export default function UserAvatar() {
                   <div>
                     <p className="font-medium">Registration successful!</p>
                     <p>
-                      Verification email sent. Please check your inbox.
+                      Verification email sent. Please check your inbox and verify your email before signing in.
                     </p>
                   </div>
                 </div>
