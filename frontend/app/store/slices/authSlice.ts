@@ -87,7 +87,9 @@ export const signInWithEmail = createAsyncThunk(
       saveUserToSessionStorage(serializableUser);
       return serializableUser;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      // Extract the error code for better error handling in the UI
+      const errorCode = error.code || '';
+      return rejectWithValue(errorCode);
     }
   }
 );
@@ -105,7 +107,9 @@ export const signUpWithEmail = createAsyncThunk(
         verificationEmailSent: true,
       };
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      // Extract the error code for better error handling in the UI
+      const errorCode = error.code || '';
+      return rejectWithValue(errorCode);
     }
   }
 );
@@ -120,7 +124,9 @@ export const signInWithGoogle = createAsyncThunk(
       saveUserToSessionStorage(serializableUser);
       return serializableUser;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      // Extract the error code for better error handling in the UI
+      const errorCode = error.code || '';
+      return rejectWithValue(errorCode);
     }
   }
 );
