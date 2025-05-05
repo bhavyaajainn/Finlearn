@@ -8,7 +8,6 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        
         ignoredActions: [
           'auth/signInWithGoogle/pending',
           'auth/signInWithGoogle/fulfilled', 
@@ -25,9 +24,11 @@ export const store = configureStore({
           'auth/checkAuthState/pending',
           'auth/checkAuthState/fulfilled',
           'auth/checkAuthState/rejected',
+          'auth/resendVerificationEmail/pending',
+          'auth/resendVerificationEmail/fulfilled', 
+          'auth/resendVerificationEmail/rejected',
           'auth/setUser'
         ],
-        
         ignoredPaths: ['auth.user'],
       },
     }),

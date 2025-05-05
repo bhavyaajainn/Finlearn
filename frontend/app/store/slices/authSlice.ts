@@ -83,6 +83,14 @@ export const signInWithEmail = createAsyncThunk(
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Check if the user's email is verified
+      if (!userCredential.user.emailVerified) {
+        // If email is not verified, send a new verification email and return an error
+        await sendEmailVerification(userCredential.user);
+        return rejectWithValue('email-not-verified');
+      }
+      
       const serializableUser = createSerializableUser(userCredential.user);
       saveUserToSessionStorage(serializableUser);
       return serializableUser;
@@ -110,6 +118,31 @@ export const signUpWithEmail = createAsyncThunk(
       // Extract the error code for better error handling in the UI
       const errorCode = error.code || '';
       return rejectWithValue(errorCode);
+    }
+  }
+);
+
+export const resendVerificationEmail = createAsyncThunk(
+  'auth/resendVerificationEmail',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      // Check if user exists in Redux store
+      const { auth: authState } = getState() as { auth: AuthState };
+      if (!authState.user) {
+        return rejectWithValue('no-user-logged-in');
+      }
+      
+      // Get the current Firebase user
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        return rejectWithValue('user-not-found');
+      }
+      
+      // Send the verification email
+      await sendEmailVerification(firebaseUser);
+      return true;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
     }
   }
 );
@@ -203,6 +236,9 @@ const authSlice = createSlice({
       .addCase(signInWithEmail.rejected, (state, action) => {
         state.error = action.payload as string;
         state.loading = false;
+        if (action.payload === 'email-not-verified') {
+          state.verificationEmailSent = true;
+        }
       })
       .addCase(signUpWithEmail.pending, (state) => {
         state.loading = true;
@@ -217,6 +253,9 @@ const authSlice = createSlice({
       .addCase(signUpWithEmail.rejected, (state, action) => {
         state.error = action.payload as string;
         state.loading = false;
+      })
+      .addCase(resendVerificationEmail.fulfilled, (state) => {
+        state.verificationEmailSent = true;
       })
       .addCase(signInWithGoogle.pending, (state) => {
         state.loading = true;
