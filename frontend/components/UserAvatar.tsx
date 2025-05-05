@@ -284,16 +284,37 @@ export default function UserAvatar() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-6 z-50"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-6 z-50 overflow-y-auto max-h-[90vh]"
               onClick={(e) => e.stopPropagation()} // Prevent modal closing when clicking inside
             >
               {/* Close button */}
-              <button
-                onClick={toggleModal}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={toggleModal}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Error message - with custom user-friendly messages */}
+              {error && (
+                <div className="mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-md text-red-400 text-sm flex items-start">
+                  <AlertCircle
+                    size={18}
+                    className="mr-2 mt-0.5 flex-shrink-0"
+                  />
+                  <div>
+                    {error.includes('invalid-credential') ? 'Invalid email or password.' : 
+                     error.includes('user-not-found') ? 'Account not found. Please sign up.' :
+                     error.includes('wrong-password') ? 'Incorrect password. Please try again.' :
+                     error.includes('email-already-in-use') ? 'Email already registered. Please sign in.' :
+                     error.includes('weak-password') ? 'Password is too weak. Please use a stronger password.' :
+                     error.includes('too-many-requests') ? 'Too many attempts. Please try again later.' :
+                     'Authentication failed. Please try again.'}
+                  </div>
+                </div>
+              )}
 
               {/* Verification email sent success message */}
               {verificationEmailSent && (
@@ -303,23 +324,11 @@ export default function UserAvatar() {
                     className="mr-2 mt-0.5 flex-shrink-0"
                   />
                   <div>
-                    <p className="font-medium">Verification email sent!</p>
+                    <p className="font-medium">Registration successful!</p>
                     <p>
-                      Please check your email to verify your account before
-                      signing in.
+                      Verification email sent. Please check your inbox.
                     </p>
                   </div>
-                </div>
-              )}
-
-              {/* Error message */}
-              {error && (
-                <div className="mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-md text-red-400 text-sm flex items-start">
-                  <AlertCircle
-                    size={18}
-                    className="mr-2 mt-0.5 flex-shrink-0"
-                  />
-                  <div>{error}</div>
                 </div>
               )}
 
@@ -587,7 +596,6 @@ export default function UserAvatar() {
                       {verificationEmailSent ? "Account Created" : "Sign Up"}
                     </button>
                   </form>
-                  {/* Google sign-up section removed */}
                 </motion.div>
               )}
             </motion.div>
