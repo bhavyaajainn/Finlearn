@@ -2,7 +2,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, ExternalLink, ThumbsUp } from "lucide-react"
+import { BookOpen, ExternalLink, Save, Store, ThumbsUp } from "lucide-react"
 
 interface TermModalProps {
   isOpen: boolean
@@ -64,11 +64,11 @@ export function TermModal({ isOpen, onClose, term }: TermModalProps) {
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 sm:w-auto w-full">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Learn More
+          <Button variant="ghost" className="border-gray-700 bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white cursor-pointer sm:w-auto w-full">
+            <Save className="mr-2 h-4 w-4" />
+            Add To My Glossary
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white sm:w-auto w-full">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white sm:w-auto w-full cursor-pointer">
             <ThumbsUp className="mr-2 h-4 w-4" />
             Got It
           </Button>

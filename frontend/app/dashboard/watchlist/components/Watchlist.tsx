@@ -84,7 +84,7 @@ export function Watchlist() {
 
   return (
     <>
-      <div className="h-full overflow-auto p-6">
+      <div className="h-full overflow-auto p-6 container mx-auto">
         <motion.div variants={container} initial="hidden" animate="show" className="grid gap-6">
           <motion.div variants={item} className="flex items-center justify-between">
             <div>

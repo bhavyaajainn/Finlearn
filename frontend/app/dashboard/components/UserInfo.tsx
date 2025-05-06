@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Flame, Trophy, TrendingUp } from "lucide-react"
+import { Flame, Trophy, TrendingUp, Calendar } from "lucide-react"
 
 export function UserInfo() {
   return (
@@ -18,24 +18,28 @@ export function UserInfo() {
         <div className="grid gap-6 sm:grid-cols-3">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <Trophy className="h-4 w-4 text-yellow-500" />
-              <span className="text-sm font-medium text-gray-200">XP Points</span>
+              <Calendar className="h-4 w-4 text-yellow-500" />
+              <span className="text-sm font-medium text-gray-200">Days Visited Learning Hub</span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-white">1,250</span>
               <Badge variant="outline" className="bg-green-950/50 text-green-400 border-green-800">
                 <TrendingUp className="mr-1 h-3 w-3" />
-                +25 today
+                20 Days Steak
               </Badge>
             </div>
-            <Progress value={65} className="h-2 bg-blue-950/50" />
-            <span className="text-xs text-gray-400">650 XP until next level</span>
+            <div className="flex gap-1">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className={`h-1.5 w-full rounded-full ${i < 5 ? "bg-blue-500" : "bg-blue-900"}`} />
+              ))}
+            </div>
+            <span className="text-xs text-gray-400">Keep Participating in Quizzes to earn more XP!</span>
           </div>
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-orange-500" />
-              <span className="text-sm font-medium text-gray-200">Streak</span>
+              <span className="text-sm font-medium text-gray-200">No. Quizzez you participated</span>
             </div>
             <motion.div
               className="flex items-baseline gap-2"
@@ -47,15 +51,12 @@ export function UserInfo() {
                 duration: 1.5,
               }}
             >
-              <span className="text-2xl font-bold text-white">7</span>
-              <span className="text-sm text-gray-400">days</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-white">1,250</span>
+              </div>
             </motion.div>
-            <div className="flex gap-1">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className={`h-1.5 w-full rounded-full ${i < 5 ? "bg-blue-500" : "bg-blue-950/50"}`} />
-              ))}
-            </div>
-            <span className="text-xs text-gray-400">Keep learning daily!</span>
+            <Progress value={65} className="h-2 bg-blue-500" />
+            <span className="text-xs text-gray-400">650 XP until next level</span>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -67,7 +68,7 @@ export function UserInfo() {
               <span className="text-2xl font-bold text-white">42</span>
               <span className="text-sm text-gray-400">of 100</span>
             </div>
-            <Progress value={42} className="h-2 bg-blue-950/50" />
+            <Progress value={42} className="h-2 bg-blue-500" />
             <span className="text-xs text-gray-400">58 more to master basics</span>
           </div>
         </div>
