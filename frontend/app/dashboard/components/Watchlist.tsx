@@ -19,8 +19,8 @@ const Watchlist = () => {
             </CardHeader>
             <CardContent>
                 <div className="space-y-2">
-                    {watchlistItems.map((item) => (
-                        <div key={item.ticker} className="flex items-center justify-between py-2">
+                    {watchlistItems.map((item,i) => (
+                        <div key={i} className="flex items-center justify-between py-2">
                             <div>
                                 <div className="font-medium text-white">{item.ticker}</div>
                                 <div className="text-sm text-gray-400">{item.name}</div>
