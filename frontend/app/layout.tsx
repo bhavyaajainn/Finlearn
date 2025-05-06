@@ -6,6 +6,8 @@ import { Provider } from "react-redux";
 import { store } from "@/app/store";
 import { useEffect } from "react";
 import { checkAuthState } from "@/app/store/slices/authSlice"; 
+import ErrorBoundary from "./ErrorBoundary";
+
 
 const geistSans = Poppins({
   subsets: ["latin"],
@@ -32,7 +34,9 @@ export default function RootLayout({
       <body className={`${geistSans.className} antialiased`}>
         <Provider store={store}>
           <AuthInitializer />
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </Provider>
       </body>
     </html>
