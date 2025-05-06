@@ -1,11 +1,9 @@
-"use client"
+import { Dashboard } from "./components/Dashboard"
 
-import React from 'react'
-
-const page = () => {
+export default function Home() {
   return (
-    <div>dashboard</div>
+    <>
+      <Dashboard />
+    </>
   )
 }
-
-export default page

@@ -1,10 +1,5 @@
-"use client"
-import React from 'react'
+import { Watchlist } from "./components/Watchlist";
 
-const page = () => {
-  return (
-    <div>watchlist</div>
-  )
+export default function page() {
+  return <Watchlist />
 }
-
-export default page
