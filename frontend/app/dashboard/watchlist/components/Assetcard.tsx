@@ -12,7 +12,7 @@ interface Asset {
   price: number
   change: number
   changePercent: number
-  trend: "up" | "down"
+  trend: string
 }
 
 interface AssetCardProps {
