@@ -74,7 +74,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
         <SidebarGroup>
           <SidebarGroupLabel>User</SidebarGroupLabel>
           <SidebarGroupContent>
