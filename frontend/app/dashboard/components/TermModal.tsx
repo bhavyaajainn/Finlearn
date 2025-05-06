@@ -50,9 +50,9 @@ export function TermModal({ isOpen, onClose, term }: TermModalProps) {
           <div>
             <h4 className="text-sm font-medium text-gray-400">Related Terms</h4>
             <div className="mt-1 flex flex-wrap gap-2">
-              {termData.relatedTerms.map((relatedTerm) => (
+              {termData.relatedTerms.map((relatedTerm,i) => (
                 <Badge
-                  key={relatedTerm}
+                  key={i}
                   variant="outline"
                   className="bg-blue-950/50 text-blue-300 border-blue-800 cursor-pointer hover:bg-blue-900/50"
                 >
