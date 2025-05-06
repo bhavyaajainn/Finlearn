@@ -22,44 +22,20 @@ export function AppSidebar() {
   const pathname = usePathname()
 
   const mainNavItems = [
-    {
-      title: "Dashboard",
-      href: "/",
-      icon: Home,
-    },
-    {
-      title: "Watchlist",
-      href: "/watchlist",
-      icon: LineChart,
-    },
-    {
-      title: "Learn",
-      href: "/learn",
-      icon: BookOpen,
-    },
-    {
-      title: "Analytics",
-      href: "/analytics",
-      icon: BarChart3,
-    },
+    { title: "Dashboard", href: "/", icon: Home },
+    { title: "Watchlist", href: "/watchlist", icon: LineChart },
+    { title: "Learn", href: "/learn", icon: BookOpen },
+    { title: "Analytics", href: "/analytics", icon: BarChart3 },
   ]
 
   const userNavItems = [
-    {
-      title: "Profile",
-      href: "/profile",
-      icon: User,
-    },
-    {
-      title: "Settings",
-      href: "/settings",
-      icon: Settings,
-    },
+    { title: "Profile", href: "/profile", icon: User },
+    { title: "Settings", href: "/settings", icon: Settings },
   ]
 
   return (
-    <Sidebar>
-      <SidebarHeader>
+    <Sidebar className="bg-black w-64"> {/* 👈 Fixed width */}
+      <SidebarHeader className="bg-black">
         <div className="flex items-center gap-2 px-4 py-2">
           <motion.div
             initial={{ scale: 0.9 }}
@@ -79,7 +55,8 @@ export function AppSidebar() {
           </motion.div>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+
+      <SidebarContent className="bg-black text-white">
         <SidebarGroup>
           <SidebarGroupLabel>Main</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -97,6 +74,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
         <SidebarGroup>
           <SidebarGroupLabel>User</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -115,7 +93,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="bg-black">
         <div className="px-3 py-2">
           <div className="flex items-center gap-3 rounded-md bg-blue-950/50 p-2">
             <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
@@ -128,6 +107,7 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarFooter>
+
       <SidebarRail />
     </Sidebar>
   )

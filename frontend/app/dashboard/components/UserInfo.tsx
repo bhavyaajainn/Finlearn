@@ -10,7 +10,7 @@ import { Flame, Trophy, TrendingUp } from "lucide-react"
 
 export function UserInfo() {
   return (
-    <Card className="bg-black border-blue-900/50">
+    <Card className="bg-black border-blue-900/50 w-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg text-white">Your Progress</CardTitle>
       </CardHeader>
@@ -28,7 +28,7 @@ export function UserInfo() {
                 +25 today
               </Badge>
             </div>
-            <Progress value={65} className="h-2 bg-blue-950/50" indicatorClassName="bg-blue-500" />
+            <Progress value={65} className="h-2 bg-blue-950/50" />
             <span className="text-xs text-gray-400">650 XP until next level</span>
           </div>
 
@@ -67,7 +67,7 @@ export function UserInfo() {
               <span className="text-2xl font-bold text-white">42</span>
               <span className="text-sm text-gray-400">of 100</span>
             </div>
-            <Progress value={42} className="h-2 bg-blue-950/50" indicatorClassName="bg-blue-500" />
+            <Progress value={42} className="h-2 bg-blue-950/50" />
             <span className="text-xs text-gray-400">58 more to master basics</span>
           </div>
         </div>
