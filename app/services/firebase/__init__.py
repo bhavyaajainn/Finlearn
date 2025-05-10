@@ -19,6 +19,8 @@ from .reading_log import (
     log_topic_read
 )
 
+from .categories import get_user_categories
+
 # You can add any package initialization code here if needed
 
 __all__ = [
@@ -27,5 +29,6 @@ __all__ = [
     "add_to_watchlist",
     "remove_from_watchlist",
     "get_user_day_log",
-    "log_topic_read"
+    "log_topic_read",
+    "get_user_categories"
 ]
