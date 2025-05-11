@@ -1,7 +1,6 @@
 "use client"
 
 import { Search, Award } from 'lucide-react';
-import { ArticleCategory } from '../mockData';
 
 interface SearchAndFiltersProps {
   searchTerm: string;

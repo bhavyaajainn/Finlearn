@@ -1,10 +1,10 @@
 "use client"
 
 import { X } from 'lucide-react';
-import { Concept } from '../mockData';
+import { RelatedConcept } from '@/app/store/slices/learningSlice';
 
 interface ConceptModalProps {
-  concept: Concept | null;
+  concept: RelatedConcept | null;
   onClose: () => void;
 }
 
