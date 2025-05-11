@@ -15,7 +15,7 @@ paths:
       tags:
         - User Preferences
       parameters:
-        - name: userId
+        - name: user_id
           in: query
           required: true
           schema:
@@ -36,7 +36,7 @@ paths:
       tags:
         - User Preferences
       parameters:
-        - name: userId
+        - name: user_id
           in: query
           required: true
           schema:
@@ -61,7 +61,7 @@ paths:
       tags:
         - User Preferences
       parameters:
-        - name: userId
+        - name: user_id
           in: query
           required: true
           schema:
@@ -315,8 +315,6 @@ components:
           items:
             type: string
           example: ["Inflation", "Stock Market", "Bonds"]
-        description:
-          type: string
           
     ArticleResponse:
       type: object
