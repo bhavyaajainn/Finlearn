@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAppDispatch } from '@/app/store/hooks'
 import { signOut } from '@/app/store/slices/authSlice'
-import { User, Settings, LogOut, ChevronDown, Menu, X } from 'lucide-react'
+import { User, LogOut, ChevronDown, Menu, X } from 'lucide-react'
 
 export default function DashboardNavbar() {
   const dispatch = useAppDispatch()
@@ -44,48 +44,42 @@ export default function DashboardNavbar() {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link 
-              href="/dashboard" 
+            <Link
+              href="/dashboard"
               className={`${isActiveLink('/dashboard') ? 'text-blue-400' : 'text-gray-300'} hover:text-blue-400 transition-colors`}
             >
               Dashboard
             </Link>
-            <Link 
-              href="/dashboard/watchlist" 
+            <Link
+              href="/dashboard/watchlist"
               className={`${isActiveLink('/dashboard/watchlist') ? 'text-blue-400' : 'text-gray-300'} hover:text-blue-400 transition-colors`}
             >
               Watchlist
             </Link>
-            <Link 
-              href="/dashboard/learning" 
+            <Link
+              href="/dashboard/learning"
               className={`${isActiveLink('/dashboard/learning') ? 'text-blue-400' : 'text-gray-300'} hover:text-blue-400 transition-colors`}
             >
               Learning Hub
             </Link>
-            <Link 
-              href="/dashboard/leaderboard" 
-              className={`${isActiveLink('/dashboard/leaderboard') ? 'text-blue-400' : 'text-gray-300'} hover:text-blue-400 transition-colors`}
-            >
-              Leaderboard
-            </Link>
-            
+
             {/* Avatar with Dropdown */}
             <div className="relative">
-              <button 
+              <button
                 onClick={toggleDropdown}
-                className="flex items-center space-x-2 text-gray-300 hover:text-white" 
+                className="flex items-center space-x-2 text-gray-300 hover:text-white"
               >
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600">
                   <User size={16} className="text-white" />
                 </div>
                 <ChevronDown size={16} className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {/* Dropdown Menu */}
               {showDropdown && (
                 <div className="absolute right-0 mt-2 w-48 py-1 bg-zinc-900 border border-zinc-800 rounded-md shadow-lg z-50">
-                  <Link 
-                    href="/dashboard/profile" 
+                  <Link
+                    href="/dashboard/profile"
                     className="block px-4 py-2 text-sm text-gray-300 hover:bg-zinc-800"
                     onClick={() => setShowDropdown(false)}
                   >
@@ -94,18 +88,8 @@ export default function DashboardNavbar() {
                       <span>Profile</span>
                     </div>
                   </Link>
-                  <Link 
-                    href="/dashboard/settings" 
-                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-zinc-800"
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    <div className="flex items-center">
-                      <Settings size={14} className="mr-2" />
-                      <span>Settings</span>
-                    </div>
-                  </Link>
                   <div className="border-t border-zinc-800 my-1"></div>
-                  <button 
+                  <button
                     onClick={() => {
                       handleLogout()
                       setShowDropdown(false)
@@ -159,13 +143,6 @@ export default function DashboardNavbar() {
             >
               Learning Hub
             </Link>
-            <Link
-              href="/dashboard/leaderboard"
-              className={`${isActiveLink('/dashboard/leaderboard') ? 'text-blue-400' : 'text-gray-300'} hover:text-blue-400`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Leaderboard
-            </Link>
             <div className="border-t border-zinc-800 pt-4">
               <Link
                 href="/dashboard/profile"
@@ -175,16 +152,6 @@ export default function DashboardNavbar() {
                 <div className="flex items-center">
                   <User size={16} className="mr-2" />
                   <span>Profile</span>
-                </div>
-              </Link>
-              <Link
-                href="/dashboard/settings"
-                className="block text-gray-300 hover:text-blue-400 mb-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <div className="flex items-center">
-                  <Settings size={16} className="mr-2" />
-                  <span>Settings</span>
                 </div>
               </Link>
               <button

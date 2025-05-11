@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { BarChart3, BookOpen, Home, LineChart, Settings, User } from "lucide-react"
+import { BarChart3, BookOpen, Home, LineChart, User } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -30,7 +30,6 @@ export function AppSidebar() {
 
   const userNavItems = [
     { title: "Profile", href: "/profile", icon: User },
-    { title: "Settings", href: "/settings", icon: Settings },
   ]
 
   return (
