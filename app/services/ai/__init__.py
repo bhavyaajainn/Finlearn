@@ -24,7 +24,8 @@ from .perplexity import (
     # get_trending_topics as perplexity_get_trending_topics,
     generate_article as perplexity_generate_article,
     generate_category_topics as perplexity_generate_category_topics,
-    get_daily_topics as perplexity_get_daily_topics
+    get_daily_topics as perplexity_get_daily_topics,
+    generate_reading_summary as perplexity_generate_reading_summary,
 )
 
 # Default implementations (you can choose which service to use as default)
@@ -45,6 +46,7 @@ get_deep_research_on_stock = perplexity_get_research
 generate_article = perplexity_generate_article
 generate_category_topics = perplexity_generate_category_topics
 get_daily_topics = perplexity_get_daily_topics
+generate_reading_summary =perplexity_generate_reading_summary
 
 __all__ = [
     # Direct provider-specific functions
@@ -73,4 +75,5 @@ __all__ = [
     "get_deep_research_on_stock",
     "get_trending_topics",
     "generate_article",
+   " generate_reading_summary"
 ]

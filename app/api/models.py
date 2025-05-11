@@ -26,3 +26,9 @@ class ArticleResponse(BaseModel):
     user_id: str
     level: str
     articles: Dict[str, List[Article]]
+
+class TooltipView(BaseModel):
+    user_id: str
+    word: str
+    tooltip: str
+    from_topic: Optional[str] = None
