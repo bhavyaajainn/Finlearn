@@ -10,7 +10,7 @@ from .client import db
 from .watchlist import (
     get_user_watchlist,
     add_to_watchlist,
-    remove_from_watchlist  # Uncomment if you have a remove function
+    remove_from_watchlist
 )
 
 # Import and expose reading log functionality
@@ -21,6 +21,12 @@ from .reading_log import (
 
 from .categories import get_user_categories
 
+# Import and expose selected topics functionality
+from .selectedtopics import (
+    get_user_selected_topics,
+    save_user_selected_topics
+)
+
 # You can add any package initialization code here if needed
 
 __all__ = [
@@ -30,5 +36,7 @@ __all__ = [
     "remove_from_watchlist",
     "get_user_day_log",
     "log_topic_read",
-    "get_user_categories"
+    "get_user_categories",
+    "get_user_selected_topics",
+    "save_user_selected_topics"
 ]

@@ -10,7 +10,10 @@ class DeepDiveResponse(BaseModel):
     text: str
     tooltip_words: List[TooltipWord]  # List of TooltipWord objects
 
-
+class Topics(BaseModel):
+    expertise_level: str
+    topics: List[str]
+    description: Optional[str] = None
 
 class Article(BaseModel):
     id: str
