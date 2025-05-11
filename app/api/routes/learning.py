@@ -34,6 +34,9 @@ from app.services.firebase.categories import get_user_categories
 from app.services.firebase.cache import should_refresh_topics
 from app.services.firebase.reading_log import log_tooltip_viewed
 
+from app.services.firebase.selectedcategories import get_user_selected_categories
+from app.services.firebase.cache import get_cache_timestamp
+
 # Define expertise levels as an enum for validation
 class ExpertiseLevel(str, Enum):
     beginner = "beginner"
@@ -197,7 +200,83 @@ async def get_daily_category_topics(
     }
 
 
-# Add this new endpoint
+@router.get("/user/recommendedtopics")
+async def get_user_recommended_topics(
+    user_id: str,
+    refresh: bool = False  # Allow manual refresh option
+) -> Dict[str, Any]:
+    """Get personalized topic recommendations based on user's selected categories and current news.
+    Args:
+        user_id: User identifier
+        refresh: Force refresh topics even if cache exists
+    Returns:
+        List of recommended topics across user's selected categories
+    """
+    # 1. First get user preferences
+    user_preferences = get_user_selected_categories(user_id)
+    
+    if not user_preferences:
+        raise HTTPException(status_code=404, detail="No preferences found for this user")
+    
+    # 2. Extract expertise level and categories
+    expertise_level = user_preferences.get("expertise_level", "intermediate")
+    selected_categories = user_preferences.get("categories", [])
+    
+    if not selected_categories:
+        raise HTTPException(status_code=404, detail="No categories selected for this user")
+    
+    # 3. Fetch topics for each category
+    recommendations = {}
+    
+    for category in selected_categories:
+        # Check if we need to refresh
+        need_refresh = refresh or should_refresh_topics(category, expertise_level)
+        
+        # Get or generate topics
+        if need_refresh:
+            topics = get_daily_topics(category, expertise_level, user_id)
+        else:
+            topics = get_cached_topics(category, expertise_level) or []
+        
+        # Select 2 topics from each category (or fewer if not enough)
+        recommendations[category] = topics[:2] if topics else []
+    
+    # 4. Define date range for reading history (last 90 days)
+    from datetime import date, timedelta
+    end_date = date.today()
+    start_date = end_date - timedelta(days=7)
+    
+    # 5. Get unified reading history for all categories
+    user_history = get_user_read_history(user_id, start_date, end_date)
+
+    # 6. Create a lookup dictionary for efficiency
+    viewed_topics_by_category = {}
+    for item in user_history:
+        category = item.get('category')
+        topic_id = item.get('topic_id')
+        if category and topic_id:
+            if category not in viewed_topics_by_category:
+                viewed_topics_by_category[category] = set()
+            viewed_topics_by_category[category].add(topic_id)
+
+    # 7. Mark topics as viewed in each category
+    for category, topics_list in recommendations.items():
+        viewed_topic_ids = viewed_topics_by_category.get(category, set())
+        for topic in topics_list:
+            topic["viewed"] = topic["topic_id"] in viewed_topic_ids
+    
+    # 8. Get cache refresh timestamp
+    cache_time = None
+    if selected_categories:
+        cache_time = get_cache_timestamp(selected_categories[0], expertise_level)
+    
+    return {
+        "user_id": user_id,
+        "expertise_level": expertise_level,
+        "selected_categories": selected_categories,
+        "recommendations": recommendations,
+        "refreshed_at": cache_time.isoformat() if cache_time else datetime.now().isoformat()
+    }
 
 @router.get("/article/topic/{topic_id}")
 async def get_topic_article(

@@ -22,9 +22,9 @@ from .reading_log import (
 from .categories import get_user_categories
 
 # Import and expose selected topics functionality
-from .selectedtopics import (
-    get_user_selected_topics,
-    save_user_selected_topics
+from .selectedcategories import (
+    get_user_selected_categories,
+    save_user_selected_categories
 )
 
 # You can add any package initialization code here if needed
@@ -37,6 +37,6 @@ __all__ = [
     "get_user_day_log",
     "log_topic_read",
     "get_user_categories",
-    "get_user_selected_topics",
-    "save_user_selected_topics"
+    "get_user_selected_categories",
+    "save_user_selected_categories",
 ]
