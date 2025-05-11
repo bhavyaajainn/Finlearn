@@ -212,20 +212,20 @@ async def get_user_recommended_topics(
     Returns:
         List of recommended topics across user's selected categories
     """
-    # Get user's selected categories and expertise level
+    # 1. First get user preferences
     user_preferences = get_user_selected_categories(user_id)
     
     if not user_preferences:
         raise HTTPException(status_code=404, detail="No preferences found for this user")
     
-    # Extract user's expertise level and categories
+    # 2. Extract expertise level and categories
     expertise_level = user_preferences.get("expertise_level", "intermediate")
     selected_categories = user_preferences.get("categories", [])
     
     if not selected_categories:
         raise HTTPException(status_code=404, detail="No categories selected for this user")
     
-    # Fetch topics for each category
+    # 3. Fetch topics for each category
     recommendations = {}
     
     for category in selected_categories:
@@ -241,7 +241,31 @@ async def get_user_recommended_topics(
         # Select 2 topics from each category (or fewer if not enough)
         recommendations[category] = topics[:2] if topics else []
     
-    # Get cache refresh timestamp from any of the categories
+    # 4. Define date range for reading history (last 90 days)
+    from datetime import date, timedelta
+    end_date = date.today()
+    start_date = end_date - timedelta(days=7)
+    
+    # 5. Get unified reading history for all categories
+    user_history = get_user_read_history(user_id, start_date, end_date)
+
+    # 6. Create a lookup dictionary for efficiency
+    viewed_topics_by_category = {}
+    for item in user_history:
+        category = item.get('category')
+        topic_id = item.get('topic_id')
+        if category and topic_id:
+            if category not in viewed_topics_by_category:
+                viewed_topics_by_category[category] = set()
+            viewed_topics_by_category[category].add(topic_id)
+
+    # 7. Mark topics as viewed in each category
+    for category, topics_list in recommendations.items():
+        viewed_topic_ids = viewed_topics_by_category.get(category, set())
+        for topic in topics_list:
+            topic["viewed"] = topic["topic_id"] in viewed_topic_ids
+    
+    # 8. Get cache refresh timestamp
     cache_time = None
     if selected_categories:
         cache_time = get_cache_timestamp(selected_categories[0], expertise_level)
