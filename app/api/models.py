@@ -13,7 +13,6 @@ class DeepDiveResponse(BaseModel):
 class Topics(BaseModel):
     expertise_level: str
     topics: List[str]
-    description: Optional[str] = None
 
 class Article(BaseModel):
     id: str
