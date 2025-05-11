@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 import uvicorn
 import os
-from fastapi.middleware.cors import CORSMiddleware 
+import yaml
+from pathlib import Path
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from app.api import api_router
 
@@ -11,6 +14,35 @@ app = FastAPI(
     description="Financial Learning and Research Platform",
     version="1.0.0"
 )
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title="Finlearn API",
+        version="1.0.0",
+        description="Financial Learning and Research Platform",
+        routes=app.routes,
+    )
+    
+    # Customize server URLs if needed
+    openapi_schema["servers"] = [
+        {"url": "https://finlearn.onrender.com", "description": "Production server"}
+    ]
+    
+    # Save schema to YAML file
+    openapi_path = Path(__file__).parent.parent / "openapi.yaml"
+    with open(openapi_path, "w") as file:
+        yaml.dump(openapi_schema, file, sort_keys=False)
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+# Set custom OpenAPI function
+app.openapi = custom_openapi
+
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,

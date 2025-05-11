@@ -1,0 +1,551 @@
+openapi: 3.0.0
+info:
+  title: Finlearn API
+  description: Financial Learning and Research Platform
+  version: 1.0.0
+  
+servers:
+  - url: https://finlearn.onrender.com
+    description: Default API path
+  
+paths:
+  /selectedtopics:
+    get:
+      summary: Retrieve a list of selected topics
+      tags:
+        - User Preferences
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The ID of the user to retrieve topics for
+      responses:
+        '200':
+          description: A list of selected topics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Topics'
+
+    post:
+      summary: Create a new topic and expertise level list
+      tags:
+        - User Preferences
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The ID of the user to create topics for
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Topics'
+      responses:
+        '201':
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topics'
+
+    put:
+      summary: Update topic and expertise level list
+      tags:
+        - User Preferences
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The ID of the user to update topics for
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Topics'
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topics'
+                
+  /learning/dailytopics:
+    get:
+      summary: Get daily topics within a financial category
+      operationId: getDailyTopics
+      tags:
+        - Learning
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User identifier
+        - name: category
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Financial category to explore
+        - name: level
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [beginner, intermediate, advanced]
+            default: intermediate
+          description: Expertise level
+        - name: refresh
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Force refresh topics even if cache exists
+      responses:
+        '200':
+          description: Successfully retrieved daily topics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyTopicsResponse'
+  
+  /learning/article/topic/{topic_id}:
+    get:
+      summary: Generate article for specific topic
+      operationId: getTopicArticle
+      tags:
+        - Learning
+      parameters:
+        - name: topic_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the topic to generate an article for
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User identifier
+        - name: level
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [beginner, intermediate, advanced]
+          description: Optional override for expertise level
+      responses:
+        '200':
+          description: Successfully generated article for topic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicArticleResponse'
+        '404':
+          description: Topic not found
+  
+  /learning/tooltip/view:
+    post:
+      summary: Log when user views tooltip
+      operationId: logTooltipView
+      tags:
+        - Learning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TooltipView'
+      responses:
+        '200':
+          description: Successfully logged tooltip view
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  user_id:
+                    type: string
+                  word:
+                    type: string
+  
+  /learning/summary:
+    get:
+      summary: Get summary of user's reading activity
+      operationId: getUserSummary
+      tags:
+        - Learning
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User identifier
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [day, week, month, custom]
+            default: day
+          description: Time period for the summary
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Custom start date (format- YYYY-MM-DD)
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Custom end date (format- YYYY-MM-DD)
+      responses:
+        '200':
+          description: Successfully retrieved user summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummaryResponse'
+        '400':
+          description: Invalid parameters
+  
+  /learning/user/streak:
+    get:
+      summary: Get user's learning streak information
+      operationId: getUserStreak
+      tags:
+        - Learning
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User identifier
+      responses:
+        '200':
+          description: Successfully retrieved user streak data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStreakResponse'
+  
+  /learning/summary/heatmap:
+    get:
+      summary: Get user's activity data for heatmap
+      operationId: getYearlyHeatmap
+      tags:
+        - Learning
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User identifier
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Year to get data for (defaults to current year)
+      responses:
+        '200':
+          description: Successfully retrieved heatmap data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatmapResponse'
+  
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+components:
+  schemas:
+    Topics:
+      type: object
+      properties:
+        expertise_level:
+          type: string
+          example: "beginner"
+        topics:
+          type: array
+          items:
+            type: string
+          example: ["Inflation", "Stock Market", "Bonds"]
+        description:
+          type: string
+          
+    ArticleResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        articles:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/Article'
+    
+    Article:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+        tooltip_words:
+          type: array
+          items:
+            $ref: '#/components/schemas/TooltipWord'
+    
+    TooltipWord:
+      type: object
+      properties:
+        word:
+          type: string
+        tooltip:
+          type: string
+    
+    TopicsResponse:
+      type: object
+      properties:
+        category:
+          type: string
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/Topic'
+    
+    Topic:
+      type: object
+      properties:
+        topic_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        expertise_level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+    
+    DailyTopicsResponse:
+      type: object
+      properties:
+        category:
+          type: string
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        topics:
+          type: array
+          items:
+            $ref: '#/components/schemas/Topic'
+        refreshed_at:
+          type: string
+          format: date-time
+        is_fresh:
+          type: boolean
+    
+    TopicArticleResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        topic_id:
+          type: string
+        topic_info:
+          $ref: '#/components/schemas/Topic'
+        article:
+          $ref: '#/components/schemas/Article'
+    
+    TooltipView:
+      type: object
+      required:
+        - user_id
+        - word
+        - tooltip
+      properties:
+        user_id:
+          type: string
+        word:
+          type: string
+        tooltip:
+          type: string
+        from_topic:
+          type: string
+    
+    DeepDiveResponse:
+      type: object
+      properties:
+        topic:
+          type: string
+        content:
+          type: string
+        key_takeaways:
+          type: array
+          items:
+            type: string
+    
+    UserSummaryResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        period:
+          type: string
+        date_range:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date
+            end:
+              type: string
+              format: date
+        statistics:
+          type: object
+        streak:
+          type: object
+        articles_read:
+          type: array
+          items:
+            type: object
+        tooltips_viewed:
+          type: array
+          items:
+            type: object
+        summary:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+    
+    ProgressChartResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        period:
+          type: string
+        date_range:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date
+            end:
+              type: string
+              format: date
+        articles_data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              count:
+                type: integer
+        tooltips_data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              count:
+                type: integer
+        categories_data:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              properties:
+                date:
+                  type: string
+                count:
+                  type: integer
+    
+    UserStreakResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        streak:
+          type: object
+        fetched_at:
+          type: string
+          format: date-time
+    
+    HeatmapResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        year:
+          type: integer
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              count:
+                type: integer
