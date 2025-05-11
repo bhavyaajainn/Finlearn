@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+firebase-admin
+requests
+yfinance
+boto3
