@@ -2,3 +2,4 @@ fastapi
 uvicorn
 firebase-admin
 requests
+yfinance
