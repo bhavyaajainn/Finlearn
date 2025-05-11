@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 import uvicorn
 import os
+from fastapi.middleware.cors import CORSMiddleware 
 
 from app.api import api_router
 
@@ -9,6 +10,14 @@ app = FastAPI(
     title="Finlearn",
     description="Financial Learning and Research Platform",
     version="1.0.0"
+)
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For development - consider restricting this in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(api_router)
