@@ -30,11 +30,16 @@ import {
 import { useRouter } from "next/navigation";
 import { AiOutlineGoogle } from "react-icons/ai";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "./ui/label";
+import { expertiseLevels, topicOptions } from "@/lib/data";
+import { MultiSelect } from "./multi-select";
 
 // Tab interface
 type TabType = "signin" | "signup";
 
-export default function UserAvatar() {
+export default function UserAvatar({ myuser, isNewUser }: { myuser: any; isNewUser: boolean }) {
   // Redux
   const dispatch = useAppDispatch();
   const { user, loading, error, verificationEmailSent } = useAppSelector(
@@ -54,7 +59,7 @@ export default function UserAvatar() {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [showSignupPassword, setShowSignupPassword] = useState(false);
-  
+
   // State for resending verification email
   const [resendingEmail, setResendingEmail] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -67,6 +72,23 @@ export default function UserAvatar() {
     hasNumber: false,
     hasSpecial: false,
   });
+
+
+  const [open, setOpen] = useState(isNewUser);
+  const [expertise, setExpertise] = useState("");
+  const [topics, setTopics] = useState<string[]>([]);
+
+  const handleSave = async () => {
+    if (!expertise || topics.length === 0) return;
+
+    await fetch("/api/save-user-meta", {
+      method: "POST",
+      body: JSON.stringify({ uid: user?.uid, expertise, topics }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    setOpen(false);
+  };
 
   // Check password strength
   useEffect(() => {
@@ -270,13 +292,54 @@ export default function UserAvatar() {
   // Render email verification message
   const renderEmailVerificationMessage = () => {
     return (
+
       <div className="mb-4 p-3 bg-amber-400/10 border border-amber-400/20 rounded-md text-amber-400 text-sm">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Tell us about you!</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label>Expertise Level</Label>
+                <Select onValueChange={setExpertise}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {expertiseLevels.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Topics of Interest</Label>
+                <MultiSelect
+                  options={topicOptions}
+                  selected={topics}
+                  onChange={setTopics}
+                  placeholder="Select topics you're interested in"
+                />
+                <p className="text-xs text-muted-foreground">Select multiple topics that interest you</p>
+              </div>
+
+              <Button onClick={handleSave} disabled={!expertise || topics.length === 0}>
+                Save
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         <div className="flex items-start mb-2">
           <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
           <div>
             <p className="font-medium">Email verification required</p>
             <p>
-              Please verify your email address before signing in. A verification email 
+              Please verify your email address before signing in. A verification email
               has been sent to your inbox.
             </p>
           </div>
@@ -286,11 +349,10 @@ export default function UserAvatar() {
             onClick={handleResendVerificationEmail}
             disabled={resendingEmail || resendSuccess}
             className={`flex items-center text-xs font-medium px-3 py-1.5 rounded-md 
-              ${
-                resendSuccess 
-                  ? "bg-green-500/20 text-green-400 cursor-not-allowed" 
-                  : resendingEmail 
-                  ? "bg-blue-500/20 text-blue-400 cursor-wait" 
+              ${resendSuccess
+                ? "bg-green-500/20 text-green-400 cursor-not-allowed"
+                : resendingEmail
+                  ? "bg-blue-500/20 text-blue-400 cursor-wait"
                   : "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
               }`}
           >
@@ -330,11 +392,10 @@ export default function UserAvatar() {
       {/* Avatar button - Always show a user icon, even when logged in */}
       <button
         onClick={user ? handleSignOut : toggleModal}
-        className={`flex items-center justify-center w-8 h-8 rounded-full ${
-          user
-            ? "bg-blue-600 hover:bg-blue-700"
-            : "bg-zinc-800 hover:bg-zinc-700"
-        } transition-colors`}
+        className={`flex items-center justify-center w-8 h-8 rounded-full ${user
+          ? "bg-blue-600 hover:bg-blue-700"
+          : "bg-zinc-800 hover:bg-zinc-700"
+          } transition-colors`}
         aria-label="User profile"
       >
         <User size={16} className="text-white" />
@@ -383,13 +444,13 @@ export default function UserAvatar() {
                     className="mr-2 mt-0.5 flex-shrink-0"
                   />
                   <div>
-                    {error.includes('invalid-credential') ? 'Invalid email or password.' : 
-                     error.includes('user-not-found') ? 'Account not found. Please sign up.' :
-                     error.includes('wrong-password') ? 'Incorrect password. Please try again.' :
-                     error.includes('email-already-in-use') ? 'Email already registered. Please sign in.' :
-                     error.includes('weak-password') ? 'Password is too weak. Please use a stronger password.' :
-                     error.includes('too-many-requests') ? 'Too many attempts. Please try again later.' :
-                     'Authentication failed. Please try again.'}
+                    {error.includes('invalid-credential') ? 'Invalid email or password.' :
+                      error.includes('user-not-found') ? 'Account not found. Please sign up.' :
+                        error.includes('wrong-password') ? 'Incorrect password. Please try again.' :
+                          error.includes('email-already-in-use') ? 'Email already registered. Please sign in.' :
+                            error.includes('weak-password') ? 'Password is too weak. Please use a stronger password.' :
+                              error.includes('too-many-requests') ? 'Too many attempts. Please try again later.' :
+                                'Authentication failed. Please try again.'}
                   </div>
                 </div>
               )}
@@ -414,22 +475,20 @@ export default function UserAvatar() {
               <div className="flex mb-6 border-b border-zinc-800">
                 <button
                   onClick={() => switchTab("signin")}
-                  className={`flex items-center px-4 py-2 font-medium ${
-                    activeTab === "signin"
-                      ? "text-blue-400 border-b-2 border-blue-400"
-                      : "text-gray-400 hover:text-gray-200"
-                  }`}
+                  className={`flex items-center px-4 py-2 font-medium ${activeTab === "signin"
+                    ? "text-blue-400 border-b-2 border-blue-400"
+                    : "text-gray-400 hover:text-gray-200"
+                    }`}
                 >
                   <LogIn size={16} className="mr-2" />
                   Sign In
                 </button>
                 <button
                   onClick={() => switchTab("signup")}
-                  className={`flex items-center px-4 py-2 font-medium ${
-                    activeTab === "signup"
-                      ? "text-blue-400 border-b-2 border-blue-400"
-                      : "text-gray-400 hover:text-gray-200"
-                  }`}
+                  className={`flex items-center px-4 py-2 font-medium ${activeTab === "signup"
+                    ? "text-blue-400 border-b-2 border-blue-400"
+                    : "text-gray-400 hover:text-gray-200"
+                    }`}
                 >
                   <UserPlus size={16} className="mr-2" />
                   Sign Up
@@ -614,47 +673,42 @@ export default function UserAvatar() {
                           Password requirements:
                         </p>
                         <p
-                          className={`text-xs ${
-                            passwordValid.length
-                              ? "text-green-400"
-                              : "text-gray-500"
-                          }`}
+                          className={`text-xs ${passwordValid.length
+                            ? "text-green-400"
+                            : "text-gray-500"
+                            }`}
                         >
                           • At least 8 characters
                         </p>
                         <p
-                          className={`text-xs ${
-                            passwordValid.hasUppercase
-                              ? "text-green-400"
-                              : "text-gray-500"
-                          }`}
+                          className={`text-xs ${passwordValid.hasUppercase
+                            ? "text-green-400"
+                            : "text-gray-500"
+                            }`}
                         >
                           • At least 1 uppercase letter (A-Z)
                         </p>
                         <p
-                          className={`text-xs ${
-                            passwordValid.hasLowercase
-                              ? "text-green-400"
-                              : "text-gray-500"
-                          }`}
+                          className={`text-xs ${passwordValid.hasLowercase
+                            ? "text-green-400"
+                            : "text-gray-500"
+                            }`}
                         >
                           • At least 1 lowercase letter (a-z)
                         </p>
                         <p
-                          className={`text-xs ${
-                            passwordValid.hasNumber
-                              ? "text-green-400"
-                              : "text-gray-500"
-                          }`}
+                          className={`text-xs ${passwordValid.hasNumber
+                            ? "text-green-400"
+                            : "text-gray-500"
+                            }`}
                         >
                           • At least 1 number (0-9)
                         </p>
                         <p
-                          className={`text-xs ${
-                            passwordValid.hasSpecial
-                              ? "text-green-400"
-                              : "text-gray-500"
-                          }`}
+                          className={`text-xs ${passwordValid.hasSpecial
+                            ? "text-green-400"
+                            : "text-gray-500"
+                            }`}
                         >
                           • At least 1 special character (!@#$%^&*...)
                         </p>
@@ -662,11 +716,10 @@ export default function UserAvatar() {
                     </div>
                     <button
                       type="submit"
-                      className={`w-full px-4 py-2 ${
-                        getPasswordStrength() === 5
-                          ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                          : "bg-blue-600/50 cursor-not-allowed"
-                      } text-white rounded-md transition-colors`}
+                      className={`w-full px-4 py-2 ${getPasswordStrength() === 5
+                        ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                        : "bg-blue-600/50 cursor-not-allowed"
+                        } text-white rounded-md transition-colors`}
                       disabled={
                         getPasswordStrength() < 5 || verificationEmailSent
                       }
