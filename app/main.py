@@ -25,6 +25,8 @@ def custom_openapi():
         description="Financial Learning and Research Platform",
         routes=app.routes,
     )
+
+    openapi_schema["openapi"] = "3.0.0"
     
     # Customize server URLs if needed
     openapi_schema["servers"] = [
@@ -66,6 +68,19 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "version": "1.0.0"}
+
+# Add this after your other routes
+
+@app.get("/dev/refresh-openapi", include_in_schema=False)
+async def refresh_openapi():
+    """Force refresh the OpenAPI schema file (development only)"""
+    # Clear the cached schema to force regeneration
+    app.openapi_schema = None
+    
+    # Force generation by calling openapi()
+    _ = app.openapi()
+    
+    return {"status": "success", "message": "OpenAPI schema updated"}
 
 if __name__ == "__main__":
     # Get port from environment or use default

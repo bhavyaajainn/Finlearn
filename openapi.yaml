@@ -1,549 +1,897 @@
-openapi: 3.0.0
+openapi: 3.1.0
 info:
   title: Finlearn API
   description: Financial Learning and Research Platform
   version: 1.0.0
-  
-servers:
-  - url: https://finlearn.onrender.com
-    description: Default API path
-  
 paths:
-  /selectedtopics:
-    get:
-      summary: Retrieve a list of selected topics
-      tags:
-        - User Preferences
-      parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The ID of the user to retrieve topics for
-      responses:
-        '200':
-          description: A list of selected topics
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Topics'
-
+  /watchlist/add:
     post:
-      summary: Create a new topic and expertise level list
       tags:
-        - User Preferences
+      - watchlist
+      summary: Add Stock
+      description: "Add a stock to a user's watchlist.\n\nArgs:\n    user_id: User\
+        \ identifier\n    symbol: Stock symbol to add\n    \nReturns:\n    Confirmation\
+        \ message"
+      operationId: add_stock_watchlist_add_post
       parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The ID of the user to create topics for
-      requestBody:
+      - name: user_id
+        in: query
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Topics'
-      responses:
-        '201':
-          description: Item created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Topics'
-
-    put:
-      summary: Update topic and expertise level list
-      tags:
-        - User Preferences
-      parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The ID of the user to update topics for
-      requestBody:
+        schema:
+          type: string
+          title: User Id
+      - name: symbol
+        in: query
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Topics'
+        schema:
+          type: string
+          title: Symbol
       responses:
         '200':
-          description: Item updated
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Topics'
-                
-  /learning/dailytopics:
-    get:
-      summary: Get daily topics within a financial category
-      operationId: getDailyTopics
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Add Stock Watchlist Add Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /watchlist/remove:
+    delete:
       tags:
-        - Learning
+      - watchlist
+      summary: Remove Stock
+      description: "Remove a stock from a user's watchlist.\n\nArgs:\n    user_id:\
+        \ User identifier\n    symbol: Stock symbol to remove\n    \nReturns:\n  \
+        \  Confirmation message"
+      operationId: remove_stock_watchlist_remove_delete
       parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: User identifier
-        - name: category
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Financial category to explore
-        - name: level
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [beginner, intermediate, advanced]
-            default: intermediate
-          description: Expertise level
-        - name: refresh
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: false
-          description: Force refresh topics even if cache exists
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: symbol
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Symbol
       responses:
         '200':
-          description: Successfully retrieved daily topics
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DailyTopicsResponse'
-  
-  /learning/article/topic/{topic_id}:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Remove Stock Watchlist Remove Delete
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /watchlist:
     get:
-      summary: Generate article for specific topic
-      operationId: getTopicArticle
       tags:
-        - Learning
+      - watchlist
+      summary: View Watchlist
+      description: "Get a user's watchlist.\n\nArgs:\n    user_id: User identifier\n\
+        \    \nReturns:\n    List of stock symbols in the user's watchlist"
+      operationId: view_watchlist_watchlist_get
       parameters:
-        - name: topic_id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: ID of the topic to generate an article for
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: User identifier
-        - name: level
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [beginner, intermediate, advanced]
-          description: Optional override for expertise level
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
       responses:
         '200':
-          description: Successfully generated article for topic
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TopicArticleResponse'
-        '404':
-          description: Topic not found
-  
-  /learning/tooltip/view:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+                title: Response View Watchlist Watchlist Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /watchlist/details:
+    get:
+      tags:
+      - watchlist
+      summary: Get Watchlist Info
+      description: "Get detailed information about stocks in a user's watchlist.\n\
+        \nArgs:\n    user_id: User identifier\n    \nReturns:\n    Detailed information\
+        \ about each stock in the watchlist"
+      operationId: get_watchlist_info_watchlist_details_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: object
+                title: Response Get Watchlist Info Watchlist Details Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /watchlist/research:
+    get:
+      tags:
+      - watchlist
+      summary: Get Research
+      description: "Get detailed research for stocks in a user's watchlist.\n\nArgs:\n\
+        \    user_id: User identifier\n    \nReturns:\n    Research information for\
+        \ each stock in the watchlist"
+      operationId: get_research_watchlist_research_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    type: string
+                title: Response Get Research Watchlist Research Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /articles:
+    get:
+      tags:
+      - learning
+      summary: Get Articles
+      description: "Generate articles on financial topics using Perplexity API.\n\n\
+        Args:\n    user_id: User identifier\n    category: Specific category to generate\
+        \ articles for (if None, uses user's selected categories)\n    topic: Specific\
+        \ topic within the category to focus on (optional)\n    level: Expertise level\
+        \ (beginner, intermediate, advanced)\n    count: Number of articles to generate\
+        \ per category\n    \nReturns:\n    Dictionary containing generated articles\
+        \ with tooltips for concepts"
+      operationId: get_articles_articles_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+      - name: topic
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Topic
+      - name: level
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/ExpertiseLevel'
+          default: intermediate
+      - name: count
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 5
+          minimum: 1
+          description: Number of articles to generate
+          default: 2
+          title: Count
+        description: Number of articles to generate
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /topics:
+    get:
+      tags:
+      - learning
+      summary: Get Category Topics
+      description: "Get a list of relevant topics within a financial category.\n\n\
+        Args:\n    user_id: User identifier\n    category: Financial category to explore\n\
+        \    level: Expertise level (beginner, intermediate, advanced)\n    \nReturns:\n\
+        \    List of topics with descriptions suitable for the expertise level"
+      operationId: get_category_topics_topics_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: category
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Category
+      - name: level
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/ExpertiseLevel'
+          default: intermediate
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Category Topics Topics Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /dailytopics:
+    get:
+      tags:
+      - learning
+      summary: Get Daily Category Topics
+      description: "Get a list of relevant topics within a financial category based\
+        \ on latest news.\n\nArgs:\n    user_id: User identifier\n    category: Financial\
+        \ category to explore\n    level: Expertise level (beginner, intermediate,\
+        \ advanced)\n    refresh: Force refresh topics even if cache exists\n    \n\
+        Returns:\n    List of news-relevant topics with descriptions"
+      operationId: get_daily_category_topics_dailytopics_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: category
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Category
+      - name: level
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/ExpertiseLevel'
+          default: intermediate
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Daily Category Topics Dailytopics Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /user/recommendedtopics:
+    get:
+      tags:
+      - learning
+      summary: Get User Recommended Topics
+      description: "Get personalized topic recommendations based on user's selected\
+        \ categories and current news.\nArgs:\n    user_id: User identifier\n    refresh:\
+        \ Force refresh topics even if cache exists\nReturns:\n    List of recommended\
+        \ topics across user's selected categories"
+      operationId: get_user_recommended_topics_user_recommendedtopics_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get User Recommended Topics User Recommendedtopics
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /article/topic/{topic_id}:
+    get:
+      tags:
+      - learning
+      summary: Get Topic Article
+      description: "Generate an article for a specific topic.\n\nArgs:\n    user_id:\
+        \ User identifier\n    topic_id: ID of the topic to generate an article for\n\
+        \    level: Optional override for expertise level\n    \nReturns:\n    Generated\
+        \ article with tooltips for the specific topic"
+      operationId: get_topic_article_article_topic__topic_id__get
+      parameters:
+      - name: topic_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Topic Id
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: level
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/ExpertiseLevel'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Topic Article Article Topic  Topic Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /tooltip/view:
     post:
-      summary: Log when user views tooltip
-      operationId: logTooltipView
       tags:
-        - Learning
+      - learning
+      summary: Log Tooltip View
+      description: "Log when a user views a tooltip explanation.\n\nArgs:\n    tooltip_data:\
+        \ Data about the tooltip view\n    \nReturns:\n    Success confirmation"
+      operationId: log_tooltip_view_tooltip_view_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/TooltipView'
+        required: true
       responses:
         '200':
-          description: Successfully logged tooltip view
+          description: Successful Response
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                  user_id:
-                    type: string
-                  word:
-                    type: string
-  
-  /learning/summary:
-    get:
-      summary: Get summary of user's reading activity
-      operationId: getUserSummary
-      tags:
-        - Learning
-      parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: User identifier
-        - name: period
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [day, week, month, custom]
-            default: day
-          description: Time period for the summary
-        - name: start_date
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date
-          description: Custom start date (format- YYYY-MM-DD)
-        - name: end_date
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date
-          description: Custom end date (format- YYYY-MM-DD)
-      responses:
-        '200':
-          description: Successfully retrieved user summary
+                title: Response Log Tooltip View Tooltip View Post
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserSummaryResponse'
-        '400':
-          description: Invalid parameters
-  
-  /learning/user/streak:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /summary:
     get:
-      summary: Get user's learning streak information
-      operationId: getUserStreak
       tags:
-        - Learning
+      - learning
+      summary: Get User Summary
+      description: "Get a summary of a user's reading activity.\n\nArgs:\n    user_id:\
+        \ User identifier\n    period: Time period for the summary (day, week, month,\
+        \ custom)\n    start_date: Custom start date (format: YYYY-MM-DD)\n    end_date:\
+        \ Custom end date (format: YYYY-MM-DD)\n    \nReturns:\n    Summary of user's\
+        \ reading activity for the specified period"
+      operationId: get_user_summary_summary_get
       parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: User identifier
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: period
+        in: query
+        required: false
+        schema:
+          type: string
+          default: day
+          title: Period
+      - name: start_date
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Start Date
+      - name: end_date
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: End Date
       responses:
         '200':
-          description: Successfully retrieved user streak data
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserStreakResponse'
-  
-  /learning/summary/heatmap:
-    get:
-      summary: Get user's activity data for heatmap
-      operationId: getYearlyHeatmap
-      tags:
-        - Learning
-      parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: User identifier
-        - name: year
-          in: query
-          required: false
-          schema:
-            type: integer
-          description: Year to get data for (defaults to current year)
-      responses:
-        '200':
-          description: Successfully retrieved heatmap data
+                type: object
+                title: Response Get User Summary Summary Get
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HeatmapResponse'
-  
+                $ref: '#/components/schemas/HTTPValidationError'
+  /summary/progress-chart:
+    get:
+      tags:
+      - learning
+      summary: Get Progress Chart
+      description: "Get user's reading progress data for charts.\n\nArgs:\n    user_id:\
+        \ User identifier\n    period: Time period for the chart (week, month)\n \
+        \   \nReturns:\n    Data suitable for progress charting"
+      operationId: get_progress_chart_summary_progress_chart_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: period
+        in: query
+        required: false
+        schema:
+          type: string
+          default: week
+          title: Period
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Progress Chart Summary Progress Chart Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /user/streak:
+    get:
+      tags:
+      - learning
+      summary: Get User Streak
+      description: "Get a user's learning streak information.\n\nArgs:\n    user_id:\
+        \ User identifier\n    \nReturns:\n    Details about user's learning streak"
+      operationId: get_user_streak_user_streak_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get User Streak User Streak Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /summary/heatmap:
+    get:
+      tags:
+      - learning
+      summary: Get Yearly Heatmap
+      description: "Get user's activity data for a full year calendar heatmap.\n\n\
+        Args:\n    user_id: User identifier\n    year: Year to get data for (defaults\
+        \ to current year)\n    \nReturns:\n    Daily activity counts suitable for\
+        \ a calendar heatmap"
+      operationId: get_yearly_heatmap_summary_heatmap_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: year
+        in: query
+        required: false
+        schema:
+          type: integer
+          title: Year
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Yearly Heatmap Summary Heatmap Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /selectedcategories:
+    get:
+      tags:
+      - selectedcategories
+      summary: Get Selected Categories
+      description: "Retrieve a list of selected categories\n\nArgs:\n    user_id:\
+        \ User identifier\n    \nReturns:\n    Selected categories and expertise level\n\
+        \    \nRaises:\n    HTTPException: If no categories are found for the user"
+      operationId: get_selected_categories_selectedcategories_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9_-]+$
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categories'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - selectedcategories
+      summary: Create Selected Categories
+      description: "Create a new category and expertise level list.\n\nArgs:\n   \
+        \ categories: Categories data to save\n    user_id: User identifier\n    \n\
+        Returns:\n    The created categories data\n    \nRaises:\n    HTTPException:\
+        \ If categories already exist for this user (overwrite protection)"
+      operationId: create_selected_categories_selectedcategories_post
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9_-]+$
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Categories'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categories'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - selectedcategories
+      summary: Update Selected Categories
+      description: "Update category and expertise level list.\n\nArgs:\n    categories:\
+        \ Updated categories data\n    user_id: User identifier\n    \nReturns:\n\
+        \    The updated categories data\n    \nRaises:\n    HTTPException: If no\
+        \ categories exist for this user"
+      operationId: update_selected_categories_selectedcategories_put
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9_-]+$
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Categories'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categories'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /:
+    get:
+      summary: Root
+      description: Root endpoint returning basic API information
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
   /health:
     get:
-      summary: Health check endpoint
-      operationId: healthCheck
-      tags:
-        - System
+      summary: Health Check
+      description: Health check endpoint.
+      operationId: health_check_health_get
       responses:
         '200':
-          description: API health status
+          description: Successful Response
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "healthy"
-                  version:
-                    type: string
-                    example: "1.0.0"
-
+              schema: {}
 components:
   schemas:
-    Topics:
-      type: object
-      properties:
-        expertise_level:
-          type: string
-          example: "beginner"
-        topics:
-          type: array
-          items:
-            type: string
-          example: ["Inflation", "Stock Market", "Bonds"]
-          
-    ArticleResponse:
-      type: object
-      properties:
-        user_id:
-          type: string
-        level:
-          type: string
-          enum: [beginner, intermediate, advanced]
-        articles:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              $ref: '#/components/schemas/Article'
-    
     Article:
-      type: object
       properties:
+        id:
+          type: string
+          title: Id
         title:
           type: string
+          title: Title
         content:
           type: string
-        category:
-          type: string
+          title: Content
         tooltip_words:
-          type: array
           items:
             $ref: '#/components/schemas/TooltipWord'
-    
-    TooltipWord:
-      type: object
-      properties:
-        word:
-          type: string
-        tooltip:
-          type: string
-    
-    TopicsResponse:
-      type: object
-      properties:
-        category:
-          type: string
-        level:
-          type: string
-          enum: [beginner, intermediate, advanced]
-        topics:
           type: array
-          items:
-            $ref: '#/components/schemas/Topic'
-    
-    Topic:
-      type: object
-      properties:
-        topic_id:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        category:
-          type: string
-        expertise_level:
-          type: string
-          enum: [beginner, intermediate, advanced]
-    
-    DailyTopicsResponse:
-      type: object
-      properties:
-        category:
-          type: string
-        level:
-          type: string
-          enum: [beginner, intermediate, advanced]
-        topics:
-          type: array
-          items:
-            $ref: '#/components/schemas/Topic'
-        refreshed_at:
-          type: string
-          format: date-time
-        is_fresh:
-          type: boolean
-    
-    TopicArticleResponse:
-      type: object
-      properties:
-        user_id:
-          type: string
-        topic_id:
-          type: string
-        topic_info:
-          $ref: '#/components/schemas/Topic'
-        article:
-          $ref: '#/components/schemas/Article'
-    
-    TooltipView:
-      type: object
-      required:
-        - user_id
-        - word
-        - tooltip
-      properties:
-        user_id:
-          type: string
-        word:
-          type: string
-        tooltip:
-          type: string
-        from_topic:
-          type: string
-    
-    DeepDiveResponse:
-      type: object
-      properties:
-        topic:
-          type: string
-        content:
-          type: string
-        key_takeaways:
-          type: array
+          title: Tooltip Words
+        key_concepts:
           items:
             type: string
-    
-    UserSummaryResponse:
+          type: array
+          title: Key Concepts
+        difficulty_level:
+          type: string
+          title: Difficulty Level
+        category:
+          type: string
+          title: Category
+        created_at:
+          type: string
+          title: Created At
       type: object
+      required:
+      - id
+      - title
+      - content
+      - tooltip_words
+      - key_concepts
+      - difficulty_level
+      - category
+      - created_at
+      title: Article
+    ArticleResponse:
       properties:
         user_id:
           type: string
-        period:
+          title: User Id
+        level:
           type: string
-        date_range:
-          type: object
-          properties:
-            start:
-              type: string
-              format: date
-            end:
-              type: string
-              format: date
-        statistics:
-          type: object
-        streak:
-          type: object
-        articles_read:
-          type: array
-          items:
-            type: object
-        tooltips_viewed:
-          type: array
-          items:
-            type: object
-        summary:
-          type: string
-        generated_at:
-          type: string
-          format: date-time
-    
-    ProgressChartResponse:
-      type: object
-      properties:
-        user_id:
-          type: string
-        period:
-          type: string
-        date_range:
-          type: object
-          properties:
-            start:
-              type: string
-              format: date
-            end:
-              type: string
-              format: date
-        articles_data:
-          type: array
-          items:
-            type: object
-            properties:
-              date:
-                type: string
-              count:
-                type: integer
-        tooltips_data:
-          type: array
-          items:
-            type: object
-            properties:
-              date:
-                type: string
-              count:
-                type: integer
-        categories_data:
-          type: object
+          title: Level
+        articles:
           additionalProperties:
-            type: array
             items:
-              type: object
-              properties:
-                date:
-                  type: string
-                count:
-                  type: integer
-    
-    UserStreakResponse:
-      type: object
-      properties:
-        user_id:
-          type: string
-        streak:
+              $ref: '#/components/schemas/Article'
+            type: array
           type: object
-        fetched_at:
-          type: string
-          format: date-time
-    
-    HeatmapResponse:
+          title: Articles
       type: object
+      required:
+      - user_id
+      - level
+      - articles
+      title: ArticleResponse
+    Categories:
+      properties:
+        expertise_level:
+          $ref: '#/components/schemas/ExpertiseLevel'
+        categories:
+          items:
+            type: string
+            maxLength: 100
+            minLength: 1
+          type: array
+          maxItems: 50
+          minItems: 1
+          title: Categories
+      type: object
+      required:
+      - expertise_level
+      - categories
+      title: Categories
+    ExpertiseLevel:
+      type: string
+      enum:
+      - beginner
+      - intermediate
+      - advanced
+      title: ExpertiseLevel
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    TooltipView:
       properties:
         user_id:
           type: string
-        year:
-          type: integer
-        data:
-          type: array
+          title: User Id
+        word:
+          type: string
+          title: Word
+        tooltip:
+          type: string
+          title: Tooltip
+        from_topic:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: From Topic
+      type: object
+      required:
+      - user_id
+      - word
+      - tooltip
+      title: TooltipView
+    TooltipWord:
+      properties:
+        word:
+          type: string
+          title: Word
+        tooltip:
+          type: string
+          title: Tooltip
+      type: object
+      required:
+      - word
+      - tooltip
+      title: TooltipWord
+    ValidationError:
+      properties:
+        loc:
           items:
-            type: object
-            properties:
-              date:
-                type: string
-                format: date
-              count:
-                type: integer
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+servers:
+- url: https://finlearn.onrender.com
+  description: Production server
