@@ -39,7 +39,7 @@ import { MultiSelect } from "./multi-select";
 // Tab interface
 type TabType = "signin" | "signup";
 
-export default function UserAvatar({ myuser, isNewUser }: { myuser: any; isNewUser: boolean }) {
+export default function UserAvatar() {
   // Redux
   const dispatch = useAppDispatch();
   const { user, loading, error, verificationEmailSent } = useAppSelector(
@@ -74,21 +74,21 @@ export default function UserAvatar({ myuser, isNewUser }: { myuser: any; isNewUs
   });
 
 
-  const [open, setOpen] = useState(isNewUser);
-  const [expertise, setExpertise] = useState("");
-  const [topics, setTopics] = useState<string[]>([]);
+  // const [open, setOpen] = useState(isNewUser);
+  // const [expertise, setExpertise] = useState("");
+  // const [topics, setTopics] = useState<string[]>([]);
 
-  const handleSave = async () => {
-    if (!expertise || topics.length === 0) return;
+  // const handleSave = async () => {
+  //   if (!expertise || topics.length === 0) return;
 
-    await fetch("/api/save-user-meta", {
-      method: "POST",
-      body: JSON.stringify({ uid: user?.uid, expertise, topics }),
-      headers: { "Content-Type": "application/json" },
-    });
+  //   await fetch("/api/save-user-meta", {
+  //     method: "POST",
+  //     body: JSON.stringify({ uid: user?.uid, expertise, topics }),
+  //     headers: { "Content-Type": "application/json" },
+  //   });
 
-    setOpen(false);
-  };
+  //   setOpen(false);
+  // };
 
   // Check password strength
   useEffect(() => {
@@ -294,7 +294,7 @@ export default function UserAvatar({ myuser, isNewUser }: { myuser: any; isNewUs
     return (
 
       <div className="mb-4 p-3 bg-amber-400/10 border border-amber-400/20 rounded-md text-amber-400 text-sm">
-        <Dialog open={open} onOpenChange={setOpen}>
+        {/* <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Tell us about you!</DialogTitle>
@@ -333,7 +333,7 @@ export default function UserAvatar({ myuser, isNewUser }: { myuser: any; isNewUs
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+        </Dialog> */}
         <div className="flex items-start mb-2">
           <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
           <div>
