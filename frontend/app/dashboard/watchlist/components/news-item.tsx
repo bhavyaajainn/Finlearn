@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { ExternalLink } from 'lucide-react';
 import { News } from "@/lib/types";
+import Image from "next/image";
 
 interface NewsItemProps {
   news: News;
@@ -36,9 +37,11 @@ export function NewsItem({ news }: NewsItemProps) {
           </div>
           {news.imageUrl && (
             <div className="ml-4 flex-shrink-0">
-              <img 
+              <Image 
                 src={news.imageUrl || "/placeholder.svg"} 
                 alt={news.title} 
+                width={20}
+                height={20}
                 className="w-20 h-20 object-cover rounded"
               />
             </div>

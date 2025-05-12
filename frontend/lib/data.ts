@@ -153,3 +153,17 @@ export function generateChartData(asset: Asset, timeframe: "7d" | "30d" | "1y") 
 
   return data
 }
+
+export const expertiseLevels = [
+  { label: "Beginner", value: "beginner" },
+  { label: "Intermediate", value: "intermediate" },
+  { label: "Advanced", value: "advanced" },
+];
+
+export const topicOptions = [
+  { label: "DeFi", value: "defi" },
+  { label: "NFTs", value: "nfts" },
+  { label: "Gaming", value: "gaming" },
+  { label: "DAOs", value: "daos" },
+  { label: "Infrastructure", value: "infrastructure" },
+];
