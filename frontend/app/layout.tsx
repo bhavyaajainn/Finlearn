@@ -7,6 +7,7 @@ import { store } from "@/app/store";
 import { useEffect } from "react";
 import { checkAuthState } from "@/app/store/slices/authSlice"; 
 import ErrorBoundary from "./ErrorBoundary";
+import { Toaster } from "@/components/ui/sonner";
 
 
 const geistSans = Poppins({
@@ -36,6 +37,7 @@ export default function RootLayout({
           <AuthInitializer />
           <ErrorBoundary>
             {children}
+            <Toaster/>
           </ErrorBoundary>
         </Provider>
       </body>
