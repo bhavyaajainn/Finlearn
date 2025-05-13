@@ -82,23 +82,33 @@ export default function UserAvatar() {
   const handleSave = async () => {
     if (!expertise || topics.length === 0 || !user) return;
 
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?${user?.uid}`, {
-      method: "POST",
-      body: JSON.stringify(
-        {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${user.uid}`, {
+        method: "POST",
+        body: JSON.stringify({
           expertise_level: expertise,
           categories: topics,
-        }
-      ),
-      headers: { "Content-Type": "application/json" },
-    });
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    await toast("Data stored succesfully you can start learning now !");
+      console.log(res);
 
-    setOpen(false);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData?.message || "Failed to save data.");
+      }
 
-    router.push("/dashboard");
+      toast.success("Data stored successfully! You can start learning now.");
+      setOpen(false);
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast.error(error.message || "Something went wrong. Please try again.");
+    }
   };
+
 
   // Check password strength
   useEffect(() => {
@@ -212,8 +222,9 @@ export default function UserAvatar() {
       await dispatch(
         signInWithEmail({ email: signinEmail, password: signinPassword })
       ).unwrap();
+
       setIsModalOpen(false);
-      // router.push("/dashboard"); // Redirect to dashboard on successful signin
+      setOpen(false);
     } catch (err) {
       console.error("Sign-in failed:", err);
       // Don't close modal if email is not verified
@@ -253,7 +264,7 @@ export default function UserAvatar() {
     try {
       await dispatch(signInWithGoogle()).unwrap();
       setIsModalOpen(false);
-      setOpen(true);
+      // setOpen(true);
       // router.push("/dashboard"); // Redirect to dashboard
     } catch (err) {
       console.error("Google sign-in failed:", err);
