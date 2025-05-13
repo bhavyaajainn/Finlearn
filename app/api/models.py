@@ -69,3 +69,83 @@ class Categories(BaseModel):
                 "categories": ["ETFs", "Value Investing", "Tax-Efficient Investing"],
             }
         }
+
+class AssetType(str, Enum):
+    stock = "stock"
+    crypto = "crypto"
+
+# Watchlist Models
+class AddAssetRequest(BaseModel):
+    symbol: str
+    asset_type: AssetType
+    notes: Optional[str] = None
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "symbol": "AAPL",
+                "asset_type": "stock",
+                "notes": "Potential long-term investment"
+            }
+        }
+
+class WatchlistItem(BaseModel):
+    symbol: str
+    asset_type: AssetType
+    name: str
+    current_price: float
+    price_change_percent: float
+    market_cap: Optional[float] = None
+    volume: Optional[float] = None
+    added_on: Optional[datetime] = None
+    notes: Optional[str] = None
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "symbol": "AAPL",
+                "asset_type": "stock",
+                "name": "Apple Inc.",
+                "current_price": 187.82,
+                "price_change_percent": 1.24,
+                "market_cap": 2950000000000,
+                "volume": 58903000,
+                "added_on": "2023-05-15T08:30:00",
+                "notes": "Potential long-term investment"
+            }
+        }
+
+class StockDetails(WatchlistItem):
+    pe_ratio: Optional[float] = None
+    eps: Optional[float] = None
+    dividend_yield: Optional[float] = None
+    high_52week: Optional[float] = None
+    low_52week: Optional[float] = None
+    sector: Optional[str] = None
+    industry: Optional[str] = None
+
+class CryptoDetails(WatchlistItem):
+    volume_24h: Optional[float] = None
+    circulating_supply: Optional[float] = None
+    max_supply: Optional[float] = None
+    change_24h: Optional[float] = None
+
+class SearchRequest(BaseModel):
+    query: str = Field(..., min_length=2)
+    asset_type: Optional[AssetType] = None
+    limit: int = Field(10, ge=1, le=50)
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "query": "app",
+                "asset_type": "stock",
+                "limit": 10
+            }
+        }
+
+class SimilarAsset(BaseModel):
+    symbol: str
+    name: str
+    price: float
+    reason: str

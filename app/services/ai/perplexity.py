@@ -4,6 +4,7 @@ This module handles interactions with the Perplexity API for
 research and financial insights.
 """
 import os
+from fastapi import logger
 import requests
 import uuid
 import json
@@ -15,6 +16,11 @@ from app.services.ai.prompts.learning_prompts import (
     get_intermediate_article_prompt,
     get_advanced_article_prompt,
     get_topic_article_prompt
+)
+from app.services.ai.prompts.asset_prompts import (
+    get_asset_search_prompt,
+    get_similar_stocks_prompt,
+    get_similar_crypto_prompt
 )
 
 # Get API key from environment variable
@@ -537,3 +543,87 @@ Keep the summary conversational, encouraging, and highlight patterns in their le
         print(f"Error generating reading summary: {e}")
         # Fallback response
         return f"You've read {stats['total_articles_read']} articles and explored {stats['total_tooltips_viewed']} financial terms {period_text}. Keep up the great work on your financial learning journey!"
+    
+
+
+####ASSETS######
+
+def search_assets_with_perplexity(query: str, asset_type: Optional[str] = None, limit: int = 10) -> List[Dict[str, Any]]:
+    """Search for financial assets using Perplexity SONAR."""
+    prompt = get_asset_search_prompt(query, asset_type, limit)
+    
+    try:
+        response = call_perplexity_api(prompt)
+        
+        # Extract JSON from response
+        if "```json" in response:
+            json_start = response.find("```json") + 7
+            json_end = response.find("```", json_start)
+            json_str = response[json_start:json_end].strip()
+            results = json.loads(json_str)
+        else:
+            # Try to parse the entire response
+            try:
+                results = json.loads(response)
+            except:
+                # If parsing fails, return empty list
+                logger.error(f"Failed to parse JSON response from Perplexity: {response}")
+                return []
+        
+        return results[:limit]
+    except Exception as e:
+        logger.error(f"Error searching assets with Perplexity: {e}")
+        return [] 
+
+
+def get_similar_stocks(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
+    """Get similar stocks based on business model, sector, and competition."""
+    prompt = get_similar_stocks_prompt(symbol, limit)
+    
+    try:
+        response = call_perplexity_api(prompt)
+        if "```json" in response:
+            json_start = response.find("```json") + 7
+            json_end = response.find("```", json_start)
+            json_str = response[json_start:json_end].strip()
+            results = json.loads(json_str)
+        else:
+            # Try to parse the entire response
+            try:
+                results = json.loads(response)
+            except:
+                # If parsing fails, return empty list
+                logger.error(f"Failed to parse JSON response from Perplexity: {response}")
+                return []
+        
+        return results[:limit]
+        # ...
+    except Exception as e:
+        print(f"Error finding similar stocks: {e}")
+        return []
+
+
+def get_similar_crypto(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
+    """Get similar cryptocurrencies based on technology and use case."""
+    prompt = get_similar_crypto_prompt(symbol, limit)
+    
+    try:
+        response = call_perplexity_api(prompt)
+        if "```json" in response:
+            json_start = response.find("```json") + 7
+            json_end = response.find("```", json_start)
+            json_str = response[json_start:json_end].strip()
+            results = json.loads(json_str)
+        else:
+            # Try to parse the entire response
+            try:
+                results = json.loads(response)
+            except:
+                # If parsing fails, return empty list
+                logger.error(f"Failed to parse JSON response from Perplexity: {response}")
+                return []
+        
+        return results[:limit]
+    except Exception as e:
+        print(f"Error finding similar cryptocurrencies: {e}")
+        return []
