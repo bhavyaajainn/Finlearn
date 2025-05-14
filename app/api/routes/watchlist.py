@@ -4,13 +4,19 @@ This module provides endpoints for managing user watchlists.
 """
 from fastapi import APIRouter, Query, Depends, HTTPException
 from typing import List, Dict, Any, Optional
+import logging  # Add standard Python logging instead
+
+# Create a logger instance for this module
+logger = logging.getLogger(__name__)
+
 
 from app.services.assets.data import get_asset_info, get_similar_assets, search_assets
 from app.services.firebase import get_user_watchlist, add_to_watchlist, remove_from_watchlist
-from app.services.assets import get_stock_info
+# from app.services.assets import get_stock_info
 from app.services.ai import get_deep_research_on_stock
 from app.api.models import AssetType, AddAssetRequest, SearchRequest
 from app.services.ai.perplexity import search_assets_with_perplexity, get_similar_stocks, get_similar_crypto
+from app.services.firebase.watchlist import get_user_expertise_level, get_user_interests
 
 router = APIRouter()
 
@@ -163,6 +169,67 @@ async def remove_from_user_watchlist(
     return {"message": f"{symbol} removed from {user_id}'s watchlist"}
 
 
+
+from app.services.ai.perplexity import get_narrative_asset_analysis
+
+# Add this endpoint for deep research style analysis
+@router.get("/research/{symbol}")
+async def get_deep_research_analysis(
+    symbol: str,
+    user_id: str = Query(...),
+    asset_type: AssetType = Query(...),
+    include_comparison: bool = Query(True)
+) -> Dict[str, Any]:
+    """Get comprehensive research article with embedded tooltips for an asset.
+    
+    Args:
+        symbol: Asset symbol
+        user_id: User identifier
+        asset_type: Type of asset (stock/crypto)
+        include_comparison: Whether to include comparison with similar assets
+        
+    Returns:
+        Deep research article with embedded tooltips
+    """
+    try:
+        # Get user's expertise level
+        expertise_level = get_user_expertise_level(user_id)
+        
+        # Get user's interest categories
+        interests = get_user_interests(user_id)
+        
+        # Get detailed asset info
+        asset_info = get_asset_info(symbol, asset_type)
+        
+        # Get similar assets for comparison if requested
+        similar_assets = []
+        if include_comparison:
+            similar_assets = get_similar_assets(symbol, asset_type, limit=3)
+        
+        # Get narrative research analysis with embedded tooltips
+        research = get_narrative_asset_analysis(
+            symbol=symbol,
+            asset_type=asset_type,
+            expertise_level=expertise_level,
+            asset_info=asset_info,
+            similar_assets=similar_assets,
+            user_interests=interests
+        )
+        
+        return {
+            "symbol": symbol,
+            "name": asset_info.get("name", symbol),
+            "asset_type": asset_type,
+            "current_price": asset_info.get("current_price"),
+            "price_change_percent": asset_info.get("price_change_percent"),
+            "expertise_level": expertise_level,
+            "research_article": research,
+            "similar_assets": similar_assets if include_comparison else []
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating research analysis: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Research generation failed: {str(e)}")
 
 # @router.post("/add")
 # async def add_stock(

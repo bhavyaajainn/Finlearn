@@ -3,10 +3,13 @@
 This module provides functions to interact with user watchlists stored in Firebase.
 """
 from datetime import datetime
+import logging
 from typing import Any, Dict, List, Optional
 
 from app.api.models import AssetType
 from .client import db
+
+logger = logging.getLogger(__name__)
 
 
 def get_user_watchlist(
@@ -102,3 +105,62 @@ def remove_from_watchlist(
     
     # Update watchlist
     watchlist_ref.update({'assets': updated_assets})
+
+
+
+def get_user_preferences(user_id: str) -> Dict[str, Any]:
+    """Get user's expertise level and selected categories.
+    
+    Args:
+        user_id: User identifier
+        
+    Returns:
+        User preferences including expertise_level and selected categories
+    """
+    try:
+        categories_ref = db.collection('selected_categories').document(user_id)
+        categories_doc = categories_ref.get()
+        
+        if categories_doc.exists:
+            preferences = categories_doc.to_dict()
+            return preferences
+        else:
+            # Return default preferences if not found
+            logger.info(f"No preferences found for user {user_id}, using defaults")
+            return {
+                'expertise_level': 'beginner',
+                'categories': ['stocks', 'investing_basics']
+            }
+            
+    except Exception as e:
+        logger.error(f"Error retrieving user preferences: {e}")
+        # Return a default profile in case of error
+        return {
+            'expertise_level': 'beginner',
+            'categories': ['stocks', 'investing_basics'],
+            'error': str(e)
+        }
+
+def get_user_expertise_level(user_id: str) -> str:
+    """Get user's expertise level.
+    
+    Args:
+        user_id: User identifier
+        
+    Returns:
+        User's expertise level (beginner, intermediate, or advanced)
+    """
+    preferences = get_user_preferences(user_id)
+    return preferences.get('expertise_level', 'beginner')
+
+def get_user_interests(user_id: str) -> List[str]:
+    """Get user's selected investment categories.
+    
+    Args:
+        user_id: User identifier
+        
+    Returns:
+        List of categories the user is interested in
+    """
+    preferences = get_user_preferences(user_id)
+    return preferences.get('categories', [])

@@ -4,12 +4,15 @@ This module handles interactions with the Perplexity API for
 research and financial insights.
 """
 import os
-from fastapi import logger
 import requests
 import uuid
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+import logging  # Add standard Python logging instead
+
+# Create a logger instance for this module
+logger = logging.getLogger(__name__)
 
 from app.services.ai.prompts.learning_prompts import (
     get_beginner_article_prompt,
@@ -627,3 +630,115 @@ def get_similar_crypto(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"Error finding similar cryptocurrencies: {e}")
         return []
+
+
+
+## analysis
+from app.services.ai.prompts.asset_prompts import get_narrative_research_prompt
+
+def get_narrative_asset_analysis(
+    symbol: str,
+    asset_type: str,
+    expertise_level: str,
+    asset_info: Dict[str, Any],
+    similar_assets: List[Dict[str, Any]] = None,
+    user_interests: List[str] = None
+) -> Dict[str, Any]:
+    """Generate narrative research article with embedded tooltips.
+    
+    Args:
+        symbol: Asset symbol
+        asset_type: Type of asset (stock/crypto)
+        expertise_level: User's expertise level (beginner/intermediate/advanced)
+        asset_info: Detailed asset information
+        similar_assets: List of similar assets for comparison
+        user_interests: User's investment interests/categories
+        
+    Returns:
+        Dictionary with sections of the research article and embedded tooltips
+    """
+    # Create the narrative research prompt
+    prompt = get_narrative_research_prompt(
+        symbol=symbol,
+        asset_type=asset_type,
+        expertise_level=expertise_level,
+        asset_info=asset_info,
+        similar_assets=similar_assets,
+        user_interests=user_interests
+    )
+    
+    try:
+        # Use SONAR model for deep research capabilities
+        response = call_perplexity_api(prompt)
+        
+        # Parse the response as a JSON object with article sections
+        try:
+            # Try to extract JSON from markdown code blocks
+            if "```json" in response:
+                json_start = response.find("```json") + 7
+                json_end = response.find("```", json_start)
+                json_str = response[json_start:json_end].strip()
+                research = json.loads(json_str)
+            else:
+                # Try parsing the entire response as JSON
+                research = json.loads(response)
+                
+            # Make sure all expected sections are present
+            required_sections = [
+                "title", "summary", "introduction", "sections", 
+                "comparison", "conclusion", "recommendation"
+            ]
+            
+            for section in required_sections:
+                if section not in research:
+                    research[section] = f"Missing {section} section"
+                    
+            return research
+            
+        except Exception as e:
+            logger.error(f"Error parsing research JSON: {e}")
+            # If JSON parsing fails, structure the raw text
+            sections = response.split("\n\n## ")
+            
+            if len(sections) > 1:
+                # Try to extract title
+                title_section = sections[0]
+                if title_section.startswith("# "):
+                    title = title_section.split("\n")[0].replace("# ", "")
+                else:
+                    title = f"Research Analysis: {symbol}"
+                    
+                # Structure the remaining content
+                article_sections = []
+                for section in sections[1:]:
+                    if section.strip():
+                        parts = section.split("\n", 1)
+                        if len(parts) > 1:
+                            section_title = parts[0].strip()
+                            section_content = parts[1].strip()
+                            article_sections.append({
+                                "title": section_title,
+                                "content": section_content
+                            })
+                
+                return {
+                    "title": title,
+                    "summary": sections[0].replace("# " + title, "").strip(),
+                    "sections": article_sections,
+                    "format": "text"
+                }
+            
+            # If we can't parse sections, return the raw text
+            return {
+                "title": f"Research Analysis: {symbol}",
+                "content": response,
+                "format": "raw_text"
+            }
+        
+    except Exception as e:
+        logger.error(f"Error generating narrative analysis: {e}")
+        return {
+            "error": str(e),
+            "title": f"Unable to generate analysis for {symbol}",
+            "content": f"An error occurred: {str(e)}"
+        }
