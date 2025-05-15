@@ -1,101 +1,156 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { SearchIcon } from 'lucide-react';
-import { searchAssets } from "@/lib/data";
-import { Asset } from "@/lib/types";
+import { useState } from "react";
+import { Search } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
-interface SearchProps {
-  onAddAsset: (asset: Asset) => void;
-}
+// Mock search results
+const searchResults = [
+  { id: "aapl", name: "Apple Inc.", ticker: "AAPL", type: "stock" },
+  { id: "tsla", name: "Tesla, Inc.", ticker: "TSLA", type: "stock" },
+  { id: "msft", name: "Microsoft Corporation", ticker: "MSFT", type: "stock" },
+  { id: "amzn", name: "Amazon.com, Inc.", ticker: "AMZN", type: "stock" },
+  { id: "btc", name: "Bitcoin", ticker: "BTC", type: "crypto" },
+  { id: "eth", name: "Ethereum", ticker: "ETH", type: "crypto" },
+  { id: "spy", name: "SPDR S&P 500 ETF Trust", ticker: "SPY", type: "etf" },
+];
 
-export function Search({ onAddAsset }: SearchProps) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Asset[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
+export default function SearchAssets() {
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    if (query.length > 1) {
-      const searchResults = searchAssets(query);
-      setResults(searchResults);
-      setIsOpen(true);
-    } else {
-      setResults([]);
-      setIsOpen(false);
-    }
-  }, [query]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleAddAsset = (asset: Asset) => {
-    onAddAsset(asset);
-    setQuery("");
-    setIsOpen(false);
+  const handleSelect = (id: string) => {
+    console.log(`Selected asset with ID: ${id}`);
+    // Here you would add the asset to the watchlist
+    setOpen(false);
+    setSearchQuery("");
   };
 
   return (
-    <div ref={searchRef} className="relative mb-6">
-      <motion.div 
-        className="relative"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="relative">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search stocks, crypto, or ETFs..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-800 rounded-lg py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-          />
-        </div>
-        
-        <AnimatePresence>
-          {isOpen && results.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="absolute z-10 mt-2 w-full bg-gray-900 border border-gray-800 rounded-lg shadow-lg overflow-hidden"
-            >
-              <ul>
-                {results.map((asset) => (
-                  <li key={asset.ticker} className="border-b border-gray-800 last:border-b-0">
-                    <button
-                      onClick={() => handleAddAsset(asset)}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-800 transition-colors duration-150 flex items-center justify-between"
+    <div className="relative">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search for stocks, crypto, or ETFs..."
+              className="pl-10 bg-gray-900 border-gray-700 focus:border-blue-500 h-12 text-white"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClick={() => setOpen(true)}
+            />
+          </div>
+        </PopoverTrigger>
+        <PopoverContent className="p-0 w-full" align="start">
+          <Command className="bg-gray-900 border border-gray-700 rounded-lg">
+            <CommandInput
+              placeholder="Search assets..."
+              className="text-white"
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+            />
+            <CommandList>
+              <CommandEmpty className="py-6 text-center text-gray-400">
+                No assets found.
+              </CommandEmpty>
+              <CommandGroup heading="Stocks">
+                {searchResults
+                  .filter(
+                    (result) =>
+                      result.type === "stock" &&
+                      (result.name
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                        result.ticker
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()))
+                  )
+                  .map((result) => (
+                    <CommandItem
+                      key={result.id}
+                      onSelect={() => handleSelect(result.id)}
+                      className="cursor-pointer hover:bg-gray-800"
                     >
-                      <div>
-                        <div className="font-medium">{asset.name}</div>
-                        <div className="text-sm text-gray-400">{asset.ticker} • {asset.type}</div>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{result.name}</span>
+                        <span className="text-sm text-gray-400">
+                          {result.ticker}
+                        </span>
                       </div>
-                      <div className={`text-sm ${asset.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        ${asset.price.toFixed(2)} ({asset.changePercent >= 0 ? '+' : ''}{asset.changePercent.toFixed(2)}%)
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+              <CommandGroup heading="Cryptocurrencies">
+                {searchResults
+                  .filter(
+                    (result) =>
+                      result.type === "crypto" &&
+                      (result.name
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                        result.ticker
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()))
+                  )
+                  .map((result) => (
+                    <CommandItem
+                      key={result.id}
+                      onSelect={() => handleSelect(result.id)}
+                      className="cursor-pointer hover:bg-gray-800"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{result.name}</span>
+                        <span className="text-sm text-gray-400">
+                          {result.ticker}
+                        </span>
                       </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+              <CommandGroup heading="ETFs">
+                {searchResults
+                  .filter(
+                    (result) =>
+                      result.type === "etf" &&
+                      (result.name
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                        result.ticker
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()))
+                  )
+                  .map((result) => (
+                    <CommandItem
+                      key={result.id}
+                      onSelect={() => handleSelect(result.id)}
+                      className="cursor-pointer hover:bg-gray-800"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{result.name}</span>
+                        <span className="text-sm text-gray-400">
+                          {result.ticker}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Bell, HelpCircle, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import SearchBar from "./SearchBar"
+import SearchAssets from "./search-bar"
 
 export default function Header() {
   return (
@@ -13,7 +13,7 @@ export default function Header() {
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
-        <SearchBar />
+        <SearchAssets />
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon">
