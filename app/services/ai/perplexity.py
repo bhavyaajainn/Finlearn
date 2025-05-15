@@ -22,6 +22,7 @@ from app.services.ai.prompts.learning_prompts import (
 )
 from app.services.ai.prompts.asset_prompts import (
     get_asset_search_prompt,
+    get_comprehensive_research_prompt,
     get_similar_stocks_prompt,
     get_similar_crypto_prompt
 )
@@ -46,7 +47,7 @@ def call_perplexity_api(prompt: str) -> str:
     }
     
     data = {
-        "model": "sonar",  # Use the appropriate model
+        "model": "sonar", 
         "messages": [
             {
                 "role": "system",
@@ -742,3 +743,254 @@ def get_narrative_asset_analysis(
             "title": f"Unable to generate analysis for {symbol}",
             "content": f"An error occurred: {str(e)}"
         }
+
+
+def get_interactive_asset_analysis(
+    symbol: str,
+    asset_type: str,
+    expertise_level: str,
+    asset_info: Dict[str, Any],
+    similar_assets: List[Dict[str, Any]] = None,
+    user_interests: List[str] = None,
+    recent_news: List[Dict[str, Any]] = None,
+    watchlist_items: List[Dict[str, Any]] = None,
+    related_topics: List[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Generate interactive, conversational research tailored specifically to the user.
+    
+    Args:
+        symbol: Asset symbol
+        asset_type: Type of asset (stock/crypto)
+        expertise_level: User's expertise level
+        asset_info: Detailed asset information
+        similar_assets: List of similar assets for comparison
+        user_interests: User's investment interests
+        recent_news: Recent news articles about the asset
+        watchlist_items: User's current watchlist
+        related_topics: Topics from user's reading history related to this asset
+        
+    Returns:
+        Interactive research article with embedded tooltips
+    """
+    # Get the personalized interactive prompt
+    prompt = get_comprehensive_research_prompt(
+        symbol=symbol,
+        asset_type=asset_type,
+        expertise_level=expertise_level,
+        asset_info=asset_info,
+        similar_assets=similar_assets,
+        user_interests=user_interests,
+        recent_news=recent_news,
+        watchlist_items=watchlist_items,
+        related_topics=related_topics
+    )
+    
+    try:
+        response = call_perplexity_api(prompt)
+        # Parse the response as a JSON object with article sections
+        try:
+            # Try to extract JSON from markdown code blocks
+            if "```json" in response:
+                json_start = response.find("```json") + 7
+                json_end = response.find("```", json_start)
+                json_str = response[json_start:json_end].strip()
+                research = json.loads(json_str)
+            else:
+                # Try parsing the entire response as JSON
+                research = json.loads(response)
+                
+            # Make sure all expected sections are present
+            required_sections = [
+                "title", "summary", "sections", 
+                "connections", "conclusion", "recommendation"
+            ]
+            
+            for section in required_sections:
+                if section not in research:
+                    research[section] = f"Missing {section} section"
+                    
+            return research
+            
+        except Exception as e:
+            logger.error(f"Error parsing interactive research JSON: {e}")
+            # If JSON parsing fails, structure the raw text
+            sections = response.split("\n\n## ")
+            
+            if len(sections) > 1:
+                # Try to extract greeting and title
+                greeting_section = sections[0]
+                title = greeting_section.split("\n")[0].replace("# ", "")
+                greeting = greeting_section.replace("# " + title, "").strip()
+                    
+                # Structure the remaining content
+                article_sections = []
+                for section in sections[1:]:
+                    if section.strip():
+                        parts = section.split("\n", 1)
+                        if len(parts) > 1:
+                            section_title = parts[0].strip()
+                            section_content = parts[1].strip()
+                            article_sections.append({
+                                "title": section_title,
+                                "content": section_content
+                            })
+                
+                return {
+                    "title": title,
+                    "sections": article_sections,
+                    "format": "text"
+                }
+            
+            # If we can't parse sections, return the raw text
+            return {
+                "title": f"Research Analysis: {symbol}",
+                "content": response,
+                "format": "raw_text"
+            }
+        
+    except Exception as e:
+        logger.error(f"Error generating interactive analysis: {e}")
+        return {
+            "error": str(e),
+            "title": f"Unable to generate analysis for {symbol}",
+            "content": f"We apologize, but we encountered an error while preparing your personalized research: {str(e)}"
+        }
+
+
+
+def fetch_asset_news(
+    symbol: str, 
+    asset_type: str,
+    limit: int = 3,
+    include_citations: bool = True
+) -> List[Dict[str, Any]]:
+    """Fetch recent news for a specific asset using Perplexity with proper citations.
+    
+    Args:
+        symbol: Asset symbol
+        asset_type: Type of asset (stock/crypto)
+        limit: Maximum number of news items to return
+        include_citations: Whether to include detailed citation information
+        
+    Returns:
+        List of recent news items with analysis and citations
+    """
+    # Create prompt for Perplexity API
+    prompt = f"""Find the {limit} most significant recent news stories about {symbol} ({asset_type}) from the past 2 weeks.
+
+For each news item, provide:
+1. Headline
+2. Date published (in ISO format YYYY-MM-DD)
+3. Source name (publication or website)
+4. Author(s) if available
+5. URL to the original article
+6. Brief summary (1-2 sentences)
+7. Potential impact on the asset (positive/negative/neutral and why)
+
+{"Include citation information that allows proper attribution of the news sources." if include_citations else ""}
+
+Format your response as a valid JSON array with this structure:
+[
+  {{
+    "headline": "Example Headline About {symbol}",
+    "date": "2023-05-10",
+    "source": "Bloomberg",
+    "author": "John Smith",
+    "url": "https://example.com/article-link",
+    "summary": "Brief summary of the news item.",
+    "impact": {{
+      "direction": "positive",  // or "negative" or "neutral"
+      "reason": "Explanation of why this news is positive/negative/neutral for {symbol}"
+    }},
+    "citation": "Smith, J. (2023, May 10). Example Headline About {symbol}. Bloomberg. https://example.com/article-link"
+  }}
+]
+
+Only return the most important news that could potentially affect the asset's value or investment thesis. Ensure all URLs and citation information are accurate.
+"""
+    
+    try:
+        response = call_perplexity_api(prompt)
+        
+        # Parse the response
+        try:
+            # Try to extract JSON from markdown code blocks
+            if "```json" in response:
+                json_start = response.find("```json") + 7
+                json_end = response.find("```", json_start)
+                json_str = response[json_start:json_end].strip()
+                news_items = json.loads(json_str)
+            else:
+                # Try to parse the entire response as JSON
+                news_items = json.loads(response)
+            
+            # Ensure the response is a list
+            if not isinstance(news_items, list):
+                logger.warning(f"Unexpected news response format for {symbol}: {type(news_items)}")
+                return []
+                
+            # Validate and enhance each news item
+            validated_items = []
+            for item in news_items:
+                if "headline" in item and "summary" in item:
+                    # Ensure impact is properly formatted
+                    if "impact" not in item or not isinstance(item["impact"], dict):
+                        item["impact"] = {
+                            "direction": "neutral",
+                            "reason": "Impact assessment not available"
+                        }
+                    
+                    # Ensure date is present
+                    if "date" not in item:
+                        item["date"] = "recent"
+                    
+                    # Ensure source is present
+                    if "source" not in item:
+                        item["source"] = "Financial news source"
+                    
+                    # Generate citation if not provided
+                    if include_citations and "citation" not in item:
+                        # Build a citation in APA format if we have the necessary parts
+                        authors = item.get("author", "")
+                        year = item.get("date", "")[:4] if item.get("date") else ""
+                        title = item.get("headline", "")
+                        source = item.get("source", "")
+                        url = item.get("url", "")
+                        
+                        if year and title and source:
+                            if authors:
+                                last_name = authors.split()[-1]
+                                item["citation"] = f"{last_name}, {authors[0]}. ({year}). {title}. {source}. {url}"
+                            else:
+                                item["citation"] = f"{source}. ({year}). {title}. {url}"
+                        else:
+                            item["citation"] = f"Source: {item.get('source', 'Not available')}"
+                    
+                    validated_items.append(item)
+            
+            return validated_items[:limit]
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse news JSON for {symbol}: {e}")
+            # Attempt to extract news from text if JSON parsing fails
+            fallback_news = []
+            if "headlines" in response.lower() or "news" in response.lower():
+                parts = response.split("\n\n")
+                for part in parts:
+                    if ":" in part and len(part.strip()) > 20:
+                        fallback_news.append({
+                            "headline": part.strip()[:100],
+                            "date": "recent",
+                            "source": "Financial news",
+                            "summary": part.strip()[:200],
+                            "impact": {
+                                "direction": "neutral",
+                                "reason": "Impact assessment not available"
+                            },
+                            "citation": "Source information not available"
+                        })
+            return fallback_news[:limit]
+        
+    except Exception as e:
+        logger.error(f"Error fetching news for {symbol}: {e}")
+        return []

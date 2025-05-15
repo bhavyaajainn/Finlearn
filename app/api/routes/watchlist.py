@@ -11,12 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 from app.services.assets.data import get_asset_info, get_similar_assets, search_assets
-from app.services.firebase import get_user_watchlist, add_to_watchlist, remove_from_watchlist
+from app.services.firebase import add_to_watchlist, remove_from_watchlist
 # from app.services.assets import get_stock_info
 from app.services.ai import get_deep_research_on_stock
 from app.api.models import AssetType, AddAssetRequest, SearchRequest
-from app.services.ai.perplexity import search_assets_with_perplexity, get_similar_stocks, get_similar_crypto
-from app.services.firebase.watchlist import get_user_expertise_level, get_user_interests
+from app.services.ai.perplexity import fetch_asset_news, get_interactive_asset_analysis, search_assets_with_perplexity, get_similar_stocks, get_similar_crypto
+from app.services.firebase.watchlist import get_related_topics, get_user_expertise_level, get_user_interests, get_user_watchlists, log_asset_research
 
 router = APIRouter()
 
@@ -37,7 +37,7 @@ async def get_user_watchlist(
         Detailed information about each asset in the watchlist
     """
     # Get user's watchlist items from Firebase
-    watchlist_items = get_user_watchlist(user_id, asset_type)
+    watchlist_items = get_user_watchlists(user_id, asset_type)
     
     if not watchlist_items:
         return {"watchlist": [], "message": "Watchlist is empty"}
@@ -170,27 +170,16 @@ async def remove_from_user_watchlist(
 
 
 
-from app.services.ai.perplexity import get_narrative_asset_analysis
-
-# Add this endpoint for deep research style analysis
+# Update the research endpoint
 @router.get("/research/{symbol}")
 async def get_deep_research_analysis(
     symbol: str,
     user_id: str = Query(...),
     asset_type: AssetType = Query(...),
-    include_comparison: bool = Query(True)
+    include_comparison: bool = Query(True),
+    include_news: bool = Query(True)
 ) -> Dict[str, Any]:
-    """Get comprehensive research article with embedded tooltips for an asset.
-    
-    Args:
-        symbol: Asset symbol
-        user_id: User identifier
-        asset_type: Type of asset (stock/crypto)
-        include_comparison: Whether to include comparison with similar assets
-        
-    Returns:
-        Deep research article with embedded tooltips
-    """
+    """Get comprehensive research article with embedded tooltips for an asset."""
     try:
         # Get user's expertise level
         expertise_level = get_user_expertise_level(user_id)
@@ -205,16 +194,31 @@ async def get_deep_research_analysis(
         similar_assets = []
         if include_comparison:
             similar_assets = get_similar_assets(symbol, asset_type, limit=3)
+
+        # Get user's watchlist for context
+        watchlist_items = get_user_watchlists(user_id)
+        
+        # Get recent news for the asset
+        recent_news = fetch_asset_news(symbol, asset_type.value) if include_news else []
+        
+        # Get topics from user's reading history that are related to this asset
+        related_topics = get_related_topics(user_id, symbol, asset_type.value)
         
         # Get narrative research analysis with embedded tooltips
-        research = get_narrative_asset_analysis(
+        research = get_interactive_asset_analysis(
             symbol=symbol,
             asset_type=asset_type,
             expertise_level=expertise_level,
             asset_info=asset_info,
             similar_assets=similar_assets,
-            user_interests=interests
+            user_interests=interests,
+            recent_news=recent_news,
+            watchlist_items=watchlist_items,
+            related_topics=related_topics  # Add related topics
         )
+
+        # Log this research for future personalization
+        log_asset_research(user_id, symbol, asset_type.value)
         
         return {
             "symbol": symbol,
@@ -224,7 +228,9 @@ async def get_deep_research_analysis(
             "price_change_percent": asset_info.get("price_change_percent"),
             "expertise_level": expertise_level,
             "research_article": research,
-            "similar_assets": similar_assets if include_comparison else []
+            "similar_assets": similar_assets if include_comparison else [],
+            "recent_news": recent_news if include_news else [],
+            "related_topics": related_topics  # Include in response
         }
         
     except Exception as e:

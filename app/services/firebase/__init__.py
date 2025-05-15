@@ -8,7 +8,7 @@ from .client import db
 
 # Import and expose watchlist functionality
 from .watchlist import (
-    get_user_watchlist,
+    get_user_watchlists,
     add_to_watchlist,
     remove_from_watchlist
 )
@@ -31,7 +31,7 @@ from .selectedcategories import (
 
 __all__ = [
     "db",
-    "get_user_watchlist",
+    "get_user_watchlists",
     "add_to_watchlist",
     "remove_from_watchlist",
     "get_user_day_log",

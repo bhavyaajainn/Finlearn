@@ -162,11 +162,8 @@ paths:
       tags:
       - watchlist
       summary: Get Deep Research Analysis
-      description: "Get comprehensive research article with embedded tooltips for\
-        \ an asset.\n\nArgs:\n    symbol: Asset symbol\n    user_id: User identifier\n\
-        \    asset_type: Type of asset (stock/crypto)\n    include_comparison: Whether\
-        \ to include comparison with similar assets\n    \nReturns:\n    Deep research\
-        \ article with embedded tooltips"
+      description: Get comprehensive research article with embedded tooltips for an
+        asset.
       operationId: get_deep_research_analysis_watchlist_research__symbol__get
       parameters:
       - name: symbol
@@ -193,6 +190,13 @@ paths:
           type: boolean
           default: true
           title: Include Comparison
+      - name: include_news
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+          title: Include News
       responses:
         '200':
           description: Successful Response

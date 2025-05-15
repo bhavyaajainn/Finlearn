@@ -5,6 +5,8 @@ This module provides functions to interact with user watchlists stored in Fireba
 from datetime import datetime
 import logging
 from typing import Any, Dict, List, Optional
+from app.services.firebase.reading_log import get_user_topic_history
+from app.services.firebase.cache import find_topic_by_id
 
 from app.api.models import AssetType
 from .client import db
@@ -12,7 +14,7 @@ from .client import db
 logger = logging.getLogger(__name__)
 
 
-def get_user_watchlist(
+def get_user_watchlists(
     user_id: str, 
     asset_type: Optional[AssetType] = None
 ) -> List[Dict[str, Any]]:
@@ -164,3 +166,202 @@ def get_user_interests(user_id: str) -> List[str]:
     """
     preferences = get_user_preferences(user_id)
     return preferences.get('categories', [])
+
+"""Correlate asset research with user's reading history."""
+
+def get_related_topics(user_id: str, asset_symbol: str, asset_type: str) -> List[Dict[str, Any]]:
+    """Find topics from user's reading history that are relevant to the current asset.
+    
+    Args:
+        user_id: User identifier
+        asset_symbol: Symbol of the asset being researched
+        asset_type: Type of asset (stock/crypto)
+        
+    Returns:
+        List of relevant topics with correlation explanation
+    """
+    try:
+        # Get user's reading history
+        topic_history = get_user_topic_history(user_id)
+        if not topic_history:
+            return []
+            
+        
+        # Try to get asset details from our database if we have any
+        asset_details = None
+        try:
+            if asset_type == "stock":
+                details_ref = db.collection('stock_details').document(asset_symbol)
+            else:
+                details_ref = db.collection('crypto_details').document(asset_symbol)
+                
+            details_doc = details_ref.get()
+            if details_doc.exists:
+                asset_details = details_doc.to_dict()
+        except Exception as e:
+            logger.warning(f"Could not retrieve asset details: {e}")
+        
+        # Keywords to match for correlations
+        keywords = set()
+        
+        # Add asset symbol
+        keywords.add(asset_symbol.lower())
+        
+        # Add company name if available
+        if asset_details and 'name' in asset_details:
+            name_words = asset_details['name'].lower().split()
+            keywords.update(name_words)
+            
+        # Add sector if available
+        if asset_details and 'sector' in asset_details:
+            sector = asset_details['sector'].lower()
+            keywords.add(sector)
+            
+        # Add industry if available
+        if asset_details and 'industry' in asset_details:
+            industry = asset_details['industry'].lower()
+            keywords.add(industry)
+        
+        # Find correlations with topic history
+        related_topics = []
+        
+        for item in topic_history:
+            topic_id = item.get('topic_id')
+            if not topic_id:
+                continue
+                
+            # Get full topic details
+            topic_details = find_topic_by_id(topic_id)
+            if not topic_details:
+                continue
+            
+            # Check for correlations
+            correlation_type = None
+            correlation_strength = 0
+            
+            title = topic_details.get('title', '').lower()
+            content = topic_details.get('content', '').lower()
+            category = topic_details.get('category', '').lower()
+            
+            # Check for direct mentions
+            for keyword in keywords:
+                if keyword in title:
+                    correlation_type = "direct_mention_title"
+                    correlation_strength = 3  # High correlation
+                    break
+                elif keyword in content:
+                    correlation_type = "direct_mention_content"
+                    correlation_strength = 2  # Medium correlation
+                    break
+            
+            # Check for category correlation if no direct mention
+            if not correlation_type:
+                if asset_type.lower() in category:
+                    correlation_type = "same_category"
+                    correlation_strength = 1  # Low correlation
+                elif "invest" in category:
+                    correlation_type = "investment_related"
+                    correlation_strength = 1  # Low correlation
+            
+            # If we found a correlation, add to results
+            if correlation_type and correlation_strength > 0:
+                related_topics.append({
+                    "topic_id": topic_id,
+                    "title": topic_details.get('title'),
+                    "category": topic_details.get('category'),
+                    "correlation_type": correlation_type,
+                    "correlation_strength": correlation_strength,
+                    "viewed_at": item.get('viewed_at')
+                })
+        
+        # Sort by correlation strength (highest first)
+        related_topics.sort(key=lambda x: x['correlation_strength'], reverse=True)
+        
+        return related_topics[:5]  # Return up to 5 most relevant topics
+        
+    except Exception as e:
+        logger.error(f"Error finding related topics: {e}")
+        return []
+    
+# Add this function if not already present
+
+def log_asset_research(
+    user_id: str, 
+    symbol: str, 
+    asset_type: str
+) -> None:
+    """Log that a user has researched an asset.
+    
+    Args:
+        user_id: User identifier
+        symbol: Asset symbol
+        asset_type: Type of asset (stock/crypto)
+    """
+    try:
+        # Get current timestamp
+        now = datetime.now().isoformat()
+        
+        # Create research entry
+        research_entry = {
+            "user_id": user_id,
+            "symbol": symbol,
+            "asset_type": asset_type,
+            "timestamp": now,
+            "date": datetime.now().date().isoformat()
+        }
+        
+        # Add to unified activity collection
+        db.collection("user_asset_research").add(research_entry)
+        
+        # Update user's asset research history
+        history_ref = db.collection('asset_research_history').document(user_id)
+        history_doc = history_ref.get()
+        
+        if history_doc.exists:
+            history_data = history_doc.to_dict()
+            research_items = history_data.get('items', [])
+            
+            # Check if this asset exists in the history
+            existing_idx = next((i for i, item in enumerate(research_items) 
+                               if item.get('symbol') == symbol and 
+                                  item.get('asset_type') == asset_type), None)
+            
+            if existing_idx is not None:
+                # Update existing entry
+                research_items[existing_idx] = {
+                    "symbol": symbol,
+                    "asset_type": asset_type,
+                    "last_researched": now,
+                    "count": research_items[existing_idx].get('count', 0) + 1
+                }
+            else:
+                # Add new entry
+                research_items.append({
+                    "symbol": symbol,
+                    "asset_type": asset_type,
+                    "first_researched": now,
+                    "last_researched": now,
+                    "count": 1
+                })
+            
+            # Update document
+            history_ref.update({
+                'items': research_items,
+                'last_updated': now
+            })
+        else:
+            # Create new document
+            history_ref.set({
+                'user_id': user_id,
+                'items': [{
+                    "symbol": symbol,
+                    "asset_type": asset_type,
+                    "first_researched": now,
+                    "last_researched": now,
+                    "count": 1
+                }],
+                'last_updated': now
+            })
+        
+    except Exception as e:
+        logger.error(f"Error logging asset research: {e}")
