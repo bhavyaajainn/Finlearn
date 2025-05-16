@@ -103,7 +103,7 @@ export default function PriceChart({ assetId }: { assetId: string }) {
           </div>
         </div>
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-xl font-mono">
+          <span className="text-xl font-mono text-white">
             {formatCurrency(chartData[chartData.length - 1].price)}
           </span>
           <span className={`${isPriceUp ? "text-green-500" : "text-red-500"}`}>

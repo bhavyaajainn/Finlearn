@@ -21,10 +21,7 @@ const mockWatchlist = [
     name: "Apple Inc.",
     ticker: "AAPL",
     price: 187.32,
-    change: 1.24,
-    marketCap: "2.94T",
-    peRatio: 30.8,
-    volume: "52.3M",
+    insight: "Strong buy signal due to robust earnings.",
     sentiment: "positive",
   },
   {
@@ -32,10 +29,7 @@ const mockWatchlist = [
     name: "Tesla, Inc.",
     ticker: "TSLA",
     price: 246.53,
-    change: -2.15,
-    marketCap: "782.1B",
-    peRatio: 70.2,
-    volume: "108.7M",
+    insight: "Volatile performance; monitor closely.",
     sentiment: "neutral",
   },
   {
@@ -43,10 +37,7 @@ const mockWatchlist = [
     name: "Bitcoin",
     ticker: "BTC",
     price: 68423.12,
-    change: 3.78,
-    marketCap: "1.34T",
-    peRatio: null,
-    volume: "32.1B",
+    insight: "Uptrend supported by institutional interest.",
     sentiment: "positive",
   },
   {
@@ -54,10 +45,7 @@ const mockWatchlist = [
     name: "Ethereum",
     ticker: "ETH",
     price: 3245.67,
-    change: 2.34,
-    marketCap: "389.7B",
-    peRatio: null,
-    volume: "18.5B",
+    insight: "Growth driven by DeFi activity.",
     sentiment: "positive",
   },
   {
@@ -65,13 +53,11 @@ const mockWatchlist = [
     name: "Microsoft Corporation",
     ticker: "MSFT",
     price: 415.28,
-    change: 0.87,
-    marketCap: "3.09T",
-    peRatio: 35.6,
-    volume: "21.9M",
+    insight: "Consistent performance; strong fundamentals.",
     sentiment: "positive",
   },
 ];
+
 
 export default function WatchlistTable() {
   const router = useRouter();
@@ -104,11 +90,8 @@ export default function WatchlistTable() {
           <TableRow>
             <TableHead className="text-blue-400">Asset</TableHead>
             <TableHead className="text-blue-400 text-right">Price</TableHead>
-            <TableHead className="text-blue-400 text-right">Change</TableHead>
-            <TableHead className="text-blue-400 text-right">Market Cap</TableHead>
-            <TableHead className="text-blue-400 text-right">PE Ratio</TableHead>
-            <TableHead className="text-blue-400 text-right">Volume</TableHead>
-            <TableHead className="text-blue-400 text-center">Sentiment</TableHead>
+            <TableHead className="text-blue-400 text-center">Insights</TableHead>
+            <TableHead className="text-blue-400 text-right">Sentiment</TableHead>
             <TableHead className="text-blue-400 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -128,22 +111,16 @@ export default function WatchlistTable() {
               <TableCell className="text-right font-mono">
                 ${asset.price.toLocaleString()}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-center">
                 <span
                   className={
-                    asset.change >= 0 ? "text-green-500" : "text-red-500"
+                    "text-gray-400 text-sm"
                   }
                 >
-                  {asset.change >= 0 ? "+" : ""}
-                  {asset.change.toFixed(2)}%
+                  {asset.insight}
                 </span>
               </TableCell>
-              <TableCell className="text-right">{asset.marketCap}</TableCell>
               <TableCell className="text-right">
-                {asset.peRatio ? asset.peRatio.toFixed(1) : "N/A"}
-              </TableCell>
-              <TableCell className="text-right">{asset.volume}</TableCell>
-              <TableCell className="text-center">
                 <Badge
                   className={`${getSentimentColor(
                     asset.sentiment

@@ -1,6 +1,4 @@
 "use client"
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { CalendarDays, MapPin, Briefcase, Award, TrendingUp, Users } from "lucide-react"
@@ -216,112 +214,109 @@ export default function ManagementOverview({ assetId }: { assetId: string }) {
   const isCrypto = assetId === "3" || assetId === "4"
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
-      <CardHeader>
-        <CardTitle className="text-blue-400">
-          {isCrypto ? "Project Overview" : "Management & Company Overview"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className={`${isCrypto ? "lg:col-span-1" : "lg:col-span-2"}`}>
-            <h3 className="text-lg font-semibold text-blue-400 mb-4">
-              {isCrypto ? "Key Contributors" : "Executive Leadership"}
-            </h3>
+    <div>
+      <h3 className="text-xl font-semibold text-blue-400 mb-6">
+        {isCrypto ? "Project Overview" : "Management & Company Overview"}
+      </h3>
 
-            <div className="space-y-6">
-              {managementData.executives.map((executive, index) => (
-                <div key={index} className="flex gap-4 bg-gray-800 p-4 rounded-lg">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={executive.imageUrl || "/placeholder.svg"} alt={executive.name} />
-                    <AvatarFallback className="bg-blue-900 text-blue-200">
-                      {executive.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`${isCrypto ? "lg:col-span-1" : "lg:col-span-2"}`}>
+          <h3 className="text-lg font-semibold text-blue-400 mb-4">
+            {isCrypto ? "Key Contributors" : "Executive Leadership"}
+          </h3>
 
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-lg">{executive.name}</h4>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className="bg-blue-900 text-blue-200 hover:bg-blue-800">{executive.position}</Badge>
-                      <span className="text-sm text-gray-400">Since {executive.since}</span>
-                    </div>
-                    <p className="text-gray-300 text-sm mb-2">{executive.background}</p>
+          <div className="space-y-6">
+            {managementData.executives.map((executive, index) => (
+              <div key={index} className="flex gap-4 bg-gray-800/50 p-4 rounded-lg hover:bg-gray-800 transition-colors">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={executive.imageUrl || "/placeholder.svg"} alt={executive.name} />
+                  <AvatarFallback className="bg-blue-900 text-blue-200">
+                    {executive.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
 
-                    <div className="mt-2">
-                      <h5 className="text-sm font-medium text-gray-400 mb-1">Key Achievements:</h5>
-                      <ul className="text-sm text-gray-300">
-                        {executive.achievements.map((achievement, i) => (
-                          <li key={i} className="flex items-start gap-2 mb-1">
-                            <Award className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                            <span>{achievement}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-lg text-white">{executive.name}</h4>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-blue-900 text-blue-200 hover:bg-blue-800">{executive.position}</Badge>
+                    <span className="text-sm text-gray-400">Since {executive.since}</span>
+                  </div>
+                  <p className="text-gray-300 text-sm mb-2">{executive.background}</p>
+
+                  <div className="mt-2">
+                    <h5 className="text-sm font-medium text-gray-400 mb-1">Key Achievements:</h5>
+                    <ul className="text-sm text-gray-300">
+                      {executive.achievements.map((achievement, i) => (
+                        <li key={i} className="flex items-start gap-2 mb-1">
+                          <Award className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                          <span>{achievement}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
+        </div>
 
-          <div className="lg:col-span-1">
-            <h3 className="text-lg font-semibold text-blue-400 mb-4">
-              {isCrypto ? "Project Information" : "Company Information"}
-            </h3>
+        <div className="lg:col-span-1">
+          <h3 className="text-lg font-semibold text-blue-400 mb-4">
+            {isCrypto ? "Project Information" : "Company Information"}
+          </h3>
 
-            <div className="bg-gray-800 p-4 rounded-lg space-y-4">
-              <div className="flex items-start gap-3">
-                <CalendarDays className="h-5 w-5 text-blue-400 mt-0.5" />
-                <div>
-                  <div className="text-sm text-gray-400">Founded</div>
-                  <div className="text-gray-300">{managementData.companyInfo.founded}</div>
-                </div>
+          <div className="bg-gray-800/50 p-4 rounded-lg space-y-4">
+            <div className="flex items-start gap-3">
+              <CalendarDays className="h-5 w-5 text-blue-400 mt-0.5" />
+              <div>
+                <div className="text-sm text-gray-400">Founded</div>
+                <div className="text-gray-300">{managementData.companyInfo.founded}</div>
               </div>
+            </div>
 
-              <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-blue-400 mt-0.5" />
-                <div>
-                  <div className="text-sm text-gray-400">Headquarters</div>
-                  <div className="text-gray-300">{managementData.companyInfo.headquarters}</div>
-                </div>
+            <div className="flex items-start gap-3">
+              <MapPin className="h-5 w-5 text-blue-400 mt-0.5" />
+              <div>
+                <div className="text-sm text-gray-400">Headquarters</div>
+                <div className="text-gray-300">{managementData.companyInfo.headquarters}</div>
               </div>
+            </div>
 
-              <div className="flex items-start gap-3">
-                <Users className="h-5 w-5 text-blue-400 mt-0.5" />
-                <div>
-                  <div className="text-sm text-gray-400">{isCrypto ? "Community" : "Employees"}</div>
-                  <div className="text-gray-300">{managementData.companyInfo.employees}</div>
-                </div>
+            <div className="flex items-start gap-3">
+              <Users className="h-5 w-5 text-blue-400 mt-0.5" />
+              <div>
+                <div className="text-sm text-gray-400">{isCrypto ? "Community" : "Employees"}</div>
+                <div className="text-gray-300">{managementData.companyInfo.employees}</div>
               </div>
+            </div>
 
-              <div className="flex items-start gap-3">
-                <Briefcase className="h-5 w-5 text-blue-400 mt-0.5" />
-                <div>
-                  <div className="text-sm text-gray-400">Governance</div>
-                  <div className="text-gray-300">{managementData.companyInfo.governance}</div>
-                </div>
+            <div className="flex items-start gap-3">
+              <Briefcase className="h-5 w-5 text-blue-400 mt-0.5" />
+              <div>
+                <div className="text-sm text-gray-400">Governance</div>
+                <div className="text-gray-300">{managementData.companyInfo.governance}</div>
               </div>
+            </div>
 
-              <div className="flex items-start gap-3">
-                <TrendingUp className="h-5 w-5 text-blue-400 mt-0.5" />
-                <div>
-                  <div className="text-sm text-gray-400">Key Initiatives</div>
-                  <ul className="text-gray-300 list-disc list-inside">
-                    {managementData.companyInfo.keyInitiatives.map((initiative, index) => (
-                      <li key={index} className="ml-1">
-                        {initiative}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            <div className="flex items-start gap-3">
+              <TrendingUp className="h-5 w-5 text-blue-400 mt-0.5" />
+              <div>
+                <div className="text-sm text-gray-400">Key Initiatives</div>
+                <ul className="text-gray-300 list-disc list-inside">
+                  {managementData.companyInfo.keyInitiatives.map((initiative, index) => (
+                    <li key={index} className="ml-1">
+                      {initiative}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

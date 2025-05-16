@@ -1,6 +1,4 @@
 "use client"
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ExternalLink } from "lucide-react"
 
 // Mock news data
@@ -237,40 +235,36 @@ export default function NewsSection({ assetId }: { assetId: string }) {
   }
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
-      <CardHeader>
-        <CardTitle className="text-blue-400">Latest News</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {news.length > 0 ? (
-            news.map((item) => (
-              <div
-                key={item.id}
-                className={`p-4 bg-gray-800 rounded-lg border-l-4 ${getSentimentColor(item.sentiment)}`}
-              >
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 ml-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
-                <div className="text-sm text-gray-400 mb-2">
-                  {item.source} • {new Date(item.date).toLocaleDateString()}
-                </div>
-                <p className="text-gray-300">{item.summary}</p>
+    <div>
+      <h3 className="text-xl font-semibold text-blue-400 mb-4">Latest News</h3>
+      <div className="space-y-4">
+        {news.length > 0 ? (
+          news.map((item) => (
+            <div
+              key={item.id}
+              className={`p-4 bg-gray-800/50 rounded-lg border-l-4 ${getSentimentColor(item.sentiment)} hover:bg-gray-800 transition-colors`}
+            >
+              <div className="flex justify-between items-start">
+                <h3 className="font-semibold text-lg mb-1 text-white">{item.title}</h3>
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 ml-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
               </div>
-            ))
-          ) : (
-            <div className="text-center py-8 text-gray-400">No recent news available for this asset.</div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+              <div className="text-sm text-gray-400 mb-2">
+                {item.source} • {new Date(item.date).toLocaleDateString()}
+              </div>
+              <p className="text-gray-300">{item.summary}</p>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8 text-gray-400">No recent news available for this asset.</div>
+        )}
+      </div>
+    </div>
   )
 }

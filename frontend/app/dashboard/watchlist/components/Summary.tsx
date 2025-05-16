@@ -1,6 +1,4 @@
 "use client"
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ExternalLink, BookOpen, AlertTriangle, TrendingUp, Lightbulb } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -147,80 +145,80 @@ export default function PerplexitySummary({ assetId }: { assetId: string }) {
   }
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
-      <CardHeader>
-        <CardTitle className="text-blue-400 flex items-center gap-2">
-          <BookOpen className="h-5 w-5" />
-          Perplexity AI-Powered Summary
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="fundamentals" className="w-full">
-          <TabsList className="bg-gray-800 border-b border-gray-700 w-full justify-start mb-6">
-            <TabsTrigger
-              value="fundamentals"
-              className="data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-400"
-            >
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Fundamentals
-            </TabsTrigger>
-            <TabsTrigger
-              value="developments"
-              className="data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-400"
-            >
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Recent Developments
-            </TabsTrigger>
-            <TabsTrigger
-              value="outlook"
-              className="data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-400"
-            >
-              <Lightbulb className="mr-2 h-4 w-4" />
-              Outlook
-            </TabsTrigger>
-          </TabsList>
+    <div>
+      <h3 className="text-xl font-semibold text-blue-400 flex items-center gap-2 mb-6">
+        <BookOpen className="h-5 w-5" />
+        Perplexity AI-Powered Summary
+      </h3>
 
-          <TabsContent value="fundamentals" className="mt-0">
-            <div className="bg-gray-800 p-4 rounded-lg mb-4">
-              <p className="text-gray-300 leading-relaxed">{summaryData.fundamentals}</p>
-            </div>
-          </TabsContent>
+      <Tabs defaultValue="fundamentals" className="w-full">
+        <TabsList className="bg-gray-800 w-full justify-start mb-6 p-1 rounded-lg">
+          <TabsTrigger
+            value="fundamentals"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md text-gray-400"
+          >
+            <TrendingUp className="mr-2 h-4 w-4" />
+            Fundamentals
+          </TabsTrigger>
+          <TabsTrigger
+            value="developments"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md text-gray-400"
+          >
+            <AlertTriangle className="mr-2 h-4 w-4" />
+            Recent Developments
+          </TabsTrigger>
+          <TabsTrigger
+            value="outlook"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md text-gray-400"
+          >
+            <Lightbulb className="mr-2 h-4 w-4" />
+            Outlook
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="developments" className="mt-0">
-            <div className="bg-gray-800 p-4 rounded-lg mb-4">
-              <p className="text-gray-300 leading-relaxed">{summaryData.recentDevelopments}</p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="outlook" className="mt-0">
-            <div className="bg-gray-800 p-4 rounded-lg mb-4">
-              <p className="text-gray-300 leading-relaxed">{summaryData.outlook}</p>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold text-blue-400 mb-3">Sources & Citations</h3>
-          <div className="space-y-2">
-            {summaryData.citations.map((citation, index) => (
-              <div key={index} className="flex items-start gap-2 bg-gray-800 p-3 rounded-lg">
-                <ExternalLink className="h-4 w-4 text-blue-400 mt-1" />
-                <div>
-                  <a
-                    href={citation.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-blue-400 hover:text-blue-300"
-                  >
-                    {citation.title}
-                  </a>
-                  <div className="text-sm text-gray-400">{citation.source}</div>
-                </div>
-              </div>
-            ))}
+        <TabsContent value="fundamentals" className="mt-0">
+          <div className="bg-gray-800/50 p-6 rounded-lg mb-4">
+            <p className="text-gray-300 leading-relaxed">{summaryData.fundamentals}</p>
           </div>
+        </TabsContent>
+
+        <TabsContent value="developments" className="mt-0">
+          <div className="bg-gray-800/50 p-6 rounded-lg mb-4">
+            <p className="text-gray-300 leading-relaxed">{summaryData.recentDevelopments}</p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="outlook" className="mt-0">
+          <div className="bg-gray-800/50 p-6 rounded-lg mb-4">
+            <p className="text-gray-300 leading-relaxed">{summaryData.outlook}</p>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold text-blue-400 mb-3">Sources & Citations</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {summaryData.citations.map((citation, index) => (
+            <div
+              key={index}
+              className="flex items-start gap-2 bg-gray-800/50 p-4 rounded-lg hover:bg-gray-800 transition-colors"
+            >
+              <ExternalLink className="h-4 w-4 text-blue-400 mt-1 flex-shrink-0" />
+              <div>
+                <a
+                  href={citation.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-blue-400 hover:text-blue-300"
+                >
+                  {citation.title}
+                </a>
+                <div className="text-sm text-gray-400">{citation.source}</div>
+              </div>
+            </div>
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
