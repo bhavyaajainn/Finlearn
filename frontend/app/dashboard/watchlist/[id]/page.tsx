@@ -128,7 +128,7 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
         <Button
           variant="ghost"
           className="mb-6 text-blue-400 hover:text-blue-300 hover:bg-blue-950/50"
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/dashboard/watchlist")}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Watchlist
