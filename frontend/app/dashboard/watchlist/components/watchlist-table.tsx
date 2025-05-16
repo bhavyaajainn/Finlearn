@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Eye, Trash2 } from 'lucide-react';
-import { Badge } from "@/components/ui/badge";
 
 // Mock data for the watchlist
 const mockWatchlist = [
@@ -91,7 +90,6 @@ export default function WatchlistTable() {
             <TableHead className="text-blue-400">Asset</TableHead>
             <TableHead className="text-blue-400 text-right">Price</TableHead>
             <TableHead className="text-blue-400 text-center">Insights</TableHead>
-            <TableHead className="text-blue-400 text-right">Sentiment</TableHead>
             <TableHead className="text-blue-400 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -112,22 +110,13 @@ export default function WatchlistTable() {
                 ${asset.price.toLocaleString()}
               </TableCell>
               <TableCell className="text-center">
-                <span
-                  className={
-                    "text-gray-400 text-sm"
-                  }
+                <Button
+                  variant="link"
+                  className="text-gray-400 text-sm hover:text-blue-400 cursor-pointer"
+                  onClick={() => router.push(`/dashboard/watchlist/${asset.id}`)}
                 >
-                  {asset.insight}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <Badge
-                  className={`${getSentimentColor(
-                    asset.sentiment
-                  )} border-none`}
-                >
-                  {asset.sentiment}
-                </Badge>
+                  View Details
+                </Button>
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">

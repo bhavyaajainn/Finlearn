@@ -1,15 +1,15 @@
 "use client"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, TrendingUp, AlertTriangle, Users, BookOpen, Info } from "lucide-react"
+import { ArrowLeft, TrendingUp, AlertTriangle, Users, BookOpen, Info, BookAIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import PriceChart from "../components/price-chart"
 import NewsSection from "../components/news-item"
-import RisksAnalysis from "../components/risk-analysis"
-import ManagementOverview from "../components/management-overview"
 import PerplexitySummary from "../components/Summary"
+import { ArticleCard } from "../../learning/components"
+import SimilarAssets from "../components/similar-assets"
 
 const mockAssets = {
   "1": {
@@ -208,16 +208,13 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
                 <BookOpen className="mr-2 h-4 w-4" />
                 News
               </TabsTrigger>
-              <TabsTrigger value="risks" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-400">
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                Risks
+              <TabsTrigger value="articles" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-400">
+                <BookAIcon className="mr-2 h-4 w-4" />
+                Articles
               </TabsTrigger>
-              <TabsTrigger
-                value="management"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-400"
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Management
+              <TabsTrigger value="similar" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-400">
+                <BookAIcon className="mr-2 h-4 w-4" />
+                Similar Assets
               </TabsTrigger>
               <TabsTrigger value="summary" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-400">
                 <Info className="mr-2 h-4 w-4" />
@@ -235,15 +232,12 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
               <TabsContent value="news" className="mt-0">
                 <NewsSection assetId={asset.id} />
               </TabsContent>
-
-              <TabsContent value="risks" className="mt-0">
-                <RisksAnalysis assetId={asset.id} />
+              <TabsContent value="similar" className="mt-0">
+                <SimilarAssets assetId={asset.id} />
               </TabsContent>
-
-              <TabsContent value="management" className="mt-0">
-                <ManagementOverview assetId={asset.id} />
+              <TabsContent value="articles" className="mt-0">
+                <ArticleCard />
               </TabsContent>
-
               <TabsContent value="summary" className="mt-0">
                 <PerplexitySummary assetId={asset.id} />
               </TabsContent>

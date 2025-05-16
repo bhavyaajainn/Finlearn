@@ -1,7 +1,6 @@
-import { Button } from "@/components/ui/button"
-import { PlusCircle } from "lucide-react"
 import WatchlistTable from "./components/watchlist-table"
 import SearchAssets from "./components/search-bar"
+import AddAssetModal from "./components/add-asset-modal"
 
 export default function Home() {
   return (
@@ -19,10 +18,7 @@ export default function Home() {
         <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-blue-400">Your Watchlist</h2>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Asset
-            </Button>
+            <AddAssetModal />
           </div>
 
           <WatchlistTable />
