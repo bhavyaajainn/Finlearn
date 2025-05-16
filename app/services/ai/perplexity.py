@@ -994,3 +994,330 @@ Only return the most important news that could potentially affect the asset's va
     except Exception as e:
         logger.error(f"Error fetching news for {symbol}: {e}")
         return []
+
+
+# Add these functions to your existing perplexity.py file
+
+def fetch_trending_finance_news(
+    expertise_level: str,
+    user_interests: List[str] = None,
+    limit: int = 3
+) -> List[Dict[str, Any]]:
+    """Fetch trending finance news tailored to the user's expertise and interests.
+    
+    Args:
+        expertise_level: User's expertise level (beginner/intermediate/advanced)
+        user_interests: List of financial topics the user is interested in
+        limit: Maximum number of news items to return
+        
+    Returns:
+        List of trending news items with details
+    """
+    # Create interest string for personalization
+    interest_str = ", ".join(user_interests) if user_interests else "general finance"
+    
+    prompt = f"""Find the {limit} most significant trending finance news stories from the past 24 hours.
+    
+Focus on topics related to: {interest_str}
+
+The content should be appropriate for a {expertise_level}-level investor.
+
+For each news item, provide:
+1. A unique ID (create an alphanumeric identifier)
+2. Headline (attention-grabbing but accurate)
+3. Brief summary (1-2 sentences)
+4. Category (e.g., stocks, cryptocurrency, personal finance)
+5. Why it matters (explain significance for investors at {expertise_level} level)
+6. Source name (publication)
+7. Publication date (ISO format)
+
+Format your response as a valid JSON array with this structure:
+[
+  {{
+    "id": "unique-alphanumeric-id",
+    "headline": "Headline about the news",
+    "summary": "Brief summary of the news item",
+    "category": "Category of the news",
+    "why_it_matters": "Why this news is significant",
+    "source": "Source publication",
+    "date": "2023-05-15T13:45:00Z"
+  }},
+  ...
+]
+"""
+    
+    try:
+        response = call_perplexity_api(prompt)
+        
+        # Parse the response
+        try:
+            # Try to extract JSON from markdown code blocks
+            if "```json" in response:
+                json_start = response.find("```json") + 7
+                json_end = response.find("```", json_start)
+                json_str = response[json_start:json_end].strip()
+                news_items = json.loads(json_str)
+            else:
+                # Try parsing the entire response as JSON
+                news_items = json.loads(response)
+            
+            # Ensure the response is a list
+            if not isinstance(news_items, list):
+                logger.warning(f"Unexpected news response format: {type(news_items)}")
+                return []
+            
+            return news_items[:limit]
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse news JSON: {e}")
+            return []
+        
+    except Exception as e:
+        logger.error(f"Error fetching trending finance news: {e}")
+        return []
+
+def generate_news_article(
+    news_id: str,
+    expertise_level: str
+) -> Dict[str, Any]:
+    """Generate a detailed article for a trending news item with appropriate tooltips.
+    
+    Args:
+        news_id: ID of the news item
+        expertise_level: User's expertise level
+        
+    Returns:
+        Detailed article with tooltips
+    """
+    prompt = f"""Write a comprehensive analysis of a recent financial news story for a {expertise_level}-level investor.
+
+IMPORTANT FORMATTING: For any financial term or concept that might need explanation for a {expertise_level}-level reader, embed a tooltip using this exact format:
+"[concept name]{{tooltip:Explanation appropriate for {expertise_level} level.}}"
+
+Examples:
+- "The [Federal Reserve]{{tooltip:The central banking system of the United States that manages the country's monetary policy.}} announced..."
+- "This could impact the [yield curve]{{tooltip:A line plotting interest rates of bonds with equal credit quality but different maturity dates.}}..."
+
+Your article should:
+1. Start with a compelling title and introduction
+2. Provide thorough analysis of the news and its implications
+3. Include relevant context and background information
+4. Discuss potential impacts on different market sectors
+5. Mention expert opinions or market reactions
+6. End with a conclusion or outlook
+
+Include at least 5-10 tooltips for financial terms appropriate to the user's {expertise_level} level.
+
+Format your response as a valid JSON object with these fields:
+{{
+  "title": "Engaging article title",
+  "content": "Full article with embedded tooltips using the format specified",
+  "key_points": ["Point 1", "Point 2", "Point 3"],
+  "related_topics": ["Topic 1", "Topic 2"]
+}}
+"""
+    
+    try:
+        response = call_perplexity_api(prompt)
+        
+        # Parse the response
+        try:
+            # Try to extract JSON from markdown code blocks
+            if "```json" in response:
+                json_start = response.find("```json") + 7
+                json_end = response.find("```", json_start)
+                json_str = response[json_start:json_end].strip()
+                article = json.loads(json_str)
+            else:
+                # Try parsing the entire response as JSON
+                article = json.loads(response)
+            
+            return article
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse article JSON: {e}")
+            # Return a basic structure for the article if JSON parsing fails
+            return {
+                "title": "Analysis of Recent Financial News",
+                "content": response,
+                "key_points": ["Unable to format key points"],
+                "related_topics": []
+            }
+        
+    except Exception as e:
+        logger.error(f"Error generating news article: {e}")
+        return {
+            "title": "Error Generating Article",
+            "content": f"We encountered an error while generating this article: {str(e)}",
+            "key_points": [],
+            "related_topics": []
+        }
+
+def get_financial_glossary_term(expertise_level: str) -> Dict[str, Any]:
+    """Get financial glossary terms of the day tailored to user's expertise level.
+    
+    Args:
+        expertise_level: User's expertise level
+        
+    Returns:
+        Three financial terms with definitions and examples
+    """
+    prompt = f"""Generate three different 'Financial Terms of the Day' for a {expertise_level}-level investor.
+
+Each term should be:
+1. Appropriate for a {expertise_level} level of understanding
+2. Relevant to current financial markets or fundamental concepts
+3. Explained clearly with a definition
+4. Illustrated with a practical example
+5. Accompanied by why it's important to understand
+
+The three terms should cover different areas of finance (e.g., investing, economics, personal finance).
+
+Format your response as a valid JSON object with these fields:
+{{
+  "terms": [
+    {{
+      "term": "First financial term",
+      "definition": "Clear and concise definition",
+      "example": "Practical example of the term in use",
+      "importance": "Why this term matters for investors"
+    }},
+    {{
+      "term": "Second financial term",
+      "definition": "Clear and concise definition",
+      "example": "Practical example of the term in use",
+      "importance": "Why this term matters for investors"
+    }},
+    {{
+      "term": "Third financial term",
+      "definition": "Clear and concise definition",
+      "example": "Practical example of the term in use",
+      "importance": "Why this term matters for investors"
+    }}
+  ]
+}}
+"""
+    
+    try:
+        response = call_perplexity_api(prompt)
+        
+        # Parse the response
+        try:
+            # Try to extract JSON from markdown code blocks
+            if "```json" in response:
+                json_start = response.find("```json") + 7
+                json_end = response.find("```", json_start)
+                json_str = response[json_start:json_end].strip()
+                terms_data = json.loads(json_str)
+            else:
+                # Try parsing the entire response as JSON
+                terms_data = json.loads(response)
+            
+            # Ensure we have a terms array, even if parsing didn't work as expected
+            if "terms" not in terms_data or not isinstance(terms_data["terms"], list):
+                # Create a default structure
+                return {
+                    "terms": [
+                        {
+                            "term": "Financial Literacy",
+                            "definition": "The ability to understand and effectively use various financial skills.",
+                            "example": "Understanding how investments work and managing a budget.",
+                            "importance": "Helps individuals make informed financial decisions."
+                        }
+                    ]
+                }
+                
+            return terms_data
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse glossary terms JSON: {e}")
+            return {
+                "terms": [
+                    {
+                        "term": "Financial Literacy",
+                        "definition": "The ability to understand and effectively use various financial skills.",
+                        "example": "Understanding how investments work and managing a budget.",
+                        "importance": "Helps individuals make informed financial decisions."
+                    },
+                    {
+                        "term": "Compound Interest",
+                        "definition": "Interest calculated on both the initial principal and previously accumulated interest.",
+                        "example": "A $1,000 investment earning 5% compounded annually becomes $1,276 after 5 years.",
+                        "importance": "Shows how investments can grow exponentially over time."
+                    },
+                    {
+                        "term": "Risk Tolerance",
+                        "definition": "The degree of variability in investment returns that an investor is willing to withstand.",
+                        "example": "A conservative investor might prefer bonds over volatile stocks.",
+                        "importance": "Helps determine the appropriate asset allocation for an investor."
+                    }
+                ]
+            }
+        
+    except Exception as e:
+        logger.error(f"Error generating glossary terms: {e}")
+        return {
+            "terms": [
+                {
+                    "term": "Error",
+                    "definition": "Unable to generate terms",
+                    "example": "",
+                    "importance": ""
+                }
+            ]
+        }
+
+def get_finance_quote() -> Dict[str, Any]:
+    """Get motivational finance quote of the day.
+    
+    Returns:
+        Quote with author and explanation
+    """
+    prompt = """Generate an inspiring quote related to finance, investing, or money management.
+
+The quote should be:
+1. Motivational or thought-provoking
+2. Attributed to a real person (famous investor, entrepreneur, economist, etc.)
+3. Relevant to financial success or wisdom
+4. Accompanied by a brief explanation of its meaning
+
+Format your response as a valid JSON object with these fields:
+{
+  "quote": "The full quote text",
+  "author": "Name of the person who said it",
+  "explanation": "Brief explanation of what this quote means"
+}
+"""
+    
+    try:
+        response = call_perplexity_api(prompt)
+        
+        # Parse the response
+        try:
+            # Try to extract JSON from markdown code blocks
+            if "```json" in response:
+                json_start = response.find("```json") + 7
+                json_end = response.find("```", json_start)
+                json_str = response[json_start:json_end].strip()
+                quote = json.loads(json_str)
+            else:
+                # Try parsing the entire response as JSON
+                quote = json.loads(response)
+            
+            return quote
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse quote JSON: {e}")
+            return {
+                "quote": "The best investment you can make is in yourself.",
+                "author": "Warren Buffett",
+                "explanation": "Investing in your knowledge and skills provides the highest return."
+            }
+        
+    except Exception as e:
+        logger.error(f"Error generating finance quote: {e}")
+        return {
+            "quote": "Error generating quote",
+            "author": "",
+            "explanation": ""
+        }
