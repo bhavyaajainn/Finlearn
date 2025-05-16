@@ -746,6 +746,73 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /dashboard/home:
+    get:
+      tags:
+      - dashboard
+      summary: Get Dashboard Content
+      description: "Get personalized dashboard content for a user.\n\nArgs:\n    user_id:\
+        \ User identifier\n    \nReturns:\n    Dashboard content including glossary\
+        \ term, quote, and trending news"
+      operationId: get_dashboard_content_dashboard_home_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Dashboard Content Dashboard Home Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /dashboard/news/{news_id}:
+    get:
+      tags:
+      - dashboard
+      summary: Get News Article
+      description: "Get detailed article about a trending news item with tooltips.\n\
+        \nArgs:\n    news_id: ID of the news item\n    user_id: User identifier\n\
+        \    \nReturns:\n    Detailed article with tooltips based on user's expertise\
+        \ level"
+      operationId: get_news_article_dashboard_news__news_id__get
+      parameters:
+      - name: news_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: News Id
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get News Article Dashboard News  News Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /:
     get:
       summary: Root
