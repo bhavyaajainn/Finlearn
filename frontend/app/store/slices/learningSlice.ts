@@ -12,10 +12,11 @@ export interface TopicItem {
   title: string;
   description: string;
   category: string;
-  expertise_level: string;
+  expertise_level:string
+  level: string; // Updated from 'expertise_level' to 'level' for consistency
   importance: string;
   relevance: string;
-  generated_date: string;
+  date_published: string; // Updated from 'generated_date' to 'date_published' for clarity
 }
 
 export interface TopicDetailResponse {

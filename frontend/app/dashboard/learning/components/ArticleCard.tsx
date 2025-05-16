@@ -2,19 +2,18 @@
 
 import { BookmarkCheck, Bookmark, Clock, ChevronRight, CheckCircle } from "lucide-react"
 
-export default function ArticleCard() {
-  const dummyTopic = {
-    topic_id: "abc123",
-    title: "Understanding Dogecoin: Meme to Mainstream",
-    description:
-      "DogeCoin started as a joke but has evolved into a legitimate digital currency. This article breaks down its history, technology, and cultural significance.",
-    category: "DeFi",
-    level: "Beginner",
-  }
+interface ArticleCardProps {
+  topicId: string;
+  topicTitle: string;
+  topicDescription: string;
+  category: string;
+  level: string;
+  isBookmarked: boolean;
+  isRead: boolean;
+}
 
-  const isBookmarked = true
-  const isRead = true
-  const readTime = Math.ceil(dummyTopic.description.length / 500)
+export default function ArticleCard({ topicId, topicTitle, topicDescription, category, level, isBookmarked, isRead}: ArticleCardProps) {
+  const readTime = Math.ceil(topicDescription.length / 500)
 
   return (
     <div
@@ -25,7 +24,7 @@ export default function ArticleCard() {
         <div className="flex justify-between items-start">
           <div className="flex gap-2 flex-wrap">
             <span className="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs font-medium rounded-full">
-              {dummyTopic.category.toLowerCase()} · {dummyTopic.level.toLowerCase()}
+              {category.toLowerCase()} · {level.toLowerCase()}
             </span>
 
             {isRead && (
@@ -47,12 +46,12 @@ export default function ArticleCard() {
 
         {/* Title */}
         <h2 className="text-lg md:text-xl font-semibold text-white leading-snug">
-          {dummyTopic.title}
+          {topicTitle}
         </h2>
 
         {/* Description */}
         <p className="text-gray-400 text-sm line-clamp-3">
-          {dummyTopic.description}
+          {topicDescription}
         </p>
 
         {/* Footer */}
