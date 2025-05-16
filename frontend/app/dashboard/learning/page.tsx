@@ -191,10 +191,11 @@ const LearningHub = () => {
                   {getCurrentPageItems().map((topic) => (
                     <ArticleCard 
                       key={topic.topic_id}
-                      topic={topic}
-                      onArticleSelect={handleArticleSelect}
-                      onBookmarkToggle={handleBookmarkToggle}
-                      onMarkAsRead={(topicId) => dispatch(markAsRead(topicId))}
+                      topicId={topic.topic_id}
+                      topicTitle={topic.title}
+                      topicDescription={topic.description}
+                      category={topic.category}
+                      level={topic.level}
                       isBookmarked={bookmarkedTopics.includes(topic.topic_id)}
                       isRead={readTopics.includes(topic.topic_id)}
                     />

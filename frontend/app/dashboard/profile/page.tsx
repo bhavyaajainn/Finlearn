@@ -207,22 +207,7 @@ const ProfilePage = () => {
       )
     );
   };
-
-  const addNewTopic = () => {
-    if (newTopicName.trim()) {
-      const newTopic = {
-        id: `custom-${Date.now()}`,
-        name: newTopicName.trim(),
-        icon: <DollarSign className="h-4 w-4" />,
-        selected: true
-      };
-
-      setInterests([...interests, newTopic]);
-      setNewTopicName("");
-      setShowAddTopic(false);
-    }
-  };
-
+  
   const getCalendarDays = () => {
     return calendarView === "30days" ? 30 : calendarView === "6months" ? 180 : 365;
   };
