@@ -388,6 +388,14 @@ paths:
         schema:
           type: string
           title: User Id
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
       - name: refresh
         in: query
         required: false
