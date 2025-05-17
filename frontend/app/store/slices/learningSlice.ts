@@ -1,22 +1,28 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 // Types for our learning content
-export interface Topic {
-  category: string;
-  level: string;
-  topics: TopicItem[];
-}
-
 export interface TopicItem {
   topic_id: string;
   title: string;
   description: string;
   category: string;
-  expertise_level:string
-  level: string; // Updated from 'expertise_level' to 'level' for consistency
+  expertise_level: string;
+  generated_date: string;
   importance: string;
   relevance: string;
-  date_published: string; // Updated from 'generated_date' to 'date_published' for clarity
+  viewed?: boolean;
+}
+
+export interface CategoryTopics {
+  [category: string]: TopicItem[];
+}
+
+export interface TopicResponse {
+  user_id?: string;
+  expertise_level?: string;
+  selected_categories?: string[];
+  recommendations: CategoryTopics;
+  refreshed_at: string;
 }
 
 export interface TopicDetailResponse {
@@ -36,7 +42,7 @@ export interface RelatedConcept {
 
 // State interface
 interface LearningState {
-  topics: TopicItem[];
+  topics: CategoryTopics;
   filteredTopics: TopicItem[];
   currentTopic: TopicDetailResponse | null;
   loading: boolean;
@@ -48,11 +54,12 @@ interface LearningState {
   totalPages: number;
   bookmarkedTopics: string[];
   readTopics: string[];
+  categories: string[];
 }
 
 // Initial state
 const initialState: LearningState = {
-  topics: [],
+  topics: {},
   filteredTopics: [],
   currentTopic: null,
   loading: false,
@@ -63,16 +70,17 @@ const initialState: LearningState = {
   itemsPerPage: 6,
   totalPages: 1,
   bookmarkedTopics: [],
-  readTopics: []
+  readTopics: [],
+  categories: []
 };
 
 // Async thunks
 export const fetchTopics = createAsyncThunk(
   'learning/fetchTopics',
-  async (_, { rejectWithValue }) => {
+  async (userId: string, { rejectWithValue }) => {
     try {
-      // The URL seen in the screenshot
-      const response = await fetch('https://finlearn.onrender.com/dailytopics?user_id=bhavya&category=crypto&level=beginner');
+      // Using the updated API endpoint with dynamic userId
+      const response = await fetch(`https://finlearn.onrender.com/user/recommendedtopics?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch topics');
@@ -90,7 +98,7 @@ export const fetchTopicDetail = createAsyncThunk(
   'learning/fetchTopicDetail',
   async (topicId: string, { rejectWithValue }) => {
     try {
-      // Assuming there's an endpoint for topic details
+      // Updated endpoint for topic details
       const response = await fetch(`https://finlearn.onrender.com/topic/${topicId}`);
       
       if (!response.ok) {
@@ -216,10 +224,14 @@ const learningSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchTopics.fulfilled, (state, action: PayloadAction<Topic>) => {
+      .addCase(fetchTopics.fulfilled, (state, action: PayloadAction<TopicResponse>) => {
         state.loading = false;
-        // Extract topics array from the response
-        state.topics = action.payload.topics || [];
+        
+        // Store topics by category from the recommendations field
+        state.topics = action.payload.recommendations || {};
+        
+        // Extract categories
+        state.categories = Object.keys(state.topics);
         
         // Apply filters and pagination
         applyFilters(state);
@@ -273,11 +285,16 @@ const learningSlice = createSlice({
 
 // Helper function to apply filters (search term, category) and pagination
 function applyFilters(state: LearningState) {
-  let filtered = [...state.topics];
+  let filtered: TopicItem[] = [];
   
-  // Apply category filter if not "All"
   if (state.selectedCategory !== 'All') {
-    filtered = filtered.filter(topic => topic.category === state.selectedCategory);
+    // If a specific category is selected, only show topics from that category
+    filtered = state.topics[state.selectedCategory] || [];
+  } else {
+    // If 'All' is selected, combine all topics from all categories
+    Object.values(state.topics).forEach(categoryTopics => {
+      filtered = [...filtered, ...categoryTopics];
+    });
   }
   
   // Apply search filter

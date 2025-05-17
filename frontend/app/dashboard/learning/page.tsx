@@ -46,7 +46,8 @@ const LearningHub = () => {
     itemsPerPage,
     totalPages,
     bookmarkedTopics,
-    readTopics
+    readTopics,
+    categories
   } = useAppSelector(state => state.learning);
   
   const { user } = useAppSelector(state => state.auth);
@@ -59,31 +60,14 @@ const LearningHub = () => {
   
   // Fetch topics and user status on initial load
   useEffect(() => {
-    dispatch(fetchTopics());
-    
-    // If user is logged in, fetch their bookmarked and read topics
-    if (user?.uid) {
+    // Only fetch data if user exists and we don't already have topics
+    if (user?.uid && Object.keys(topics).length === 0 && !loading) {
+      dispatch(fetchTopics(user.uid));
+      
+      // Fetch user's bookmarked and read topics
       dispatch(fetchUserTopicsStatus(user.uid));
     }
-  }, [dispatch, user]);
-  
-  // Get current page items
-  const getCurrentPageItems = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredTopics.slice(startIndex, endIndex);
-  };
-  
-  // Get unique categories from topics
-  const getCategories = () => {
-    const categoriesSet = new Set<string>();
-    topics.forEach(topic => {
-      if (topic.category) {
-        categoriesSet.add(topic.category);
-      }
-    });
-    return Array.from(categoriesSet);
-  };
+  }, [dispatch, user, topics, loading]);
   
   // Handler for search term change
   const handleSearchChange = (term: string) => {
@@ -142,11 +126,18 @@ const LearningHub = () => {
     dispatch(clearCurrentTopic());
   };
 
+  // Get current page items
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredTopics.slice(startIndex, endIndex);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="container max-w-6xl mx-auto px-4 py-8">
+      <div className="container max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-white mb-2">Learning Hub</h1>
-        <p className="text-gray-400 mb-6">Your personalized financial knowledge center</p>
+        <p className="text-gray-400 mb-8">Your personalized financial knowledge center</p>
         
         {/* Top section with search and filters - Only show when no article is selected */}
         {!selectedTopicItem && (
@@ -155,7 +146,7 @@ const LearningHub = () => {
             onSearchChange={handleSearchChange}
             selectedCategory={selectedCategory}
             onCategoryChange={handleCategoryChange}
-            categories={getCategories()}
+            categories={categories}
             onDailySummaryOpen={() => setShowDailySummary(true)}
           />
         )}
@@ -175,7 +166,7 @@ const LearningHub = () => {
               <h3 className="text-xl font-semibold text-red-400 mb-2">Error Loading Content</h3>
               <p className="text-gray-300">{error}</p>
               <button 
-                onClick={() => dispatch(fetchTopics())}
+                onClick={() => user?.uid && dispatch(fetchTopics(user.uid))}
                 className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md"
               >
                 Try Again
@@ -187,20 +178,36 @@ const LearningHub = () => {
           {!selectedTopicItem && !loading && !error && (
             <>
               {filteredTopics.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {getCurrentPageItems().map((topic) => (
-                    <ArticleCard 
-                      key={topic.topic_id}
-                      topicId={topic.topic_id}
-                      topicTitle={topic.title}
-                      topicDescription={topic.description}
-                      category={topic.category}
-                      level={topic.level}
-                      isBookmarked={bookmarkedTopics.includes(topic.topic_id)}
-                      isRead={readTopics.includes(topic.topic_id)}
-                    />
-                  ))}
-                </div>
+                <>
+                  {/* Grid layout for all articles */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {getCurrentPageItems().map((topic) => (
+                      <div 
+                        key={topic.topic_id} 
+                        onClick={() => handleArticleSelect(topic)} 
+                        className="h-full"
+                      >
+                        <ArticleCard 
+                          topicId={topic.topic_id}
+                          topicTitle={topic.title}
+                          topicDescription={topic.description}
+                          category={topic.category}
+                          level={topic.expertise_level}
+                          isBookmarked={bookmarkedTopics.includes(topic.topic_id)}
+                          isRead={readTopics.includes(topic.topic_id)}
+                          onBookmarkToggle={handleBookmarkToggle}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Pagination */}
+                  <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </>
               ) : (
                 <NoResults 
                   searchTerm={searchTerm}
@@ -208,13 +215,6 @@ const LearningHub = () => {
                   onReset={handleResetFilters}
                 />
               )}
-              
-              {/* Pagination */}
-              <Pagination 
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
             </>
           )}
           
