@@ -203,6 +203,7 @@ async def get_daily_category_topics(
 @router.get("/user/recommendedtopics")
 async def get_user_recommended_topics(
     user_id: str,
+    category: Optional[str] = None,  # Add optional category parameter
     refresh: bool = False  # Allow manual refresh option
 ) -> Dict[str, Any]:
     """Get personalized topic recommendations based on user's selected categories and current news.
@@ -225,21 +226,33 @@ async def get_user_recommended_topics(
     if not selected_categories:
         raise HTTPException(status_code=404, detail="No categories selected for this user")
     
+    if category:
+        # If requested category isn't in user's selections, we can either:
+        # Option 1: Return 404 (strict approach)
+        # if category not in selected_categories:
+        #     raise HTTPException(status_code=404, detail=f"Category '{category}' not found in user's selected categories")
+        
+        # Option 2: Allow any category (flexible approach)
+        categories_to_process = [category]
+    else:
+        # Process all selected categories as before
+        categories_to_process = selected_categories
+    
     # 3. Fetch topics for each category
     recommendations = {}
     
-    for category in selected_categories:
+    for cat in categories_to_process:
         # Check if we need to refresh
-        need_refresh = refresh or should_refresh_topics(category, expertise_level)
+        need_refresh = refresh or should_refresh_topics(cat, expertise_level)
         
         # Get or generate topics
         if need_refresh:
-            topics = get_daily_topics(category, expertise_level, user_id)
+            topics = get_daily_topics(cat, expertise_level, user_id)
         else:
-            topics = get_cached_topics(category, expertise_level) or []
+            topics = get_cached_topics(cat, expertise_level) or []
         
         # Select 2 topics from each category (or fewer if not enough)
-        recommendations[category] = topics[:2] if topics else []
+        recommendations[cat] = topics[:2] if topics else []
     
     # 4. Define date range for reading history (last 90 days)
     from datetime import date, timedelta
@@ -252,28 +265,28 @@ async def get_user_recommended_topics(
     # 6. Create a lookup dictionary for efficiency
     viewed_topics_by_category = {}
     for item in user_history:
-        category = item.get('category')
+        cat = item.get('category')
         topic_id = item.get('topic_id')
-        if category and topic_id:
-            if category not in viewed_topics_by_category:
-                viewed_topics_by_category[category] = set()
-            viewed_topics_by_category[category].add(topic_id)
+        if cat and topic_id:
+            if cat not in viewed_topics_by_category:
+                viewed_topics_by_category[cat] = set()
+            viewed_topics_by_category[cat].add(topic_id)
 
     # 7. Mark topics as viewed in each category
-    for category, topics_list in recommendations.items():
-        viewed_topic_ids = viewed_topics_by_category.get(category, set())
+    for cat, topics_list in recommendations.items():
+        viewed_topic_ids = viewed_topics_by_category.get(cat, set())
         for topic in topics_list:
             topic["viewed"] = topic["topic_id"] in viewed_topic_ids
     
     # 8. Get cache refresh timestamp
     cache_time = None
-    if selected_categories:
-        cache_time = get_cache_timestamp(selected_categories[0], expertise_level)
+    if categories_to_process:
+        cache_time = get_cache_timestamp(categories_to_process[0], expertise_level)
     
     return {
         "user_id": user_id,
         "expertise_level": expertise_level,
-        "selected_categories": selected_categories,
+        "selected_categories": categories_to_process,
         "recommendations": recommendations,
         "refreshed_at": cache_time.isoformat() if cache_time else datetime.now().isoformat()
     }
