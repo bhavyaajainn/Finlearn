@@ -24,7 +24,7 @@ export default function ArticleCard({ topicId, topicTitle, topicDescription, cat
         <div className="flex justify-between items-start">
           <div className="flex gap-2 flex-wrap">
             <span className="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs font-medium rounded-full">
-              {category.toLowerCase()} · {level.toLowerCase()}
+              {category?.toLowerCase()}  {level?.toLowerCase()}
             </span>
 
             {isRead && (

@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import learningReducer from './slices/learningSlice';
+import preferencesReducer from './slices/preferencesSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     learning: learningReducer,
+    preferences: preferencesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -29,7 +31,16 @@ export const store = configureStore({
           'auth/resendVerificationEmail/pending',
           'auth/resendVerificationEmail/fulfilled', 
           'auth/resendVerificationEmail/rejected',
-          'auth/setUser'
+          'auth/setUser',
+          'preferences/fetchUserPreferences/pending',
+          'preferences/fetchUserPreferences/fulfilled',
+          'preferences/fetchUserPreferences/rejected',
+          'preferences/saveUserPreferences/pending',
+          'preferences/saveUserPreferences/fulfilled',
+          'preferences/saveUserPreferences/rejected',
+          'preferences/updateUserPreferences/pending',
+          'preferences/updateUserPreferences/fulfilled',
+          'preferences/updateUserPreferences/rejected'
         ],
         ignoredPaths: ['auth.user'],
       },

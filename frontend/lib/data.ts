@@ -161,9 +161,12 @@ export const expertiseLevels = [
 ];
 
 export const topicOptions = [
-  { label: "DeFi", value: "defi" },
-  { label: "NFTs", value: "nfts" },
-  { label: "Gaming", value: "gaming" },
-  { label: "DAOs", value: "daos" },
-  { label: "Infrastructure", value: "infrastructure" },
+  { label: "Stocks", value: "stocks" },
+  { label: "Cryptocurrencies", value: "cryptocurrencies" },
+  { label: "Forex", value: "forex" },
+  { label: "Commodities", value: "commodities" },
+  { label: "Bonds", value: "bonds" },
+  { label: "ETFs", value: "etfs" },
+  { label: "Real Estate", value: "real_estate" },
+  { label: "Retirement", value: "retirement" }
 ];

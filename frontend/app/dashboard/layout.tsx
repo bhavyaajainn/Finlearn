@@ -13,7 +13,7 @@ export default function DashboardLayout({
       <SidebarProvider>
         <div className="flex w-full min-h-screen bg-black">
           {/* Sidebar for desktop */}
-          <div className="hidden md:block">
+          <div className="block md:hidden">
             <AppSidebar />
           </div>
 
