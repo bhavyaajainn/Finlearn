@@ -22,7 +22,7 @@ from app.services.firebase.reading_log import (
     get_user_tooltip_history,
     get_user_streak_data
 )
-from app.services.ai.perplexity import generate_article
+from app.services.ai.perplexity import generate_article, generate_quiz_questions
 from app.services.firebase import log_topic_read, get_user_day_log
 from app.api.models import DeepDiveResponse,ArticleResponse, TooltipView
 from app.services.ai.claude import generate_category_topics, get_deep_dive
@@ -433,6 +433,16 @@ async def get_user_summary(
         period=period,
         stats=stats
     )
+
+    # Get user's expertise level
+    from app.services.firebase.watchlist import get_user_expertise_level
+    expertise_level = get_user_expertise_level(user_id)
+    
+    # Generate quiz questions based on reading history
+    quiz_questions = generate_quiz_questions(
+        read_articles=read_history,
+        expertise_level=expertise_level
+    )
     
     return {
         "user_id": user_id,
@@ -446,6 +456,7 @@ async def get_user_summary(
         "articles_read": read_history,
         "tooltips_viewed": tooltip_history,
         "summary": ai_summary,
+        "quiz_questions": quiz_questions,
         "generated_at": datetime.now().isoformat()
     }
 
