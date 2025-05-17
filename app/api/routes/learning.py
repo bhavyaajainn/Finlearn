@@ -326,17 +326,84 @@ async def get_topic_article(
         user_id=user_id
     )
     
+    if isinstance(article.get("content"), str):
+        content = article["content"]
+        import re
+        import json
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"Extracting tooltips for article: {article.get('title')}")
+        
+        # First try to extract JSON from markdown code blocks
+        json_pattern = r"```json\s*([\s\S]*?)\s*```"
+        json_match = re.search(json_pattern, content)
+        
+        if json_match:
+            try:
+                # Extract and parse the JSON content
+                json_content = json_match.group(1).strip()
+                logger.info(f"Found JSON content block of length: {len(json_content)}")
+                
+                # Parse the JSON
+                parsed_json = json.loads(json_content)
+                
+                # Extract tooltips and other fields
+                if "tooltip_words" in parsed_json and isinstance(parsed_json["tooltip_words"], list):
+                    logger.info(f"Found {len(parsed_json['tooltip_words'])} tooltips in JSON")
+                    
+                    # Create a new tooltips array (don't append to existing empty one)
+                    article["tooltip_words"] = []
+                    
+                    # Copy each tooltip
+                    for tooltip in parsed_json["tooltip_words"]:
+                        if isinstance(tooltip, dict) and "word" in tooltip and "tooltip" in tooltip:
+                            article["tooltip_words"].append({
+                                "word": tooltip["word"],
+                                "tooltip": tooltip["tooltip"]
+                            })
+                    
+                    logger.info(f"Extracted {len(article['tooltip_words'])} tooltips")
+                    
+                    # Extract other fields if needed
+                    for field in ["key_concepts", "difficulty_level", "category", "topic"]:
+                        if field in parsed_json:
+                            article[field] = parsed_json[field]
+                
+                # If we still don't have tooltips, try direct extraction with regex pattern
+                if not article.get("tooltip_words") or len(article["tooltip_words"]) == 0:
+                    logger.warning("No tooltips found in JSON, trying regex extraction")
+                    
+                    # Look for tooltip format directly in the content
+                    tooltip_pattern = r'\["(.*?)"\s*,\s*"(.*?)"\]'
+                    tooltip_matches = re.findall(tooltip_pattern, content)
+                    
+                    if tooltip_matches:
+                        article["tooltip_words"] = []
+                        for match in tooltip_matches:
+                            article["tooltip_words"].append({
+                                "word": match[0],
+                                "tooltip": match[1]
+                            })
+                        logger.info(f"Extracted {len(article['tooltip_words'])} tooltips using regex")
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON parsing error: {e}")
+                # Continue with extraction attempt using regex
+            except Exception as e:
+                logger.error(f"Error extracting tooltips: {e}")
+    
     # Track that the user viewed this topic - with title
     from app.services.firebase.reading_log import track_viewed_topic
     track_viewed_topic(
         user_id=user_id, 
         category=category, 
         topic_id=topic_id,
-        topic_title=title,  # Pass title
+        topic_title=title,
         expertise_level=expertise_level
     )
 
-    # Track tooltips
+    # Track tooltips if they exist
     for tooltip_item in article.get("tooltip_words", []):
         word = tooltip_item.get("word")
         tooltip = tooltip_item.get("tooltip")
@@ -345,8 +412,8 @@ async def get_topic_article(
                 user_id=user_id, 
                 word=word, 
                 tooltip=tooltip, 
-                from_topic=title,  # Pass topic title
-                topic_id=topic_id  # Associate with topic
+                from_topic=title,
+                topic_id=topic_id
             )
     
     return {
