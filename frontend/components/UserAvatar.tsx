@@ -9,7 +9,6 @@ import {
   UserPlus,
   X,
   LogIn,
-  LogOut,
   Eye,
   EyeOff,
   AlertCircle,
@@ -29,13 +28,6 @@ import {
 } from "@/app/store/slices/authSlice";
 import { useRouter } from "next/navigation";
 import { AiOutlineGoogle } from "react-icons/ai";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "./ui/label";
-import { expertiseLevels, topicOptions } from "@/lib/data";
-import { MultiSelect } from "./multi-select";
-import { toast } from "sonner";
 
 // Tab interface
 type TabType = "signin" | "signup";
@@ -46,7 +38,7 @@ export default function UserAvatar() {
   const { user, loading, error, verificationEmailSent } = useAppSelector(
     (state) => state.auth
   );
-  // const router = useRouter();
+  const router = useRouter();
 
   // Local state for both forms separately
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -224,7 +216,7 @@ export default function UserAvatar() {
       ).unwrap();
 
       setIsModalOpen(false);
-      // setOpen(false);
+      router.push("/dashboard"); // Add this line to redirect to dashboard
     } catch (err) {
       console.error("Sign-in failed:", err);
       // Don't close modal if email is not verified
@@ -250,11 +242,6 @@ export default function UserAvatar() {
       await dispatch(
         signUpWithEmail({ email: signupEmail, password: signupPassword })
       ).unwrap();
-
-      // setOpen(true);
-
-      // Don't close modal, instead show success message
-      // The verification email sent status will be handled in the UI
     } catch (err) {
       console.error("Sign-up failed:", err);
     }
@@ -264,8 +251,7 @@ export default function UserAvatar() {
     try {
       await dispatch(signInWithGoogle()).unwrap();
       setIsModalOpen(false);
-      // setOpen(true);
-      // router.push("/dashboard"); // Redirect to dashboard
+      router.push("/dashboard"); 
     } catch (err) {
       console.error("Google sign-in failed:", err);
     }
@@ -274,7 +260,7 @@ export default function UserAvatar() {
   const handleSignOut = async () => {
     try {
       await dispatch(signOut()).unwrap();
-      // router.push("/"); // Redirect to home page after sign out
+      router.push("/"); 
     } catch (err) {
       console.error("Sign-out failed:", err);
     }
@@ -371,62 +357,6 @@ export default function UserAvatar() {
       </div>
     );
   };
-
-  // if (open) {
-  //   return (
-  //     <Dialog open={open} onOpenChange={setOpen}>
-  //       <DialogContent className="bg-zinc-900 text-white border border-blue-700/50 rounded-2xl shadow-xl">
-  //         <DialogHeader>
-  //           <DialogTitle className="text-blue-400 text-xl font-semibold">Tell us about yourself!</DialogTitle>
-  //         </DialogHeader>
-
-  //         <div className="space-y-5 mt-4">
-  //           <div>
-  //             <Label className="text-white text-md mb-5">Expertise Level</Label>
-  //             <Select onValueChange={setExpertise}>
-  //               <SelectTrigger className="bg-zinc-800 w-full cursor-pointer text-white border">
-  //                 <SelectValue placeholder="Choose level" className="bg-zinc-800 cursor-pointer text-white" />
-  //               </SelectTrigger>
-
-  //               <SelectContent className="bg-zinc-900 text-white border border-blue-700">
-  //                 {expertiseLevels.map((item) => (
-  //                   <SelectItem
-  //                     key={item.value}
-  //                     value={item.value}
-  //                     className="hover:bg-zinc-700 hover:text-white cursor-pointer"
-  //                   >
-  //                     {item.label}
-  //                   </SelectItem>
-  //                 ))}
-  //               </SelectContent>
-  //             </Select>
-  //           </div>
-
-  //           <div>
-  //             <Label className="text-white text-md mb-5">Topics of Interest</Label>
-  //             <MultiSelect
-  //               options={topicOptions}
-  //               selected={topics}
-  //               onChange={setTopics}
-  //               placeholder="Select topics you're interested in"
-  //               className="bg-zinc-800 text-white border border-white/50"
-  //             />
-  //             <p className="text-sm  text-blue-400 mt-3">Select your interested topics.</p>
-  //           </div>
-
-  //           <Button
-  //             onClick={handleSave}
-  //             disabled={!expertise || topics.length === 0}
-  //             className="w-full cursor-pointer bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition"
-  //           >
-  //             Save
-  //           </Button>
-  //         </div>
-  //       </DialogContent>
-  //     </Dialog>
-
-  //   )
-  // } else {
 
   return (
     <>

@@ -12,16 +12,14 @@ export default function DashboardLayout({
     <ProtectedRoute>
       <SidebarProvider>
         <div className="flex w-full min-h-screen bg-black">
-          {/* Sidebar for mobile only */}
+          {/* Sidebar for desktop */}
           <div className="block md:hidden">
             <AppSidebar />
           </div>
 
           <div className="flex flex-col flex-1">
-            {/* Top navbar for md+ */}
-            <div className="hidden md:block">
-              <DashboardNavbar />
-            </div>
+            {/* Top navbar */}
+            <DashboardNavbar />
 
             <main className="flex-1 overflow-y-auto">
               {children}
