@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, ChevronRight, Info, Plus } from "lucide-react"
+import { BookOpen, ChevronRight, Plus } from "lucide-react"
 import { TermModal } from "./TermModal"
 import Watchlist from "./Watchlist"
 
@@ -39,71 +39,59 @@ export function GlossaryCard() {
   }
 
   return (
-    <>
-      <div className="flex justify-between">
-        <Card className="bg-black border-blue-900/50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg text-white flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-blue-400" />
-              Glossary of the Day
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-blue-400 hover:text-blue-300 hover:bg-blue-950/50"
+    <div className="grid grid-cols-1 gap-4">
+      <Card className="bg-black border-blue-900/50 text-white">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-white flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-blue-400" />
+            Glossary of the Day
+          </CardTitle>
+          <Button
+            variant="link"
+            size="sm"
+            className="text-blue-400 hover:text-blue-300"
+          >
+            View All
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {glossaryTerms.map((item, index) => (
+            <motion.div
+              key={item.term}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="rounded-lg border border-blue-900/50 bg-[#0c1021] overflow-hidden"
             >
-              View All
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              {glossaryTerms.map((item, index) => (
-                <motion.div
-                  key={item.term}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group"
-                >
-                  <div
-                    className="flex flex-col gap-1.5 rounded-lg border border-blue-900/50 bg-blue-950/20 p-3 transition-colors hover:bg-blue-950/40 cursor-pointer"
-                    onClick={() => handleTermClick(item.term)}
+              <div className="p-4">
+                <div className="mb-2">
+                  <Badge className="bg-[#1d274a] text-white border-none">
+                    {item.category}
+                  </Badge>
+                </div>
+                
+                <p className="text-white mb-2">{item.term}</p>
+                
+                <p className="text-gray-400 text-sm">{item.definition}</p>
+                
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-400 hover:text-blue-300 hover:bg-transparent p-0"
                   >
-                    <div className="flex justify-between p-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-white">{item.term}</span>
-                          <Badge variant="outline" className="bg-blue-950/50 text-blue-300 border-blue-800">
-                            {item.category}
-                          </Badge>
-                          <Info className="h-4 w-4 text-blue-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                        </div>
-                        <p className="text-sm text-gray-400 line-clamp-2 py-3">{item.definition}</p>
-                      </div>
-                      <div className="mt-6 flex justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 cursor-pointer"
-                        >
-                          Add to My Glossary
-                          <Plus />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <TermModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} term={selectedTerm} />
-        <Watchlist />
-      </div>
-
-
-    </>
+                    Add to My Glossary <Plus className="ml-1 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </CardContent>
+      </Card>
+      
+      <TermModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} term={selectedTerm} />
+      <Watchlist />
+    </div>
   )
 }

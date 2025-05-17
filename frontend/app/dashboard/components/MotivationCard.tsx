@@ -2,31 +2,36 @@ import React from 'react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Quote } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 const MotivationCard = () => {
-
     return (
-        <div className="flex">
-            <Card className="bg-black border-blue-900 text-white">
-                <CardHeader>
-                    <CardTitle className="text-blue-400">Motivation of the Day</CardTitle>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            <Card className="bg-black border-blue-900/50 text-white hover:border-blue-500/50 transition-all duration-300">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-white flex items-center gap-2 text-base">
+                        <Quote className="h-4 w-4 text-blue-400" />
+                        Motivation of the Day
+                    </CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <blockquote className="border-l-4 border-blue-600 pl-4 italic text-lg text-gray-200">
+                <CardContent className="pb-2">
+                    <blockquote className="border-l-4 border-blue-600 pl-4 italic text-base text-gray-200 mb-2">
                         "An investment in knowledge pays the best interest."
                     </blockquote>
-                    <p className="text-right text-gray-400">— Rohan Singla </p>
+                    <p className="text-gray-400 text-sm">— Benjamin Franklin</p>
                 </CardContent>
-                <CardFooter>
-                    <Button variant="link" asChild className="text-blue-400 hover:text-blue-300 p-0">
-                        <Link href={"google.com"}>
-                            Read the story behind this quote <ChevronRight className="ml-1 h-4 w-4" />
-                        </Link>
+                <CardFooter className="pt-0">
+                    <Button variant="link" className="text-blue-400 hover:text-blue-300 p-0 text-xs">
+                        Read the story <ChevronRight className="ml-1 h-3 w-3" />
                     </Button>
                 </CardFooter>
             </Card>
-        </div>
+        </motion.div>
     )
 }
 
