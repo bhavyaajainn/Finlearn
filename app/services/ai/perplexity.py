@@ -431,7 +431,27 @@ def generate_article(
                 
             # Ensure the response has all required fields
             if "tooltip_words" not in parsed_article:
-                parsed_article["tooltip_words"] = []
+                print("HI")
+                parsed_article["tooltip_words"] = ["H"]
+                
+                # Extract tooltips from content if they exist
+                if "content" in parsed_article:
+                    import re
+                    content = parsed_article["content"]
+                    # Look for tooltips in the format [term]{tooltip:explanation}
+                    tooltip_pattern = r'\[(.*?)\]\{tooltip:(.*?)\}'
+                    matches = re.findall(tooltip_pattern, content)
+                    
+                    # Add each found tooltip to the list
+                    for match in matches:
+                        term = match[0]
+                        explanation = match[1]
+                        parsed_article["tooltip_words"].append({
+                            "word": term,
+                            "tooltip": explanation
+                        })
+                    
+                    logger.info(f"Extracted {len(parsed_article['tooltip_words'])} tooltips from content")
                 
             if "key_concepts" not in parsed_article:
                 parsed_article["key_concepts"] = []
@@ -548,7 +568,144 @@ Keep the summary conversational, encouraging, and highlight patterns in their le
         # Fallback response
         return f"You've read {stats['total_articles_read']} articles and explored {stats['total_tooltips_viewed']} financial terms {period_text}. Keep up the great work on your financial learning journey!"
     
+def generate_quiz_questions(
+    read_articles: List[Dict[str, Any]],
+    expertise_level: str
+) -> List[Dict[str, Any]]:
+    """Generate quiz questions based on user's reading history.
+    
+    Args:
+        read_articles: List of articles read by the user
+        expertise_level: User's expertise level
+        
+    Returns:
+        List of quiz questions with multiple-choice options
+    """
+    # Extract topics and categories from reading history
+    if not read_articles:
+        # If no articles read, generate general financial questions
+        topics = ["general finance", "investing basics", "financial markets"]
+        categories = ["finance", "investing"]
+    else:
+        # Extract topics from reading history
+        topics = list(set([
+            article.get("topic", "") for article in read_articles 
+            if "topic" in article and article.get("topic")
+        ]))
+        
+        # Extract categories from reading history
+        categories = list(set([
+            article.get("category", "") for article in read_articles 
+            if "category" in article and article.get("category")
+        ]))
+    
+    # Select up to 3 topics for questions (to ensure variety)
+    selected_topics = topics[:3] if len(topics) >= 3 else topics
+    if len(selected_topics) < 3:
+        # Add categories if we don't have enough topics
+        for cat in categories:
+            if cat and cat not in selected_topics:
+                selected_topics.append(cat)
+                if len(selected_topics) >= 3:
+                    break
+    
+    # If we still don't have 3 topics, add general finance topics
+    while len(selected_topics) < 3:
+        general_topics = ["investing basics", "financial markets", "personal finance", 
+                         "economics", "stock market", "budgeting"]
+        for topic in general_topics:
+            if topic not in selected_topics:
+                selected_topics.append(topic)
+                break
+    
+    prompt = f"""Generate 3 multiple-choice quiz questions about these financial topics: {', '.join(selected_topics)}.
 
+These questions are for a {expertise_level}-level investor based on articles they've read.
+
+For each question:
+1. Create a clear, concise question about an important concept
+2. Provide exactly 4 multiple-choice options (A, B, C, D)
+3. Indicate which option is correct
+4. Add a brief explanation of why the answer is correct
+
+The questions should test comprehension and application, not just recall.
+
+Format your response as a valid JSON array with this structure:
+[
+  {{
+    "question": "What is dollar-cost averaging?",
+    "options": [
+      {{
+        "label": "A",
+        "text": "Buying a fixed dollar amount of an investment on a regular schedule"
+      }},
+      {{
+        "label": "B",
+        "text": "Converting all investments to US dollars"
+      }},
+      {{
+        "label": "C",
+        "text": "Paying a fixed fee for each trade"
+      }},
+      {{
+        "label": "D",
+        "text": "Adjusting prices for inflation"
+      }}
+    ],
+    "correct_answer": "A",
+    "explanation": "Dollar-cost averaging involves investing a fixed amount regularly regardless of price, which reduces the impact of volatility."
+  }},
+  ... 2 more questions ...
+]
+"""
+    
+    try:
+        response = call_perplexity_api(prompt
+        )
+        
+        # Parse the response
+        try:
+            # Try to extract JSON from markdown code blocks
+            if "```json" in response:
+                json_start = response.find("```json") + 7
+                json_end = response.find("```", json_start)
+                json_str = response[json_start:json_end].strip()
+                questions = json.loads(json_str)
+            else:
+                # Try parsing the entire response as JSON
+                questions = json.loads(response)
+            
+            # Ensure the response is a list
+            if not isinstance(questions, list):
+                logger.warning(f"Unexpected questions response format: {type(questions)}")
+                return []
+            
+            # Validate each question
+            validated_questions = []
+            for question in questions:
+                # Check if this is a valid question
+                if "question" in question and "options" in question and "correct_answer" in question:
+                    # Ensure we have exactly 4 options
+                    if len(question["options"]) != 4:
+                        # Add dummy options if needed or trim extras
+                        while len(question["options"]) < 4:
+                            question["options"].append({
+                                "label": ["A", "B", "C", "D"][len(question["options"])],
+                                "text": "N/A"
+                            })
+                        question["options"] = question["options"][:4]
+                    
+                    validated_questions.append(question)
+            
+            return validated_questions
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse quiz questions JSON: {e}")
+            return []
+        
+    except Exception as e:
+        logger.error(f"Error generating quiz questions: {e}")
+        return []
 
 ####ASSETS######
 
