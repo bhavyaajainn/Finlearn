@@ -482,6 +482,9 @@ def get_user_read_history(user_id: str, start_date: date, end_date: date) -> Lis
     result = list(deduplicated.values())
     result.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
     
+    for entry in result:
+        if "user_id" in entry:
+            del entry["user_id"]
     return result
 
 def get_user_tooltip_history(user_id: str, start_date: date, end_date: date) -> List[Dict[str, Any]]:
