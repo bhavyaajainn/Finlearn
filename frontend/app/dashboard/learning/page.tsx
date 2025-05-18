@@ -5,7 +5,6 @@ import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
 import { 
   fetchTopics, 
   fetchTopicDetail, 
-  clearCurrentTopic,
   fetchUserTopicsStatus,
   bookmarkTopic,
   markTopicAsRead,
@@ -14,6 +13,7 @@ import {
   setCurrentPage,
   toggleBookmark,
   markAsRead,
+  fetchDailySummary,
   TopicItem,
   RelatedConcept
 } from '@/app/store/slices/learningSlice';
@@ -28,16 +28,12 @@ import SearchAndFilters from './components/SearchAndFilters';
 import Pagination from './components/Pagination';
 import NoResults from './components/NoResults';
 
-// Example data for daily summary and quiz, since we're not implementing that API
-import { dailySummary } from './mockData';
-
 const LearningHub = () => {
   // Get state from Redux store
   const dispatch = useAppDispatch();
   const { 
     topics, 
     filteredTopics,
-    currentTopic,
     loading, 
     error,
     searchTerm,
@@ -47,7 +43,10 @@ const LearningHub = () => {
     totalPages,
     bookmarkedTopics,
     readTopics,
-    categories
+    categories,
+    dailySummary,
+    dailySummaryLoading,
+    dailySummaryError 
   } = useAppSelector(state => state.learning);
   
   const { user } = useAppSelector(state => state.auth);
@@ -68,6 +67,12 @@ const LearningHub = () => {
       dispatch(fetchUserTopicsStatus(user.uid));
     }
   }, [dispatch, user, topics, loading]);
+
+  useEffect(() => {
+    if (user?.uid) {
+      dispatch(fetchDailySummary(user.uid));
+    }
+  }, [dispatch, user?.uid]);
   
   // Handler for search term change
   const handleSearchChange = (term: string) => {
@@ -148,6 +153,8 @@ const LearningHub = () => {
     const endIndex = startIndex + itemsPerPage;
     return filteredTopics.slice(startIndex, endIndex);
   };
+
+  console.log('Daily Summary:', dailySummary);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -258,6 +265,8 @@ const LearningHub = () => {
       
       <DailySummaryModal 
         dailySummary={dailySummary}
+        isLoading={dailySummaryLoading}
+        error={dailySummaryError}
         isOpen={showDailySummary}
         onClose={() => setShowDailySummary(false)}
         onQuizStart={() => {

@@ -15,7 +15,7 @@ export default function DailySummaryModal({
   isOpen, 
   onClose, 
   onQuizStart 
-}: DailySummaryModalProps) {
+}: any) {
   if (!isOpen) return null;
   
   return (
@@ -37,11 +37,11 @@ export default function DailySummaryModal({
           </h4>
           {dailySummary.articlesRead.length > 0 ? (
             <ul className="space-y-2">
-              {dailySummary.articlesRead.map((title, index) => (
-                <li key={index} className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
-                  <span className="text-gray-300">{title}</span>
-                </li>
+              {dailySummary.articlesRead.map((title: string, index: number) => (
+              <li key={index} className="flex items-center">
+                <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
+                <span className="text-gray-300">{title}</span>
+              </li>
               ))}
             </ul>
           ) : (
@@ -55,10 +55,10 @@ export default function DailySummaryModal({
           </h4>
           {dailySummary.conceptsLearned.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {dailySummary.conceptsLearned.map((term, index) => (
-                <span key={index} className="px-3 py-1 bg-blue-500/10 text-blue-400 text-sm rounded-full">
-                  {term}
-                </span>
+              {dailySummary.conceptsLearned.map((term: string, index: number) => (
+              <span key={index} className="px-3 py-1 bg-blue-500/10 text-blue-400 text-sm rounded-full">
+                {term}
+              </span>
               ))}
             </div>
           ) : (

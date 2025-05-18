@@ -49,6 +49,67 @@ export interface RelatedConcept {
   category: string;
 }
 
+// Interface for the summary API response
+export interface DailySummary {
+  user_id: string;
+  period: string;
+  date_range: {
+    start: string;
+    end: string;
+  };
+  statistics: {
+    total_articles_read: number;
+    total_tooltips_viewed: number;
+    category_breakdown: { [key: string]: number };
+    top_categories: [string, number][];
+    predominant_level: string;
+    level_breakdown: {
+      beginner: number;
+      intermediate: number;
+      advanced: number;
+    };
+    unique_topics_explored: number;
+    unique_terms_learned: number;
+  };
+  streak: {
+    current_streak: number;
+    user_id: string;
+    last_active: string;
+    updated_at: string;
+    longest_streak: number;
+  };
+  articles_read: {
+    date: string;
+    topic_title: string;
+    expertise_level: string;
+    category: string;
+    user_id: string;
+    activity_type: string;
+    timestamp: string;
+    topic_id: string;
+  }[];
+  tooltips_viewed: {
+    tooltip: string;
+    date: string;
+    word: string;
+    topic_title: string;
+    user_id: string;
+    activity_type: string;
+    timestamp: string;
+    topic_id: string;
+  }[];
+  summary: string;
+  quiz_questions: {
+    question: string;
+    options: {
+      label: string;
+      text: string;
+    }[];
+    correct_answer: string;
+    explanation: string;
+  }[];
+  generated_at: string;
+}
 
 // State interface
 interface LearningState {
@@ -65,6 +126,9 @@ interface LearningState {
   bookmarkedTopics: string[];
   readTopics: string[];
   categories: string[];
+  dailySummary: DailySummary | null;
+  dailySummaryLoading: boolean;
+  dailySummaryError: string | null;
 }
 
 // Initial state
@@ -81,7 +145,10 @@ const initialState: LearningState = {
   totalPages: 1,
   bookmarkedTopics: [],
   readTopics: [],
-  categories: []
+  categories: [],
+  dailySummary: null,
+  dailySummaryLoading: false,
+  dailySummaryError: null
 };
 
 // Async thunks
@@ -189,6 +256,24 @@ export const fetchUserTopicsStatus = createAsyncThunk(
   }
 );
 
+export const fetchDailySummary = createAsyncThunk(
+  'learning/fetchDailySummary',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/summary?user_id=${userId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch daily summary');
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Create slice
 const learningSlice = createSlice({
   name: 'learning',
@@ -289,6 +374,21 @@ const learningSlice = createSlice({
         };
         state.bookmarkedTopics = bookmarkedTopics;
         state.readTopics = readTopics;
+      })
+      
+      // Fetch daily summary cases
+      .addCase(fetchDailySummary.pending, (state) => {
+        state.dailySummaryLoading = true;
+        state.dailySummaryError = null;
+      })
+      .addCase(fetchDailySummary.fulfilled, (state, action: PayloadAction<DailySummary>) => {
+        state.dailySummaryLoading = false;
+        state.dailySummaryError = null;
+        state.dailySummary = action.payload;
+      })
+      .addCase(fetchDailySummary.rejected, (state, action) => {
+        state.dailySummaryLoading = false;
+        state.dailySummaryError = action.payload as string;
       });
   },
 });
