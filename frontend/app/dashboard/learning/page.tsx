@@ -54,9 +54,12 @@ const LearningHub = () => {
   
   // Local state
   const [selectedTopicItem, setSelectedTopicItem] = useState<TopicItem | null>(null);
+  const [topicDetail, setTopicDetail] = useState<any>(null);
   const [showConcept, setShowConcept] = useState<RelatedConcept | null>(null);
   const [showDailySummary, setShowDailySummary] = useState<boolean>(false);
   const [showQuiz, setShowQuiz] = useState<boolean>(false);
+  const [topicDetailLoading, setTopicDetailLoading] = useState(false);
+  const [topicDetailError, setTopicDetailError] = useState<string | null>(null);
   
   // Fetch topics and user status on initial load
   useEffect(() => {
@@ -84,10 +87,26 @@ const LearningHub = () => {
     dispatch(setCurrentPage(page));
   };
   
-  // Handler for article selection
-  const handleArticleSelect = (topic: TopicItem) => {
+  // Modified handleArticleSelect to use Redux action
+  const handleArticleSelect = async (topic: TopicItem) => {
     setSelectedTopicItem(topic);
-    dispatch(fetchTopicDetail(topic.topic_id));
+    setTopicDetailLoading(true);
+    setTopicDetailError(null);
+    
+    try {
+      // Dispatch the fetchTopicDetail action
+      const resultAction = await dispatch(fetchTopicDetail({ 
+        topicId: topic.topic_id, 
+        userId: user?.uid || '' 
+      })).unwrap();
+      
+      setTopicDetail(resultAction);
+    } catch (error) {
+      setTopicDetailError('Failed to load topic details');
+      console.error('Error fetching topic detail:', error);
+    } finally {
+      setTopicDetailLoading(false);
+    }
     
     // Mark as read in local state
     dispatch(markAsRead(topic.topic_id));
@@ -123,7 +142,7 @@ const LearningHub = () => {
   // Close article view and clear current topic
   const handleCloseArticleView = () => {
     setSelectedTopicItem(null);
-    dispatch(clearCurrentTopic());
+    setTopicDetail(null);
   };
 
   // Get current page items
@@ -222,7 +241,7 @@ const LearningHub = () => {
           {selectedTopicItem && (
             <ArticleView 
               topic={selectedTopicItem}
-              topicDetail={currentTopic}
+              topicDetail={topicDetail} // Changed from currentTopic
               loading={loading}
               error={error}
               onClose={handleCloseArticleView}

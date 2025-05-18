@@ -96,10 +96,10 @@ export const fetchTopics = createAsyncThunk(
 
 export const fetchTopicDetail = createAsyncThunk(
   'learning/fetchTopicDetail',
-  async (topicId: string, { rejectWithValue }) => {
+  async ({ topicId, userId }: { topicId: string; userId: string }, { rejectWithValue }) => {
     try {
       // Updated endpoint for topic details
-      const response = await fetch(`https://finlearn.onrender.com/topic/${topicId}`);
+      const response = await fetch(`http://127.0.0.1:8000/article/topic/${topicId}?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch topic details');

@@ -25,6 +25,7 @@ export default function ArticleView({
   isBookmarked
 }: ArticleViewProps) {
   // Estimate read time based on the description length
+  console.log('Topic description:', topicDetail);
   const estimatedReadTime = Math.max(1, Math.ceil(topic.description.length / 500));
 
   const highlightConcepts = (text: string, conceptsToHighlight: RelatedConcept[]) => {
