@@ -445,6 +445,9 @@ async def get_user_summary(
     
     # Get user's streak data
     streak_data = get_user_streak_data(user_id)
+
+    if "user_id" in streak_data:
+        del streak_data["user_id"]
     
     # Calculate statistics
     stats = calculate_reading_stats(read_history, tooltip_history)
@@ -475,9 +478,13 @@ async def get_user_summary(
             "start": start_date.isoformat(),
             "end": end_date.isoformat()
         },
-        "statistics": stats,
+        "statistics": {
+            "articles_read": stats["total_articles_read"],
+            "tooltips_viewed": stats["total_tooltips_viewed"],
+            "categories": dict(stats["top_categories"]),  # Convert list of tuples to dict
+        },
         "streak": streak_data,
-        "articles_read": read_history,
+        "articles_read": [article.get("topic_title", "") for article in read_history],
         "tooltips_viewed": tooltip_history,
         "summary": ai_summary,
         "quiz_questions": quiz_questions,
