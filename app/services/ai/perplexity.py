@@ -15,6 +15,7 @@ import logging  # Add standard Python logging instead
 logger = logging.getLogger(__name__)
 
 from app.services.ai.prompts.learning_prompts import (
+    get_article_prompt,
     get_beginner_article_prompt,
     get_intermediate_article_prompt,
     get_advanced_article_prompt,
@@ -376,120 +377,127 @@ def get_daily_topics(category: str, expertise_level: str, user_id: Optional[str]
 
 
 # Update the existing generate_article function to handle topic parameter
+# Update this function to properly extract tooltips
+
 def generate_article(
     category: str,
     expertise_level: str,
     topic: Optional[str] = None,
     user_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Generate a financial article using Perplexity SONAR API.
-    
-    Args:
-        category: Financial category for the article
-        expertise_level: Target audience expertise level (beginner, intermediate, advanced)
-        topic: Specific topic within the category (optional)
-        user_id: Optional user identifier for personalization
+    """Generate a financial article using Perplexity SONAR API."""
+    # Select appropriate prompt
+    prompt = get_article_prompt(category, expertise_level, topic)
         
-    Returns:
-        Dictionary containing the generated article with tooltips
-    """
-    # Select the appropriate prompt based on expertise level and topic specificity
-    if topic:
-        # Use topic-specific prompt when a topic is provided
-        prompt = get_topic_article_prompt(category, topic, expertise_level)
-    else:
-        # Fall back to category-level prompts
-        if expertise_level == "beginner":
-            prompt = get_beginner_article_prompt(category)
-        elif expertise_level == "advanced":
-            prompt = get_advanced_article_prompt(category)
-        else:  # Default to intermediate
-            prompt = get_intermediate_article_prompt(category)
-    
     # Call Perplexity SONAR API
     try:
-        article = call_perplexity_api(prompt)
+        response = call_perplexity_api(prompt)
         
         # Parse the response and ensure it has the expected format
         try:
-            # Try to parse the response as JSON
-            if "```json" in article:
-                json_start = article.find("```json") + 7
-                json_end = article.find("```", json_start)
-                json_str = article[json_start:json_end].strip()
-                parsed_article = json.loads(json_str)
-            else:
-                # If not in a code block, try to parse the entire response
-                parsed_article = json.loads(article)
-                
-            # Add unique ID and timestamp if not present
-            if "id" not in parsed_article:
-                parsed_article["id"] = str(uuid.uuid4())
+            # Handle various JSON formats
+            if response.startswith("```json"):
+                response = response[7:-3].strip()
+            elif "json\n{" in response:
+                json_start = response.find("json\n{") + 5
+                json_end = response.rfind("}")
+                if json_end > json_start:
+                    response = response[json_start:json_end+1].strip()
             
-            if "created_at" not in parsed_article:
-                parsed_article["created_at"] = datetime.now().isoformat()
-                
-            # Ensure the response has all required fields
-            if "tooltip_words" not in parsed_article:
-                print("HI")
-                parsed_article["tooltip_words"] = ["H"]
-                
-                # Extract tooltips from content if they exist
-                if "content" in parsed_article:
+            # Parse the outer JSON
+            parsed = json.loads(response)
+            
+            # Initialize result structure
+            result = {
+                "id": str(uuid.uuid4()),
+                "title": None,
+                "content": None,
+                "tooltip_words": [],
+                "difficulty_level": expertise_level,
+                "category": category,
+                "topic": topic if topic else category,
+                "created_at": datetime.now().isoformat()
+            }
+            
+            # Check if content field contains nested JSON
+            if isinstance(parsed.get("content"), str) and parsed["content"].strip().startswith("{"):
+                try:
+                    # Replace any problematic newlines or special characters in JSON
+                    content_json_str = parsed["content"].replace('\n', '\\n')
+                    
+                    # Try to parse the nested JSON using a more robust method
                     import re
-                    content = parsed_article["content"]
-                    # Look for tooltips in the format [term]{tooltip:explanation}
-                    tooltip_pattern = r'\[(.*?)\]\{tooltip:(.*?)\}'
-                    matches = re.findall(tooltip_pattern, content)
-                    
-                    # Add each found tooltip to the list
-                    for match in matches:
-                        term = match[0]
-                        explanation = match[1]
-                        parsed_article["tooltip_words"].append({
-                            "word": term,
-                            "tooltip": explanation
-                        })
-                    
-                    logger.info(f"Extracted {len(parsed_article['tooltip_words'])} tooltips from content")
-                
-            if "key_concepts" not in parsed_article:
-                parsed_article["key_concepts"] = []
-                
-            if "topic" not in parsed_article and topic:
-                parsed_article["topic"] = topic
-                
-            if "category" not in parsed_article:
-                parsed_article["category"] = category
-                
-            if "difficulty_level" not in parsed_article:
-                parsed_article["difficulty_level"] = expertise_level
-                
-            return parsed_article
+                    json_match = re.search(r'\{.*\}', content_json_str, re.DOTALL)
+                    if json_match:
+                        nested_json_str = json_match.group(0)
+                        try:
+                            content_json = json.loads(nested_json_str)
+                            
+                            # Extract title and content from nested JSON
+                            if "title" in content_json:
+                                result["title"] = content_json["title"]
+                            if "content" in content_json:
+                                result["content"] = content_json["content"]
+                                
+                            # Extract tooltips from nested JSON
+                            if "tooltip_words" in content_json and isinstance(content_json["tooltip_words"], list):
+                                result["tooltip_words"] = content_json["tooltip_words"]
+                                logger.info(f"Extracted {len(content_json['tooltip_words'])} tooltips from nested JSON")
+                        except json.JSONDecodeError:
+                            # If that fails, try manual regex extraction
+                            title_match = re.search(r'"title":\s*"([^"]+)"', nested_json_str)
+                            if title_match:
+                                result["title"] = title_match.group(1)
+                                
+                            content_match = re.search(r'"content":\s*"([^"]+)"', nested_json_str, re.DOTALL)
+                            if content_match:
+                                result["content"] = content_match.group(1)
+                                
+                            tooltip_match = re.search(r'"tooltip_words":\s*(\[\s*\{.*?\}\s*\])', nested_json_str, re.DOTALL)
+                            if tooltip_match:
+                                try:
+                                    tooltip_list = json.loads(tooltip_match.group(1))
+                                    result["tooltip_words"] = tooltip_list
+                                except:
+                                    pass
+                except Exception as e:
+                    logger.error(f"Error extracting from nested JSON: {e}")
             
-        except json.JSONDecodeError:
-            # Fallback if response isn't valid JSON
+            # If we haven't set title/content from nested JSON, use the outer JSON
+            if not result["title"]:
+                result["title"] = parsed.get("title", f"Latest in {category.capitalize()}" + (f": {topic}" if topic else ""))
+            if not result["content"]:
+                result["content"] = parsed.get("content", "")
+            
+            # If we still have no tooltips, check the outer JSON
+            if not result["tooltip_words"] and "tooltip_words" in parsed:
+                result["tooltip_words"] = parsed["tooltip_words"]
+            
+            return result
+        # Handle API errors as before
+               
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parsing error: {e}")
+
             return {
                 "id": str(uuid.uuid4()),
                 "title": f"Latest in {category.capitalize()}" + (f": {topic}" if topic else ""),
-                "content": article,
-                "tooltip_words": [],
-                "key_concepts": [],
+                "content": response,
+                "tooltip_words": [],  # No key_concepts
                 "difficulty_level": expertise_level,
-                "category": category,
-                "topic": topic,
+                "category": category, 
+                "topic": topic if topic else category,
                 "created_at": datetime.now().isoformat()
             }
             
     except Exception as e:
         # Handle API errors
-        print(f"Error generating article with Perplexity: {e}")
+        logger.error(f"Error generating article with Perplexity: {e}")
         return {
             "id": str(uuid.uuid4()),
             "title": f"Error generating {category}" + (f" {topic}" if topic else "") + " article",
             "content": f"Failed to generate article: {str(e)}",
-            "tooltip_words": [],
-            "key_concepts": [],
+            "tooltip_words": [],  # No key_concepts
             "difficulty_level": expertise_level,
             "category": category,
             "topic": topic if topic else None,

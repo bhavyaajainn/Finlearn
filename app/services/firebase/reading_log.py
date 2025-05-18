@@ -78,29 +78,29 @@ def log_topic_read(user_id: str, topic: str, subtopic: Optional[str] = None, cat
 #     # Add to tooltips viewed collection
 #     db.collection("tooltip_logs").add(log_entry)
 
-def track_viewed_topic(user_id: str, category: str, topic_id: str) -> None:
-    """Track that a user viewed a specific topic.
+# def track_viewed_topic(user_id: str, category: str, topic_id: str) -> None:
+#     """Track that a user viewed a specific topic.
     
-    Args:
-        user_id: User identifier
-        category: Financial category
-        topic_id: Unique topic identifier
-    """
+#     Args:
+#         user_id: User identifier
+#         category: Financial category
+#         topic_id: Unique topic identifier
+#     """
     
-    # Create viewing history entry
-    history_entry = {
-        "user_id": user_id,
-        "category": category,
-        "topic_id": topic_id,
-        "timestamp": datetime.now(),
-        "date": datetime.now().date().isoformat()
-    }
+#     # Create viewing history entry
+#     history_entry = {
+#         "user_id": user_id,
+#         "category": category,
+#         "topic_id": topic_id,
+#         "timestamp": datetime.now(),
+#         "date": datetime.now().date().isoformat()
+#     }
     
-    # Add to viewing history collection
-    db.collection("topic_history").add(history_entry)
+#     # Add to viewing history collection
+#     db.collection("topic_history").add(history_entry)
     
-    # Update user's daily streak
-    update_user_streak(user_id)
+#     # Update user's daily streak
+#     update_user_streak(user_id)
 
 
 def update_user_streak(user_id: str) -> None:
@@ -376,22 +376,54 @@ def log_user_activity(
 
 
 def track_viewed_topic(user_id: str, category: str, topic_id: str, topic_title: str = None, expertise_level: str = None) -> None:
-    """Track that a user viewed a specific topic."""
+    """Track that a user viewed a specific topic, avoiding duplicate entries within 24 hours."""
+    # Get title if not provided
     if topic_title is None:
-        # Try to get topic title from cache if not provided
         from app.services.firebase.cache import find_topic_by_id
         topic_details = find_topic_by_id(topic_id)
         if topic_details:
             topic_title = topic_details.get("title", "Unknown Topic")
     
-    log_user_activity(
-        user_id=user_id,
-        activity_type="topic_view",
-        topic_id=topic_id,
-        topic_title=topic_title,
-        category=category,
-        expertise_level=expertise_level
-    )
+    # Check if this topic was viewed in the last 24 hours
+    now = datetime.now()
+    yesterday = now - timedelta(hours=24)
+    yesterday_str = yesterday.isoformat()
+    
+    # Query for recent views of this topic by this user
+    recent_views = db.collection("user_learning_activity") \
+        .where("user_id", "==", user_id) \
+        .where("topic_id", "==", topic_id) \
+        .where("activity_type", "==", "topic_view") \
+        .where("timestamp", ">=", yesterday_str) \
+        .limit(1) \
+        .stream()
+    
+    # Convert to list to check if any results exist
+    recent_views_list = list(recent_views)
+    
+    if not recent_views_list:
+        # No recent views found, log a new one
+        log_user_activity(
+            user_id=user_id,
+            activity_type="topic_view",
+            topic_id=topic_id,
+            topic_title=topic_title,
+            category=category,
+            expertise_level=expertise_level
+        )
+    else:
+        # Already viewed recently, just update the timestamp
+        # Get the document reference
+        doc_ref = recent_views_list[0].reference
+        # Update only the timestamp
+        doc_ref.update({
+            "timestamp": now,
+            "date": now.date().isoformat()
+        })
+    
+    # Only update streak for new views or first view of the day
+    if not recent_views_list or recent_views_list[0].to_dict().get("date") != now.date().isoformat():
+        update_user_streak(user_id)
 
 def log_tooltip_viewed(user_id: str, word: str, tooltip: str, from_topic: str = None, topic_id: str = None) -> None:
     """Log when a user views a tooltip."""
@@ -435,7 +467,22 @@ def get_user_activity_history(
 
 def get_user_read_history(user_id: str, start_date: date, end_date: date) -> List[Dict[str, Any]]:
     """Get user's topic reading history."""
-    return get_user_activity_history(user_id, start_date, end_date, "topic_view")
+    raw_history = get_user_activity_history(user_id, start_date, end_date, "topic_view")
+    
+    # Deduplicate entries by topic_id (keeping only the most recent view)
+    deduplicated = {}
+    for entry in raw_history:
+        topic_id = entry.get("topic_id")
+        if topic_id:
+            # If this topic isn't in our results yet or has a more recent timestamp, keep it
+            if topic_id not in deduplicated or entry.get("timestamp", "") > deduplicated[topic_id].get("timestamp", ""):
+                deduplicated[topic_id] = entry
+    
+    # Convert back to list, sorted by most recent first
+    result = list(deduplicated.values())
+    result.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    
+    return result
 
 def get_user_tooltip_history(user_id: str, start_date: date, end_date: date) -> List[Dict[str, Any]]:
     """Get user's tooltip viewing history."""

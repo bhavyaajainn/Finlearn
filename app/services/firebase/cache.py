@@ -2,6 +2,11 @@ from typing import List, Dict, Any, Optional
 from firebase_admin import firestore
 import time
 from datetime import datetime, timedelta
+from .client import db
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def get_cached_topics(category: str, level: str) -> Optional[List[Dict[str, Any]]]:
     """Retrieve cached topics for a category and expertise level.
@@ -140,3 +145,37 @@ def find_topic_by_id(topic_id: str) -> Optional[Dict[str, Any]]:
                 return topic
     
     return None
+
+
+def get_cached_article(topic_id: str, expertise_level: str) -> Optional[Dict[str, Any]]:
+    """Retrieve a cached article from Firebase."""
+    try:
+        doc_ref = db.collection("article_cache").document(f"{topic_id}_{expertise_level}")
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            data = doc.to_dict()
+            # Check if cache is still valid (less than 7 days old)
+            cached_time = data.get("cached_at")
+            if cached_time:
+                cache_date = datetime.fromisoformat(cached_time)
+                if datetime.now() - cache_date < timedelta(days=7):
+                    return data.get("article")
+        
+        return None
+    except Exception as e:
+        logger.error(f"Error getting cached article: {e}")
+        return None
+
+def cache_article(topic_id: str, expertise_level: str, article: Dict[str, Any]) -> None:
+    """Save an article to the Firebase cache."""
+    try:
+        doc_ref = db.collection("article_cache").document(f"{topic_id}_{expertise_level}")
+        doc_ref.set({
+            "article": article,
+            "topic_id": topic_id,
+            "expertise_level": expertise_level,
+            "cached_at": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error caching article: {e}")

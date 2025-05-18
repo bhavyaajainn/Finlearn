@@ -286,6 +286,13 @@ paths:
         required: false
         schema:
           $ref: '#/components/schemas/ExpertiseLevel'
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
       responses:
         '200':
           description: Successful Response

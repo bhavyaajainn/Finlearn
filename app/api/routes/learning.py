@@ -26,7 +26,7 @@ from app.services.ai.perplexity import generate_article, generate_quiz_questions
 from app.services.firebase import log_topic_read, get_user_day_log
 from app.api.models import DeepDiveResponse,ArticleResponse, TooltipView
 from app.services.ai.claude import generate_category_topics, get_deep_dive
-from app.services.firebase.cache import cache_topics, get_cached_topics,find_topic_by_id
+from app.services.firebase.cache import cache_article, cache_topics, get_cached_article, get_cached_topics,find_topic_by_id
 from app.services.firebase.categories import get_user_categories
 
 
@@ -295,7 +295,8 @@ async def get_user_recommended_topics(
 async def get_topic_article(
     user_id: str,
     topic_id: str,
-    level: ExpertiseLevel = None  # Optional - will use the topic's level if not specified
+    level: ExpertiseLevel = None,  # Optional - will use the topic's level if not specified
+    refresh: bool = False
 ) -> Dict[str, Any]:
     """Generate an article for a specific topic.
     
@@ -318,82 +319,26 @@ async def get_topic_article(
     category = topic.get("category")
     title = topic.get("title")
     
-    # Generate article
-    article = generate_article(
-        category=category,
-        topic=title,
-        expertise_level=expertise_level,
-        user_id=user_id
-    )
+    # Generate article - tooltips are already extracted in this function
+    # Only generate if not cached or force refresh requested
+    if refresh:
+        article = None
+    else:
+        article = get_cached_article(topic_id, expertise_level)
     
-    if isinstance(article.get("content"), str):
-        content = article["content"]
-        import re
-        import json
-        import logging
+    if not article:
+        # Generate article - tooltips are already extracted in this function
+        article = generate_article(
+            category=category,
+            topic=title,
+            expertise_level=expertise_level,
+            user_id=user_id
+        )
         
-        logger = logging.getLogger(__name__)
-        logger.info(f"Extracting tooltips for article: {article.get('title')}")
-        
-        # First try to extract JSON from markdown code blocks
-        json_pattern = r"```json\s*([\s\S]*?)\s*```"
-        json_match = re.search(json_pattern, content)
-        
-        if json_match:
-            try:
-                # Extract and parse the JSON content
-                json_content = json_match.group(1).strip()
-                logger.info(f"Found JSON content block of length: {len(json_content)}")
-                
-                # Parse the JSON
-                parsed_json = json.loads(json_content)
-                
-                # Extract tooltips and other fields
-                if "tooltip_words" in parsed_json and isinstance(parsed_json["tooltip_words"], list):
-                    logger.info(f"Found {len(parsed_json['tooltip_words'])} tooltips in JSON")
-                    
-                    # Create a new tooltips array (don't append to existing empty one)
-                    article["tooltip_words"] = []
-                    
-                    # Copy each tooltip
-                    for tooltip in parsed_json["tooltip_words"]:
-                        if isinstance(tooltip, dict) and "word" in tooltip and "tooltip" in tooltip:
-                            article["tooltip_words"].append({
-                                "word": tooltip["word"],
-                                "tooltip": tooltip["tooltip"]
-                            })
-                    
-                    logger.info(f"Extracted {len(article['tooltip_words'])} tooltips")
-                    
-                    # Extract other fields if needed
-                    for field in ["key_concepts", "difficulty_level", "category", "topic"]:
-                        if field in parsed_json:
-                            article[field] = parsed_json[field]
-                
-                # If we still don't have tooltips, try direct extraction with regex pattern
-                if not article.get("tooltip_words") or len(article["tooltip_words"]) == 0:
-                    logger.warning("No tooltips found in JSON, trying regex extraction")
-                    
-                    # Look for tooltip format directly in the content
-                    tooltip_pattern = r'\["(.*?)"\s*,\s*"(.*?)"\]'
-                    tooltip_matches = re.findall(tooltip_pattern, content)
-                    
-                    if tooltip_matches:
-                        article["tooltip_words"] = []
-                        for match in tooltip_matches:
-                            article["tooltip_words"].append({
-                                "word": match[0],
-                                "tooltip": match[1]
-                            })
-                        logger.info(f"Extracted {len(article['tooltip_words'])} tooltips using regex")
-                
-            except json.JSONDecodeError as e:
-                logger.error(f"JSON parsing error: {e}")
-                # Continue with extraction attempt using regex
-            except Exception as e:
-                logger.error(f"Error extracting tooltips: {e}")
+        # Cache the article for future requests
+        cache_article(topic_id, expertise_level, article)
     
-    # Track that the user viewed this topic - with title
+    # Track that the user viewed this topic
     from app.services.firebase.reading_log import track_viewed_topic
     track_viewed_topic(
         user_id=user_id, 
@@ -419,7 +364,6 @@ async def get_topic_article(
     return {
         "user_id": user_id,
         "topic_id": topic_id,
-        "topic_info": topic,
         "article": article
     }
 
