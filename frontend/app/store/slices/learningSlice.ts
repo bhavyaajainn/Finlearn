@@ -31,6 +31,15 @@ export interface TopicDetailResponse {
   background: string;
   application: string;
   related_concepts: RelatedConcept[];
+  article?: {
+    content: string;
+    tooltip_words: TooltipWord[];
+  };
+}
+
+export interface TooltipWord {
+  word: string;
+  tooltip: string;
 }
 
 export interface RelatedConcept {
@@ -39,6 +48,7 @@ export interface RelatedConcept {
   definition: string;
   category: string;
 }
+
 
 // State interface
 interface LearningState {
@@ -80,7 +90,7 @@ export const fetchTopics = createAsyncThunk(
   async (userId: string, { rejectWithValue }) => {
     try {
       // Using the updated API endpoint with dynamic userId
-      const response = await fetch(`https://finlearn.onrender.com/user/recommendedtopics?user_id=${userId}`);
+      const response = await fetch(`http://127.0.0.1:8000/user/recommendedtopics?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch topics');

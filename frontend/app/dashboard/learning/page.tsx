@@ -63,11 +63,8 @@ const LearningHub = () => {
   
   // Fetch topics and user status on initial load
   useEffect(() => {
-    // Only fetch data if user exists and we don't already have topics
     if (user?.uid && Object.keys(topics).length === 0 && !loading) {
       dispatch(fetchTopics(user.uid));
-      
-      // Fetch user's bookmarked and read topics
       dispatch(fetchUserTopicsStatus(user.uid));
     }
   }, [dispatch, user, topics, loading]);
