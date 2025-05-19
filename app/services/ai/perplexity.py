@@ -4,6 +4,7 @@ This module handles interactions with the Perplexity API for
 research and financial insights.
 """
 import os
+import re
 import requests
 import uuid
 import json
@@ -376,8 +377,53 @@ def get_daily_topics(category: str, expertise_level: str, user_id: Optional[str]
     return topics
 
 
-# Update the existing generate_article function to handle topic parameter
-# Update this function to properly extract tooltips
+def call_perplexity_api_with_schema(prompt: str, schema: dict) -> Dict[str, Any]:
+    """Call the Perplexity API with JSON schema for structured output.
+    
+    Args:
+        prompt: The prompt to send to Perplexity
+        schema: JSON schema defining the expected response structure
+        
+    Returns:
+        Structured JSON response matching the schema
+    """
+    headers = {
+        "Authorization": f"Bearer {PERPLEXITY_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "model": "sonar", 
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a financial education expert specializing in creating structured content."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"schema": schema},
+        },
+        "temperature": 0.7
+    }
+    
+    try:
+        res = requests.post(BASE_URL, headers=headers, json=data)
+        res.raise_for_status()
+        
+        response_json = res.json()
+        
+        # The structured response is directly in the content field
+        content = response_json["choices"][0]["message"]["content"]
+        return json.loads(content)
+    except Exception as e:
+        logger.error(f"Error calling Perplexity API with schema: {e}")
+        raise
+
 
 def generate_article(
     category: str,
@@ -385,126 +431,58 @@ def generate_article(
     topic: Optional[str] = None,
     user_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Generate a financial article using Perplexity SONAR API."""
-    # Select appropriate prompt
+    """Generate a financial article using Perplexity SONAR API with JSON schema response format."""
+    # Get the base prompt
     prompt = get_article_prompt(category, expertise_level, topic)
-        
-    # Call Perplexity SONAR API
+    
+    # Add clear instructions about expected format
+    prompt += """
+    Create a comprehensive article with proper formatting, informative tooltips for financial terms,
+    and properly formatted references. Each reference MUST include publication name, article title, 
+    link, and date in this format: 'Publication name. (Year). Article title, link, date'
+    """
+    
     try:
-        response = call_perplexity_api(prompt)
+        # Use the schema-based approach
+        from app.services.ai.schemas import ARTICLE_SCHEMA_DEFINITION
+        response_data = call_perplexity_api_with_schema(prompt, ARTICLE_SCHEMA_DEFINITION)
         
-        # Parse the response and ensure it has the expected format
-        try:
-            # Handle various JSON formats
-            if response.startswith("```json"):
-                response = response[7:-3].strip()
-            elif "json\n{" in response:
-                json_start = response.find("json\n{") + 5
-                json_end = response.rfind("}")
-                if json_end > json_start:
-                    response = response[json_start:json_end+1].strip()
-            
-            # Parse the outer JSON
-            parsed = json.loads(response)
-            
-            # Initialize result structure
-            result = {
-                "id": str(uuid.uuid4()),
-                "title": None,
-                "content": None,
-                "tooltip_words": [],
-                "difficulty_level": expertise_level,
-                "category": category,
-                "topic": topic if topic else category,
-                "created_at": datetime.now().isoformat()
-            }
-            
-            # Check if content field contains nested JSON
-            if isinstance(parsed.get("content"), str) and parsed["content"].strip().startswith("{"):
-                try:
-                    # Replace any problematic newlines or special characters in JSON
-                    content_json_str = parsed["content"].replace('\n', '\\n')
-                    
-                    # Try to parse the nested JSON using a more robust method
-                    import re
-                    json_match = re.search(r'\{.*\}', content_json_str, re.DOTALL)
-                    if json_match:
-                        nested_json_str = json_match.group(0)
-                        try:
-                            content_json = json.loads(nested_json_str)
-                            
-                            # Extract title and content from nested JSON
-                            if "title" in content_json:
-                                result["title"] = content_json["title"]
-                            if "content" in content_json:
-                                result["content"] = content_json["content"]
-                                
-                            # Extract tooltips from nested JSON
-                            if "tooltip_words" in content_json and isinstance(content_json["tooltip_words"], list):
-                                result["tooltip_words"] = content_json["tooltip_words"]
-                                logger.info(f"Extracted {len(content_json['tooltip_words'])} tooltips from nested JSON")
-                        except json.JSONDecodeError:
-                            # If that fails, try manual regex extraction
-                            title_match = re.search(r'"title":\s*"([^"]+)"', nested_json_str)
-                            if title_match:
-                                result["title"] = title_match.group(1)
-                                
-                            content_match = re.search(r'"content":\s*"([^"]+)"', nested_json_str, re.DOTALL)
-                            if content_match:
-                                result["content"] = content_match.group(1)
-                                
-                            tooltip_match = re.search(r'"tooltip_words":\s*(\[\s*\{.*?\}\s*\])', nested_json_str, re.DOTALL)
-                            if tooltip_match:
-                                try:
-                                    tooltip_list = json.loads(tooltip_match.group(1))
-                                    result["tooltip_words"] = tooltip_list
-                                except:
-                                    pass
-                except Exception as e:
-                    logger.error(f"Error extracting from nested JSON: {e}")
-            
-            # If we haven't set title/content from nested JSON, use the outer JSON
-            if not result["title"]:
-                result["title"] = parsed.get("title", f"Latest in {category.capitalize()}" + (f": {topic}" if topic else ""))
-            if not result["content"]:
-                result["content"] = parsed.get("content", "")
-            
-            # If we still have no tooltips, check the outer JSON
-            if not result["tooltip_words"] and "tooltip_words" in parsed:
-                result["tooltip_words"] = parsed["tooltip_words"]
-            
-            return result
-        # Handle API errors as before
-               
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing error: {e}")
-
-            return {
-                "id": str(uuid.uuid4()),
-                "title": f"Latest in {category.capitalize()}" + (f": {topic}" if topic else ""),
-                "content": response,
-                "tooltip_words": [],  # No key_concepts
-                "difficulty_level": expertise_level,
-                "category": category, 
-                "topic": topic if topic else category,
-                "created_at": datetime.now().isoformat()
-            }
-            
-    except Exception as e:
-        # Handle API errors
-        logger.error(f"Error generating article with Perplexity: {e}")
-        return {
+        # Add metadata to the response
+        result = {
             "id": str(uuid.uuid4()),
-            "title": f"Error generating {category}" + (f" {topic}" if topic else "") + " article",
-            "content": f"Failed to generate article: {str(e)}",
-            "tooltip_words": [],  # No key_concepts
+            "title": response_data.get("title", f"Latest in {category.capitalize()}" + (f": {topic}" if topic else "")),
+            "content": response_data.get("content", ""),
+            "tooltip_words": response_data.get("tooltip_words", []),
+            "references": response_data.get("references", []),
             "difficulty_level": expertise_level,
             "category": category,
-            "topic": topic if topic else None,
+            "topic": topic if topic else category,
             "created_at": datetime.now().isoformat()
         }
-    
-
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error generating article: {e}")
+        # Error response with the same structure
+        return {
+            "id": str(uuid.uuid4()),
+            "title": f"Error generating article about {topic if topic else category}",
+            "content": f"We encountered an error while generating this article: {str(e)}",
+            "tooltip_words": [
+                {"word": "Error", "tooltip": "An issue occurred during article generation"},
+                {"word": category.capitalize(), "tooltip": f"Category of the requested article"},
+                {"word": "Technical difficulties", "tooltip": "Temporary problems with the content generation system"}
+            ],
+            "references": [
+                f"System error log. ({datetime.now().year}). Request parameters: category={category}, level={expertise_level}, topic={topic}, https://support.finlearn.com, {datetime.now().strftime('%B %d')}"
+            ],
+            "difficulty_level": expertise_level,
+            "category": category,
+            "topic": topic if topic else category,
+            "created_at": datetime.now().isoformat()
+        }
+        
 def generate_reading_summary(
     user_id: str,
     read_articles: List[Dict[str, Any]],
