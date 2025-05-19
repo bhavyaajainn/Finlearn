@@ -83,7 +83,14 @@ export default function AddAssetModal() {
 
         setAddingAssetId(asset.symbol)
         try {
-            const result = await addToWatchlist(asset.symbol, asset.asset_type, asset.description || "", user.uid)
+            let cryptotype;
+
+            if (asset.asset_type) {
+                cryptotype = "crypto";
+            } else {
+                cryptotype = asset.asset_type;
+            }
+            const result = await addToWatchlist(asset.symbol, cryptotype, asset.description || "", user.uid)
 
             if (!result || result.length === 0) {
                 toast.error("Asset could not be added. Please try again.")
@@ -193,6 +200,7 @@ export default function AddAssetModal() {
                                     </div>
                                 </div>
                             ))}
+
                         </div>
                     ) : (
                         <div className="text-center py-8 text-gray-400">

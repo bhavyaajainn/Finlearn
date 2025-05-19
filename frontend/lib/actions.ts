@@ -1,7 +1,4 @@
 "use server";
-
-import { toast } from "sonner";
-
 // Utility for validating inputs
 function isInvalidString(input: string | undefined | null): boolean {
     return !input || input.trim().length === 0;
@@ -9,7 +6,6 @@ function isInvalidString(input: string | undefined | null): boolean {
 
 export async function searchAssets(searchTerm: string, activeFilter: string) {
     if (isInvalidString(searchTerm) || isInvalidString(activeFilter)) {
-        toast.error("Search term or filter is missing.");
         console.error("Validation Error: Missing searchTerm or activeFilter.");
         return [];
     }
@@ -37,7 +33,6 @@ export async function searchAssets(searchTerm: string, activeFilter: string) {
         return data.results;
     } catch (error: any) {
         console.error("Error searching assets:", error.message);
-        toast.error("Failed to search assets. Please try again.");
         return [];
     }
 }
@@ -53,7 +48,6 @@ export async function addToWatchlist(
         isInvalidString(asset_type) ||
         isInvalidString(userid)
     ) {
-        toast.error("Symbol, asset type, or user ID is missing.");
         console.error("Validation Error: Missing required parameters.");
         return [];
     }
@@ -79,11 +73,9 @@ export async function addToWatchlist(
         const data = await res.json();
         console.log("Add to watchlist response:", data);
 
-        toast.success("Added to Watchlist successfully!");
-        return data.results;
+        return data;
     } catch (error: any) {
         console.error("Error adding to watchlist:", error.message);
-        toast.error("Failed to add to Watchlist. Please try again.");
         return [];
     }
 }
