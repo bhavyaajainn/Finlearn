@@ -4,9 +4,11 @@ import {
   Award,
   BadgeCheck,
   Bitcoin,
+  BookOpen,
   Briefcase,
   Calendar,
   Check,
+  CheckCircle2,
   ChevronRight,
   Clock,
   DollarSign,
@@ -22,9 +24,9 @@ import {
 import { useAppSelector } from "@/app/store/hooks";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/multi-select";
-import { Label } from "@/components/ui/label";
 import { topicOptions } from "@/lib/data";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface UserPreferences {
   expertise_level: string,
@@ -76,10 +78,9 @@ const ProfilePage = () => {
   const [email, setEmail] = useState("john.doe@example.com");
   const [calendarView, setCalendarView] = useState("1year");
   const [activityData, setActivityData] = useState<Record<string, number>>({});
-  const [activeTab, setActiveTab] = useState("streak");
-  const [newTopicName, setNewTopicName] = useState("");
-  const [showAddTopic, setShowAddTopic] = useState(false);
+  const [activeTab, setActiveTab] = useState("topics");
   const [userdata, setuserdata] = useState<UserPreferences>();
+  const [expertiseLevel, setExpertiseLevel] = useState("beginner"); // or fetched value
   const [interests, setInterests] = useState([
     { id: "stocks", name: "Stocks", icon: <LineChart className="h-4 w-4" />, selected: true },
     { id: "crypto", name: "Cryptocurrency", icon: <Bitcoin className="h-4 w-4" />, selected: true },
@@ -90,10 +91,16 @@ const ProfilePage = () => {
     { id: "retirement", name: "Retirement Planning", icon: <Briefcase className="h-4 w-4" />, selected: true },
     { id: "tax-optimization", name: "Tax Optimization", icon: <DollarSign className="h-4 w-4" />, selected: true },
   ]);
+  const handleExpertiseSelect = async (level: string) => {
+    setExpertiseLevel(level);
+    await updatePreferences();
+    setActiveTab("topics");
+  }
   const [topics, setTopics] = useState<string[]>([]);
   const { user } = useAppSelector(
     (state) => state.auth
   );
+
   const fetchPreferences = async () => {
     if (!user) {
       toast.error("No user found.");
@@ -143,8 +150,8 @@ const ProfilePage = () => {
         {
           method: "PUT",
           body: JSON.stringify({
-            expertise_level: userdata?.expertise_level,
-            categories: topics,
+            expertise_level: expertiseLevel,
+            categories: topics.length === 0 ? userdata?.categories : topics,
           }),
           headers: {
             "Content-Type": "application/json",
@@ -207,7 +214,7 @@ const ProfilePage = () => {
       )
     );
   };
-  
+
   const getCalendarDays = () => {
     return calendarView === "30days" ? 30 : calendarView === "6months" ? 180 : 365;
   };
@@ -480,55 +487,113 @@ const ProfilePage = () => {
           </div>
 
           {/* Topics of Interest */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
-            <div className="p-4">
-              <div className="flex items-center mb-2">
-                <LineChart className="h-5 w-5 text-blue-400 mr-2" />
-                <h2 className="text-lg font-medium">Topics of Interest</h2>
-              </div>
-              <p className="text-gray-400 mb-4">
-                Select topics that interest you the most. This helps us personalize your learning experience.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                {userdata?.categories.map((interest, index) => (
-                  <div
-                    key={index}
-                    className="p-3 rounded-lg border cursor-pointer text-center capitalize transition-colors bg-blue-900/20 border-blue-800 text-blue-400"
-                  >
-                    <span className="font-medium">{interest}</span>
-                  </div>
-                ))}
-
-                {/* Add custom topic button or multiselect */}
-                <div className="col-span-1 sm:col-span-2 md:col-span-4">
-                  {!showAddTopic ? (
-                    <div
-                      onClick={() => setShowAddTopic(true)}
-                      className="flex items-center justify-center gap-2 p-3 rounded-lg border border-dashed border-zinc-700 text-gray-400 hover:bg-zinc-800 hover:text-white cursor-pointer transition-colors"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>Add Custom Topic</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Label className="text-white text-md">Select Additional Topics</Label>
-                      <MultiSelect
-                        options={topicOptions}
-                        selected={topics}
-                        onChange={setTopics}
-                        placeholder="Select topics you're interested in"
-                        className="w-full bg-zinc-800 text-white border border-white/30 rounded-md"
-                      />
-                      <Button variant="secondary" onClick={updatePreferences}>
-                        Add Topics
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <LineChart className="h-6 w-6 text-blue-400" />
+              <h2 className="text-xl font-semibold text-white">Personalize Your Experience</h2>
             </div>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid grid-cols-2 w-1/2 bg-zinc-800 p-1">
+                <TabsTrigger
+                  value="expertise"
+                  className="data-[state=active]:bg-blue-900/50 text-white data-[state=active]:text-blue-300 cursor-pointer"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Expertise
+                </TabsTrigger>
+                <TabsTrigger value="topics" className="data-[state=active]:bg-blue-900/50 text-white data-[state=active]:text-blue-300 cursor-pointer">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Topics
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="expertise" className="space-y-6 mt-4">
+                <p className="text-gray-400 text-sm">Select your expertise level to help us tailor your learning journey.</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {["beginner", "intermediate", "expert"].map((level) => (
+                    <button
+                      key={level}
+                      onClick={() => handleExpertiseSelect(level)}
+                      className={`p-6 rounded-lg border ${expertiseLevel === level
+                        ? "border-blue-600 bg-blue-900/30 text-blue-300"
+                        : "border-zinc-700 bg-zinc-800 text-gray-300 hover:border-blue-800 hover:bg-zinc-700"
+                        } transition-all flex flex-col items-center justify-center gap-3`}
+                    >
+                      <div className="text-lg capitalize font-medium">{level}</div>
+                      <div className="text-xs text-center text-gray-400">
+                        {level === "beginner" && "New to the subject, learning fundamentals"}
+                        {level === "intermediate" && "Comfortable with basics, expanding knowledge"}
+                        {level === "expert" && "Advanced knowledge, seeking deep insights"}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    variant="default"
+                    className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                    onClick={() => setActiveTab("topics")}
+                    disabled={!expertiseLevel}
+                  >
+                    Continue to Topics
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="topics" className="space-y-6 mt-4">
+                <p className="text-gray-400 text-sm">Select topics you're interested in learning about.</p>
+
+                <div className="space-y-4">
+                  <h3 className="text-white font-medium">Your Current Topics</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {userdata?.categories.map((category, index) => (
+                      <div
+                        key={index}
+                        className="px-3 py-2 rounded-md bg-blue-900/30 text-blue-300 font-medium border border-blue-800"
+                      >
+                        {category}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-white font-medium">Add More Topics</h3>
+                  <MultiSelect
+                    options={topicOptions}
+                    selected={topics}
+                    onChange={setTopics}
+                    placeholder="Select topics of interest"
+                    className="w-full bg-zinc-800 text-white border border-white/30 rounded-md"
+                  />
+                </div>
+
+                <div className="flex justify-between">
+                  <Button
+                    variant="secondary"
+                    className="border-zinc-700 text-black cursor-pointer hover:bg-slate-300"
+                    onClick={() => setActiveTab("expertise")}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    variant="default"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={updatePreferences}
+                    disabled={topics.length === 0}
+                  >
+                    Save Topics
+                  </Button>
+                </div>
+              </TabsContent>
+
+            </Tabs>
           </div>
+
 
 
           {/* Learning Progress Card with improved tabs */}
