@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -11,42 +11,74 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, Search, Plus } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { PlusCircle, Search, Plus, Loader2 } from "lucide-react"
+import { searchAssets, addToWatchlist } from "@/lib/actions"
+import { useDebounce } from "@/hooks/use-debouce"
+import { Select } from "@/components/ui/select"
+import {
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
-// Sample asset data - in a real app, this would come from an API
-const sampleAssets = [
-    { id: 1, symbol: "BTC", name: "Bitcoin", type: "crypto", price: "$65,432.10", change: "+2.5%" },
-    { id: 2, symbol: "ETH", name: "Ethereum", type: "crypto", price: "$3,521.45", change: "+1.8%" },
-    { id: 3, symbol: "AAPL", name: "Apple Inc.", type: "stock", price: "$182.63", change: "-0.5%" },
-    { id: 4, symbol: "MSFT", name: "Microsoft", type: "stock", price: "$415.32", change: "+0.7%" },
-    { id: 5, symbol: "AMZN", name: "Amazon", type: "stock", price: "$178.25", change: "+1.2%" },
-    { id: 6, symbol: "TSLA", name: "Tesla", type: "stock", price: "$177.86", change: "-2.1%" },
-    { id: 7, symbol: "SOL", name: "Solana", type: "crypto", price: "$142.78", change: "+5.3%" },
-    { id: 8, symbol: "GOOGL", name: "Alphabet", type: "stock", price: "$165.92", change: "+0.3%" },
-    { id: 9, symbol: "XRP", name: "Ripple", type: "crypto", price: "$0.5231", change: "-0.8%" },
-    { id: 10, symbol: "NVDA", name: "NVIDIA", type: "stock", price: "$924.73", change: "+3.1%" },
-]
+type Asset = {
+    asset_type: "cryptocurrency" | "stock" | string
+    symbol: string
+    name: string
+    description: string
+    current_price: number | null
+    change_percent: number | null
+    market_cap: number | null
+    volume: number | null
+    data_source: string
+    match_reason: string
+}
+
 
 export default function AddAssetModal() {
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
-    const [activeFilter, setActiveFilter] = useState("all")
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useDebounce(searchTerm, 500)
+    const [activeFilter, setActiveFilter] = useState("cryptocurrency")
+    const [assets, setAssets] = useState<Asset[]>([])
+    const [isPending, startTransition] = useTransition()
+    const [isSearching, setIsSearching] = useState(false)
+    const [addingAssetId, setAddingAssetId] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null)
 
-    const filteredAssets = sampleAssets.filter((asset) => {
-        const matchesSearch =
-            asset.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            asset.name.toLowerCase().includes(searchTerm.toLowerCase())
+    useEffect(() => {
+        if (open) {
+            setIsSearching(true)
+            startTransition(async () => {
+                try {
+                    const results = await searchAssets(searchTerm, activeFilter);
 
-        if (activeFilter === "all") return matchesSearch
-        return matchesSearch && asset.type === activeFilter
-    })
+                    console.log(results);
 
-    const handleAddToWatchlist = (assetId: number) => {
-        // In a real app, this would add the asset to the user's watchlist
-        console.log(`Added asset ${assetId} to watchlist`)
-        // You could also close the modal or show a success message
-    }
+                    setAssets(results ?? []);
+                    setError(null)
+                } catch (err) {
+                    console.error("Error fetching assets:", err)
+                    setError("Failed to fetch assets. Please try again.")
+                    setAssets([])
+                } finally {
+                    setIsSearching(false)
+                }
+            })
+        }
+    }, [debouncedSearchTerm, activeFilter, open])
+
+    // const handleAddToWatchlist = async (assetId: number) => {
+    //     setAddingAssetId(assetId)
+    //     try {
+    //         await addToWatchlist(assetId)
+    //     } catch (err) {
+    //         console.error("Error adding to watchlist:", err)
+    //     } finally {
+    //         setAddingAssetId(null)
+    //     }
+    // }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -60,9 +92,21 @@ export default function AddAssetModal() {
                 <DialogHeader>
                     <DialogTitle className="text-blue-400">Add Assets to Watchlist</DialogTitle>
                     <DialogDescription className="text-gray-400">
-                        Browse and add assets to your personal watchlist.
+                        Search for stocks or crypto assets to add to your personal watchlist.
                     </DialogDescription>
                 </DialogHeader>
+
+                <div className="mb-4">
+                    <Select value={activeFilter} onValueChange={setActiveFilter}>
+                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500 focus:border-blue-500">
+                            <SelectValue placeholder="Select asset type" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-900 text-white border-gray-700">
+                            <SelectItem value="stock">Stocks</SelectItem>
+                            <SelectItem value="cryptocurrency">Crypto</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
 
                 <div className="relative mb-4">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -74,65 +118,71 @@ export default function AddAssetModal() {
                     />
                 </div>
 
-                <div className="flex space-x-2 mb-4">
-                    <Badge
-                        className={`cursor-pointer ${activeFilter === "all" ? "bg-blue-600" : "bg-gray-700 hover:bg-gray-600"}`}
-                        onClick={() => setActiveFilter("all")}
-                    >
-                        All
-                    </Badge>
-                    <Badge
-                        className={`cursor-pointer ${activeFilter === "crypto" ? "bg-blue-600" : "bg-gray-700 hover:bg-gray-600"}`}
-                        onClick={() => setActiveFilter("crypto")}
-                    >
-                        Crypto
-                    </Badge>
-                    <Badge
-                        className={`cursor-pointer ${activeFilter === "stock" ? "bg-blue-600" : "bg-gray-700 hover:bg-gray-600"}`}
-                        onClick={() => setActiveFilter("stock")}
-                    >
-                        Stocks
-                    </Badge>
-                </div>
-
                 <div className="max-h-[350px] overflow-y-auto pr-1">
-                    {filteredAssets.length > 0 ? (
+                    {error ? (
+                        <div className="text-center py-8 text-red-400">{error}</div>
+                    ) : isSearching ? (
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-2" />
+                            <p className="text-gray-400">Searching for assets...</p>
+                        </div>
+                    ) : assets.length > 0 ? (
                         <div className="space-y-2">
-                            {filteredAssets.map((asset) => (
+                            {assets.map((asset) => (
                                 <div
-                                    key={asset.id}
+                                    key={asset.symbol}
                                     className="flex items-center justify-between p-3 bg-gray-800 rounded-lg hover:bg-gray-750"
                                 >
                                     <div className="flex items-center">
                                         <div
-                                            className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${asset.type === "crypto" ? "bg-blue-900/50" : "bg-green-900/50"
+                                            className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${asset.asset_type === "cryptocurrency" ? "bg-blue-900/50" : "bg-green-900/50"
                                                 }`}
                                         >
-                                            <span className="text-xs font-bold">{asset.symbol.substring(0, 2)}</span>
+                                            <span className="text-xs font-bold text-white">
+                                                {asset.symbol.substring(0, 2)}
+                                            </span>
                                         </div>
                                         <div>
-                                            <div className="font-medium">{asset.symbol}</div>
+                                            <div className="font-medium text-white">{asset.symbol}</div>
                                             <div className="text-sm text-gray-400">{asset.name}</div>
+                                            <div className="text-xs text-gray-500 mt-1">{asset.description}</div>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center">
                                         <div className="text-right mr-4">
-                                            <div>{asset.price}</div>
+                                            <div className="text-white font-semibold">
+                                                ${asset.current_price?.toFixed(2) ?? "N/A"}
+                                            </div>
+                                            <div
+                                                className={
+                                                    asset.change_percent >= 0 ? "text-green-400" : "text-red-400"
+                                                }
+                                            >
+                                                {asset.change_percent?.toFixed(2)}%
+                                            </div>
                                         </div>
                                         <Button
                                             size="sm"
                                             className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                                            onClick={() => handleAddToWatchlist(asset.id)}
+                                            onClick={() => addToWatchlist(asset.name)}
+                                            disabled={addingAssetId === asset.symbol}
                                         >
-                                            <Plus className="h-4 w-4" />
+                                            {addingAssetId === asset.symbol ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Plus className="h-4 w-4" />
+                                            )}
                                         </Button>
                                     </div>
                                 </div>
                             ))}
+
                         </div>
                     ) : (
-                        <div className="text-center py-8 text-gray-400">No assets found matching your search.</div>
+                        <div className="text-center py-8 text-gray-400">
+                            {debouncedSearchTerm ? "No assets found matching your search." : "Start typing to search for assets."}
+                        </div>
                     )}
                 </div>
             </DialogContent>
