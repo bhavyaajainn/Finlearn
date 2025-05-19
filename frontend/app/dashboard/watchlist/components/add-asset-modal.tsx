@@ -14,27 +14,28 @@ import { Input } from "@/components/ui/input"
 import { PlusCircle, Search, Plus, Loader2 } from "lucide-react"
 import { searchAssets, addToWatchlist } from "@/lib/actions"
 import { useDebounce } from "@/hooks/use-debouce"
-import { Select } from "@/components/ui/select"
 import {
+    Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { useAppSelector } from "@/app/store/hooks"
+import { toast } from "sonner"
 
 type Asset = {
     asset_type: "cryptocurrency" | "stock" | string
     symbol: string
-    name: string
-    description: string
-    current_price: number | null
-    change_percent: number | null
-    market_cap: number | null
-    volume: number | null
-    data_source: string
-    match_reason: string
+    name?: string
+    description?: string
+    current_price?: number | null
+    change_percent?: number | null
+    market_cap?: number | null
+    volume?: number | null
+    data_source?: string
+    match_reason?: string
 }
-
 
 export default function AddAssetModal() {
     const [open, setOpen] = useState(false)
@@ -47,18 +48,18 @@ export default function AddAssetModal() {
     const [addingAssetId, setAddingAssetId] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
 
+    const { user } = useAppSelector((state) => state.auth)
+
     useEffect(() => {
-        if (open) {
+        if (open && debouncedSearchTerm.trim().length > 0) {
             setIsSearching(true)
             startTransition(async () => {
                 try {
-                    const results = await searchAssets(searchTerm, activeFilter);
-
-                    console.log(results);
-
-                    setAssets(results ?? []);
+                    const results = await searchAssets(debouncedSearchTerm, activeFilter)
+                    if (!Array.isArray(results)) throw new Error("Invalid response format.")
+                    setAssets(results)
                     setError(null)
-                } catch (err) {
+                } catch (err: any) {
                     console.error("Error fetching assets:", err)
                     setError("Failed to fetch assets. Please try again.")
                     setAssets([])
@@ -69,16 +70,33 @@ export default function AddAssetModal() {
         }
     }, [debouncedSearchTerm, activeFilter, open])
 
-    // const handleAddToWatchlist = async (assetId: number) => {
-    //     setAddingAssetId(assetId)
-    //     try {
-    //         await addToWatchlist(assetId)
-    //     } catch (err) {
-    //         console.error("Error adding to watchlist:", err)
-    //     } finally {
-    //         setAddingAssetId(null)
-    //     }
-    // }
+    const handleAdd = async (asset: Asset) => {
+        if (!user?.uid) {
+            toast.error("User not authenticated.")
+            return
+        }
+
+        if (!asset.symbol || !asset.asset_type) {
+            toast.error("Missing asset symbol or type.")
+            return
+        }
+
+        setAddingAssetId(asset.symbol)
+        try {
+            const result = await addToWatchlist(asset.symbol, asset.asset_type, asset.description || "", user.uid)
+
+            if (!result || result.length === 0) {
+                toast.error("Asset could not be added. Please try again.")
+            } else {
+                toast.success(`Asset ${asset.symbol} added to watchlist!`)
+            }
+        } catch (err) {
+            console.error("Add error:", err)
+            toast.error("Failed to add asset. Please try again.")
+        } finally {
+            setAddingAssetId(null)
+        }
+    }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -133,39 +151,37 @@ export default function AddAssetModal() {
                                     key={asset.symbol}
                                     className="flex items-center justify-between p-3 bg-gray-800 rounded-lg hover:bg-gray-750"
                                 >
-                                    <div className="flex items-center">
-                                        <div
-                                            className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${asset.asset_type === "cryptocurrency" ? "bg-blue-900/50" : "bg-green-900/50"
-                                                }`}
-                                        >
-                                            <span className="text-xs font-bold text-white">
-                                                {asset.symbol.substring(0, 2)}
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-white">{asset.symbol || "Unknown"}</span>
+                                        <span className="text-sm text-gray-400">{asset.name || "No name"}</span>
+                                        {asset.description && (
+                                            <span className="text-sm text-gray-500 mt-1">
+                                                {asset.description}
                                             </span>
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-white">{asset.symbol}</div>
-                                            <div className="text-sm text-gray-400">{asset.name}</div>
-                                            <div className="text-xs text-gray-500 mt-1">{asset.description}</div>
-                                        </div>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center">
                                         <div className="text-right mr-4">
                                             <div className="text-white font-semibold">
-                                                ${asset.current_price?.toFixed(2) ?? "N/A"}
+                                                ${asset.current_price ?? "N/A"}
                                             </div>
-                                            <div
-                                                className={
-                                                    asset.change_percent >= 0 ? "text-green-400" : "text-red-400"
-                                                }
-                                            >
-                                                {asset.change_percent?.toFixed(2)}%
-                                            </div>
+                                            {typeof asset.change_percent === "number" && (
+                                                <div
+                                                    className={
+                                                        asset.change_percent >= 0
+                                                            ? "text-green-400"
+                                                            : "text-red-400"
+                                                    }
+                                                >
+                                                    {asset.change_percent.toFixed(2)}%
+                                                </div>
+                                            )}
                                         </div>
                                         <Button
                                             size="sm"
-                                            className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                                            onClick={() => addToWatchlist(asset.name)}
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                            onClick={() => handleAdd(asset)}
                                             disabled={addingAssetId === asset.symbol}
                                         >
                                             {addingAssetId === asset.symbol ? (
@@ -177,11 +193,12 @@ export default function AddAssetModal() {
                                     </div>
                                 </div>
                             ))}
-
                         </div>
                     ) : (
                         <div className="text-center py-8 text-gray-400">
-                            {debouncedSearchTerm ? "No assets found matching your search." : "Start typing to search for assets."}
+                            {debouncedSearchTerm
+                                ? "No assets found matching your search."
+                                : "Start typing to search for assets."}
                         </div>
                     )}
                 </div>
