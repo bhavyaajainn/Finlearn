@@ -485,7 +485,14 @@ async def get_user_summary(
         },
         "streak": streak_data,
         "articles_read": [article.get("topic_title", "") for article in read_history],
-        "tooltips_viewed": tooltip_history,
+        "tooltips_viewed": [
+        {
+            "word": tip.get("word", ""),
+            "tooltip": tip.get("tooltip", ""),  # Include the actual definition
+            "topic_title": tip.get("from_topic", "") or tip.get("topic_title", "")
+        }
+        for tip in tooltip_history
+        ],
         "summary": ai_summary,
         "quiz_questions": quiz_questions,
         "generated_at": datetime.now().isoformat()
