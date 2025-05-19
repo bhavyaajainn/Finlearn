@@ -239,17 +239,20 @@ def get_article_prompt(category: str, expertise_level: str, topic: Optional[str]
     IMPORTANT: Identify technical financial terms and concepts that need explanation.
     For each term, provide a concise explanation appropriate for the {expertise_level} level.
     
-    Return ONLY the following JSON structure (no markdown blocks, no preamble):
+    Return your response as a FLAT (not nested) JSON structure like this:
     {{
       "title": "Your article title here",
       "content": "The full article with markdown formatting",
       "tooltip_words": [
-        {{"word": "term1", "tooltip": "Explanation for term1"}},
-        {{"word": "term2", "tooltip": "Explanation for term2"}}
+        {{"word": "Term 1", "tooltip": "Explanation for term 1"}},
+        {{"word": "Term 2", "tooltip": "Explanation for term 2"}}
       ],
       "references": [
-        "Source 1: Publication/website name, article title, date",
-        "Source 2: Publication/website name, article title, date"
+        "Source 1: Publication name, article title,link, date",
+        "Source 2: Publication name, article title,link, date"
       ]
     }}
+    
+    DO NOT nest JSON objects inside the content field. Keep tooltip_words as a separate array at the top level.
+    Include at least 5-8 important tooltip words with clear explanations.
     """
