@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { X, BookmarkCheck, Bookmark, Clock, AlertCircle, Info, X as XIcon } from 'lucide-react';
+import { X, BookmarkCheck, Bookmark, Clock, AlertCircle, Info } from 'lucide-react';
 import { TopicItem, TopicDetailResponse, RelatedConcept } from '@/app/store/slices/learningSlice';
 
 interface ArticleViewProps {
@@ -10,9 +10,7 @@ interface ArticleViewProps {
   loading: boolean;
   error: string | null;
   onClose: () => void;
-  onBookmarkToggle: (topicId: string) => void;
   onConceptClick: (concept: RelatedConcept) => void;
-  isBookmarked: boolean;
 }
 
 interface TooltipWord {
@@ -32,9 +30,7 @@ export default function ArticleView({
   loading,
   error,
   onClose,
-  onBookmarkToggle,
   onConceptClick,
-  isBookmarked
 }: ArticleViewProps) {
   const [tooltipModal, setTooltipModal] = useState<TooltipModal>({
     word: '',
@@ -42,12 +38,6 @@ export default function ArticleView({
     isOpen: false
   });
   
-  useEffect(() => {
-    if (topicDetail?.article?.tooltip_words) {
-      console.log('Available tooltip words:', topicDetail.article.tooltip_words);
-    }
-  }, [topicDetail]);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && tooltipModal.isOpen) {
@@ -62,9 +52,11 @@ export default function ArticleView({
   }, [tooltipModal.isOpen]);
 
   const estimatedReadTime = Math.max(1, Math.ceil((topic.description?.length || 0) / 500));
-
+  
+  
   const renderContent = (content: string) => {
     if (!content) return '';
+    
     
     const sections = content.split(/^##\s+/m).filter(section => section.trim().length > 0);
     
@@ -75,12 +67,18 @@ export default function ArticleView({
       const sectionTitle = sectionLines[0].trim();
       const sectionContent = sectionLines.slice(1).join('\n').trim();
       
+      
+      if (sectionTitle.toLowerCase() === 'references') {
+        return;
+      }
+      
       processedContent += `<h2 class="text-lg sm:text-xl font-semibold text-white mt-6 sm:mt-8 mb-3 sm:mb-4">${sectionTitle}</h2>`;
       processedContent += `<div class="text-gray-300 mb-5 sm:mb-6">${processMarkdownContent(sectionContent)}</div>`;
     });
-    
+
     return processedContent;
   };
+  
   
   const processMarkdownContent = (content: string) => {
     if (!content) return '';
@@ -88,29 +86,38 @@ export default function ArticleView({
     let processedContent = content.replace(/\n\n/g, '</p><p>');
     processedContent = `<p class="text-xs sm:text-sm md:text-base">${processedContent}</p>`;
     
+    
     processedContent = processedContent.replace(/^\s*-\s+(.+)$/gm, '<li class="text-xs sm:text-sm md:text-base">$1</li>');
     processedContent = processedContent.replace(/<li(.+)<\/li>\s*<li/g, '<li$1</li><li');
-    processedContent = processedContent.replace(/<p>(<li>.*<\/li>)<\/p>/g, '<ul class="text-xs sm:text-sm md:text-base">$1</ul>');
+    processedContent = processedContent.replace(/<p>(<li>.*<\/li>)<\/p>/g, '<ul class="list-disc pl-5 mb-4">$1</ul>');
+    
     
     processedContent = processedContent.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    
+    processedContent = processedContent.replace(/\[(.+?)\]\((.+?)\)/g, 
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">$1</a>');
+    
     
     if (topicDetail?.article?.tooltip_words) {
       topicDetail.article.tooltip_words.forEach((tooltipItem: TooltipWord) => {
         const wordToFind = escapeRegExp(tooltipItem.word);
         const tooltipToAdd = encodeURIComponent(tooltipItem.tooltip);
+        
         const regex = new RegExp(`\\b${wordToFind}\\b`, 'gi');
         
-                  processedContent = processedContent.replace(
+        processedContent = processedContent.replace(
           regex,
           `<button class="tooltip-word font-bold bg-blue-500/10 text-blue-400 hover:bg-blue-500/30 px-1 py-0.5 rounded transition-colors text-xs sm:text-sm" data-word="${encodeURIComponent(tooltipItem.word)}" data-tooltip="${tooltipToAdd}">${tooltipItem.word}</button>`
         );
       });
     }
     
+    
     if (topicDetail?.related_concepts && topicDetail.related_concepts.length > 0) {
       topicDetail.related_concepts.forEach(concept => {
         const regex = new RegExp(`\\b${escapeRegExp(concept.term)}\\b`, 'gi');
-                  processedContent = processedContent.replace(
+        processedContent = processedContent.replace(
           regex,
           `<span class="font-bold text-blue-400 cursor-pointer concept-term text-xs sm:text-sm" data-concept-id="${concept.id}">${concept.term}</span>`
         );
@@ -120,8 +127,65 @@ export default function ArticleView({
     return processedContent;
   };
   
+  
   const escapeRegExp = (string: string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+  
+  
+  const renderReferences = () => {
+    if (!topicDetail?.article?.references || topicDetail.article.references.length === 0) {
+      return '';
+    }
+    
+    return `
+      <h2 class="text-lg sm:text-xl font-semibold text-white mt-8 sm:mt-10 mb-3 sm:mb-4">References</h2>
+      <div class="text-gray-300 mb-5 sm:mb-6">
+        <ol class="list-decimal list-inside space-y-2">
+          ${topicDetail.article.references.map((ref: string, index: number) => {
+            
+            try {
+              
+              const urlMatch = ref.match(/(https?:\/\/[^\s,]+)/);
+              const url = urlMatch ? urlMatch[0] : '';
+              
+              
+              let displayText = ref.replace(url, '').trim();
+              
+              displayText = displayText.replace(/,\s*$/, '');
+              
+              
+              const dateMatch = displayText.match(/,?\s*([A-Z][a-z]+ \d{1,2},? \d{4})\.?$/);
+              let date = '';
+              
+              if (dateMatch) {
+                date = dateMatch[1];
+                
+                displayText = displayText.replace(dateMatch[0], '');
+              }
+              
+              return `
+                <li class="text-xs sm:text-sm md:text-base">
+                  <span class="font-medium">${displayText}</span>
+                  ${url ? `
+                    <a href="${url}" 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       class="text-blue-400 hover:text-blue-300 ml-1 break-all">
+                      ${url}
+                    </a>
+                  ` : ''}
+                  ${date ? `<span class="text-gray-400 ml-1">(${date})</span>` : ''}
+                </li>
+              `;
+            } catch (error) {
+              
+              return `<li class="text-xs sm:text-sm md:text-base">${ref}</li>`;
+            }
+          }).join('')}
+        </ol>
+      </div>
+    `;
   };
   
   const openTooltipModal = (word: string, tooltip: string) => {
@@ -145,7 +209,6 @@ export default function ArticleView({
     if (target.classList.contains('tooltip-word')) {
       const word = decodeURIComponent(target.dataset.word || '');
       const tooltip = decodeURIComponent(target.dataset.tooltip || '');
-      console.log('Tooltip button clicked:', word, tooltip);
       openTooltipModal(word, tooltip);
       e.stopPropagation();
       return;
@@ -177,17 +240,6 @@ export default function ArticleView({
             <Clock className="h-4 w-4 mr-1" />
             {estimatedReadTime} min read
           </div>
-
-          <button onClick={(e) => {
-            e.stopPropagation();
-            onBookmarkToggle(topic.topic_id);
-          }}>
-            {isBookmarked ? (
-              <BookmarkCheck className="h-5 w-5 text-blue-400" />
-            ) : (
-              <Bookmark className="h-5 w-5 text-gray-400 hover:text-blue-400" />
-            )}
-          </button>
         </div>
       </div>
 
@@ -228,6 +280,13 @@ export default function ArticleView({
               __html: renderContent(topicDetail.article.content)
             }}
             className="text-gray-300 text-sm sm:text-base"
+          />
+          
+          {/* Render references section separately */}
+          <div
+            dangerouslySetInnerHTML={{
+              __html: renderReferences()
+            }}
           />
 
           {topicDetail.related_concepts && topicDetail.related_concepts.length > 0 && (
@@ -285,7 +344,7 @@ export default function ArticleView({
                 onClick={closeTooltipModal}
                 className="text-gray-400 hover:text-white transition-colors"
               >
-                <XIcon className="h-5 w-5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
             

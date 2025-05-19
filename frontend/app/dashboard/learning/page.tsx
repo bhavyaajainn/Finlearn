@@ -6,19 +6,16 @@ import {
   fetchTopics, 
   fetchTopicDetail, 
   fetchUserTopicsStatus,
-  bookmarkTopic,
-  markTopicAsRead,
   setSearchTerm,
   setSelectedCategory,
   setCurrentPage,
-  toggleBookmark,
   markAsRead,
   fetchDailySummary,
   TopicItem,
   RelatedConcept
 } from '@/app/store/slices/learningSlice';
 
-// Import components
+
 import ArticleCard from './components/ArticleCard';
 import ArticleView from './components/ArticleView';
 import ConceptModal from './components/ConceptModal';
@@ -29,7 +26,7 @@ import Pagination from './components/Pagination';
 import NoResults from './components/NoResults';
 
 const LearningHub = () => {
-  // Get state from Redux store
+  
   const dispatch = useAppDispatch();
   const { 
     topics, 
@@ -41,7 +38,6 @@ const LearningHub = () => {
     currentPage,
     itemsPerPage,
     totalPages,
-    bookmarkedTopics,
     readTopics,
     categories,
     dailySummary,
@@ -51,7 +47,7 @@ const LearningHub = () => {
   
   const { user } = useAppSelector(state => state.auth);
   
-  // Local state
+  
   const [selectedTopicItem, setSelectedTopicItem] = useState<TopicItem | null>(null);
   const [topicDetail, setTopicDetail] = useState<any>(null);
   const [showConcept, setShowConcept] = useState<RelatedConcept | null>(null);
@@ -60,43 +56,43 @@ const LearningHub = () => {
   const [topicDetailLoading, setTopicDetailLoading] = useState(false);
   const [topicDetailError, setTopicDetailError] = useState<string | null>(null);
   
-  // Fetch topics and user status on initial load
+  
   useEffect(() => {
     if (user?.uid && Object.keys(topics).length === 0 && !loading) {
       dispatch(fetchTopics(user.uid));
       dispatch(fetchUserTopicsStatus(user.uid));
     }
   }, [dispatch, user, topics, loading]);
-
-  useEffect(() => {
-    if (user?.uid) {
-      dispatch(fetchDailySummary(user.uid));
-    }
-  }, [dispatch, user?.uid]);
   
-  // Handler for search term change
+  
   const handleSearchChange = (term: string) => {
     dispatch(setSearchTerm(term));
   };
   
-  // Handler for category change
+  
   const handleCategoryChange = (category: string) => {
-    dispatch(setSelectedCategory(category));
+    
+    const capitalizedCategory = category
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    dispatch(setSelectedCategory(capitalizedCategory));
   };
   
-  // Handler for page change
+  
   const handlePageChange = (page: number) => {
     dispatch(setCurrentPage(page));
   };
   
-  // Modified handleArticleSelect to use Redux action
+  
   const handleArticleSelect = async (topic: TopicItem) => {
     setSelectedTopicItem(topic);
     setTopicDetailLoading(true);
     setTopicDetailError(null);
     
     try {
-      // Dispatch the fetchTopicDetail action
+      
       const resultAction = await dispatch(fetchTopicDetail({ 
         topicId: topic.topic_id, 
         userId: user?.uid || '' 
@@ -110,51 +106,49 @@ const LearningHub = () => {
       setTopicDetailLoading(false);
     }
     
-    // Mark as read in local state
+    
     dispatch(markAsRead(topic.topic_id));
     
-    // If user is logged in, update on server
-    if (user?.uid) {
-      dispatch(markTopicAsRead({ userId: user.uid, topicId: topic.topic_id }));
-    }
   };
   
-  // Handler for bookmark toggle
-  const handleBookmarkToggle = (topicId: string) => {
-    // Update in local state
-    dispatch(toggleBookmark(topicId));
-    
-    // If user is logged in, update on server
-    if (user?.uid) {
-      dispatch(bookmarkTopic({ userId: user.uid, topicId }));
-    }
-  };
   
-  // Handler for concept click
   const handleConceptClick = (concept: RelatedConcept) => {
     setShowConcept(concept);
   };
   
-  // Handler for reset filters
+  
   const handleResetFilters = () => {
     dispatch(setSearchTerm(''));
-    dispatch(setSelectedCategory('All'));
+    dispatch(setSelectedCategory('All')); 
   };
   
-  // Close article view and clear current topic
+  
   const handleCloseArticleView = () => {
     setSelectedTopicItem(null);
     setTopicDetail(null);
   };
 
-  // Get current page items
+  
+  const handleDailySummaryOpen = () => {
+    if (user?.uid) {
+      dispatch(fetchDailySummary(user.uid));
+    }
+    setShowDailySummary(true);
+  };
+
+  
   const getCurrentPageItems = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredTopics.slice(startIndex, endIndex);
   };
 
-  console.log('Daily Summary:', dailySummary);
+  
+  const capitalizedCategories = categories.map(category => 
+    category.split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  );
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -169,8 +163,8 @@ const LearningHub = () => {
             onSearchChange={handleSearchChange}
             selectedCategory={selectedCategory}
             onCategoryChange={handleCategoryChange}
-            categories={categories}
-            onDailySummaryOpen={() => setShowDailySummary(true)}
+            categories={capitalizedCategories}
+            onDailySummaryOpen={handleDailySummaryOpen}
           />
         )}
         
@@ -216,9 +210,7 @@ const LearningHub = () => {
                           topicDescription={topic.description}
                           category={topic.category}
                           level={topic.expertise_level}
-                          isBookmarked={bookmarkedTopics.includes(topic.topic_id)}
                           isRead={readTopics.includes(topic.topic_id)}
-                          onBookmarkToggle={handleBookmarkToggle}
                         />
                       </div>
                     ))}
@@ -245,13 +237,11 @@ const LearningHub = () => {
           {selectedTopicItem && (
             <ArticleView 
               topic={selectedTopicItem}
-              topicDetail={topicDetail} // Changed from currentTopic
-              loading={loading}
-              error={error}
+              topicDetail={topicDetail}
+              loading={topicDetailLoading}
+              error={topicDetailError}
               onClose={handleCloseArticleView}
-              onBookmarkToggle={handleBookmarkToggle}
               onConceptClick={handleConceptClick}
-              isBookmarked={bookmarkedTopics.includes(selectedTopicItem.topic_id)}
             />
           )}
         </div>

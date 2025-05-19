@@ -13,7 +13,6 @@ interface ArticleCardProps {
   topicDescription: string;
   category: string;
   level: string;
-  isBookmarked: boolean;
   isRead: boolean;
   onBookmarkToggle?: (topicId: string) => void;
 }
@@ -24,7 +23,6 @@ export default function ArticleCard({
   topicDescription, 
   category, 
   level, 
-  isBookmarked, 
   isRead,
   onBookmarkToggle
 }: ArticleCardProps) {
@@ -60,22 +58,6 @@ export default function ArticleCard({
               </span>
             )}
           </div>
-
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onBookmarkToggle) {
-                onBookmarkToggle(topicId);
-              }
-            }}
-            className="flex items-center justify-center"
-          >
-            {isBookmarked ? (
-              <BookmarkCheck className="h-5 w-5 text-blue-400" />
-            ) : (
-              <Bookmark className="h-5 w-5 text-gray-500 hover:text-blue-400 transition" />
-            )}
-          </button>
         </div>
 
         {/* Title - Fixed height with controlled truncation */}
