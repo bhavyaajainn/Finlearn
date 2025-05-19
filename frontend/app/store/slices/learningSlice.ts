@@ -1,22 +1,27 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
-// Types for our learning content
-export interface Topic {
-  category: string;
-  level: string;
-  topics: TopicItem[];
-}
-
 export interface TopicItem {
   topic_id: string;
   title: string;
   description: string;
   category: string;
-  expertise_level:string
-  level: string; // Updated from 'expertise_level' to 'level' for consistency
+  expertise_level: string;
+  generated_date: string;
   importance: string;
   relevance: string;
-  date_published: string; // Updated from 'generated_date' to 'date_published' for clarity
+  viewed?: boolean;
+}
+
+export interface CategoryTopics {
+  [category: string]: TopicItem[];
+}
+
+export interface TopicResponse {
+  user_id?: string;
+  expertise_level?: string;
+  selected_categories?: string[];
+  recommendations: CategoryTopics;
+  refreshed_at: string;
 }
 
 export interface TopicDetailResponse {
@@ -25,6 +30,16 @@ export interface TopicDetailResponse {
   background: string;
   application: string;
   related_concepts: RelatedConcept[];
+  article?: {
+    content: string;
+    tooltip_words: TooltipWord[];
+    references: string[];
+  };
+}
+
+export interface TooltipWord {
+  word: string;
+  tooltip: string;
 }
 
 export interface RelatedConcept {
@@ -34,9 +49,70 @@ export interface RelatedConcept {
   category: string;
 }
 
-// State interface
+export interface DailySummary {
+  user_id: string;
+  period: string;
+  date_range: {
+    start: string;
+    end: string;
+  };
+  statistics: {
+    total_articles_read: number;
+    total_tooltips_viewed: number;
+    category_breakdown: { [key: string]: number };
+    top_categories: [string, number][];
+    predominant_level: string;
+    level_breakdown: {
+      beginner: number;
+      intermediate: number;
+      advanced: number;
+    };
+    unique_topics_explored: number;
+    unique_terms_learned: number;
+  };
+  streak: {
+    current_streak: number;
+    user_id: string;
+    last_active: string;
+    updated_at: string;
+    longest_streak: number;
+  };
+  articles_read: {
+    date: string;
+    topic_title: string;
+    expertise_level: string;
+    category: string;
+    user_id: string;
+    activity_type: string;
+    timestamp: string;
+    topic_id: string;
+  }[];
+  tooltips_viewed: {
+    tooltip: string;
+    date: string;
+    word: string;
+    topic_title: string;
+    user_id: string;
+    activity_type: string;
+    timestamp: string;
+    topic_id: string;
+  }[];
+  summary: string;
+  quiz_questions: {
+    question: string;
+    options: {
+      label: string;
+      text: string;
+    }[];
+    correct_answer: string;
+    explanation: string;
+  }[];
+  generated_at: string;
+}
+
+
 interface LearningState {
-  topics: TopicItem[];
+  topics: CategoryTopics;
   filteredTopics: TopicItem[];
   currentTopic: TopicDetailResponse | null;
   loading: boolean;
@@ -48,11 +124,15 @@ interface LearningState {
   totalPages: number;
   bookmarkedTopics: string[];
   readTopics: string[];
+  categories: string[];
+  dailySummary: DailySummary | null;
+  dailySummaryLoading: boolean;
+  dailySummaryError: string | null;
 }
 
-// Initial state
+
 const initialState: LearningState = {
-  topics: [],
+  topics: {},
   filteredTopics: [],
   currentTopic: null,
   loading: false,
@@ -63,16 +143,19 @@ const initialState: LearningState = {
   itemsPerPage: 6,
   totalPages: 1,
   bookmarkedTopics: [],
-  readTopics: []
+  readTopics: [],
+  categories: [],
+  dailySummary: null,
+  dailySummaryLoading: false,
+  dailySummaryError: null
 };
 
-// Async thunks
 export const fetchTopics = createAsyncThunk(
   'learning/fetchTopics',
-  async (_, { rejectWithValue }) => {
+  async (userId: string, { rejectWithValue }) => {
     try {
-      // The URL seen in the screenshot
-      const response = await fetch('https://finlearn.onrender.com/dailytopics?user_id=bhavya&category=crypto&level=beginner');
+      
+      const response = await fetch(`https://finlearn.onrender.com/user/recommendedtopics?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch topics');
@@ -88,10 +171,10 @@ export const fetchTopics = createAsyncThunk(
 
 export const fetchTopicDetail = createAsyncThunk(
   'learning/fetchTopicDetail',
-  async (topicId: string, { rejectWithValue }) => {
+  async ({ topicId, userId }: { topicId: string; userId: string }, { rejectWithValue }) => {
     try {
-      // Assuming there's an endpoint for topic details
-      const response = await fetch(`https://finlearn.onrender.com/topic/${topicId}`);
+      
+      const response = await fetch(`https://finlearn.onrender.com/article/topic/${topicId}?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch topic details');
@@ -105,62 +188,10 @@ export const fetchTopicDetail = createAsyncThunk(
   }
 );
 
-export const bookmarkTopic = createAsyncThunk(
-  'learning/bookmarkTopic',
-  async ({ userId, topicId }: { userId: string; topicId: string }, { rejectWithValue }) => {
-    try {
-      // Mocked API call for now
-      // In a real implementation, we would call the API
-      // const result = await ApiService.bookmarkTopic(userId, topicId);
-      
-      // Mocked successful response
-      const result = { success: true };
-      
-      if (result.success) {
-        return topicId;
-      } else {
-        throw new Error('Failed to bookmark topic');
-      }
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-export const markTopicAsRead = createAsyncThunk(
-  'learning/markTopicAsRead',
-  async ({ userId, topicId }: { userId: string; topicId: string }, { rejectWithValue }) => {
-    try {
-      // Mocked API call for now
-      // In a real implementation, we would call the API
-      // const result = await ApiService.markTopicAsRead(userId, topicId);
-      
-      // Mocked successful response
-      const result = { success: true };
-      
-      if (result.success) {
-        return topicId;
-      } else {
-        throw new Error('Failed to mark topic as read');
-      }
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
 export const fetchUserTopicsStatus = createAsyncThunk(
   'learning/fetchUserTopicsStatus',
   async (userId: string, { rejectWithValue }) => {
     try {
-      // Mocked API calls for now
-      // In a real implementation, we would call the API
-      // const [bookmarkedTopics, readTopics] = await Promise.all([
-      //   ApiService.getBookmarkedTopics(userId),
-      //   ApiService.getReadTopics(userId)
-      // ]);
-      
-      // Mocked data
       const bookmarkedTopics: string[] = [];
       const readTopics: string[] = [];
       
@@ -171,21 +202,37 @@ export const fetchUserTopicsStatus = createAsyncThunk(
   }
 );
 
-// Create slice
+export const fetchDailySummary = createAsyncThunk(
+  'learning/fetchDailySummary',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`https://finlearn.onrender.com/summary?user_id=${userId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch daily summary');
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+
 const learningSlice = createSlice({
   name: 'learning',
   initialState,
   reducers: {
     setSearchTerm: (state, action: PayloadAction<string>) => {
       state.searchTerm = action.payload;
-      state.currentPage = 1; // Reset to first page when searching
-      // Apply filters
+      state.currentPage = 1; 
       applyFilters(state);
     },
     setSelectedCategory: (state, action: PayloadAction<string>) => {
       state.selectedCategory = action.payload;
-      state.currentPage = 1; // Reset to first page when changing category
-      // Apply filters
+      state.currentPage = 1; 
       applyFilters(state);
     },
     setCurrentPage: (state, action: PayloadAction<number>) => {
@@ -211,17 +258,21 @@ const learningSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch topics cases
+      
       .addCase(fetchTopics.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchTopics.fulfilled, (state, action: PayloadAction<Topic>) => {
+      .addCase(fetchTopics.fulfilled, (state, action: PayloadAction<TopicResponse>) => {
         state.loading = false;
-        // Extract topics array from the response
-        state.topics = action.payload.topics || [];
         
-        // Apply filters and pagination
+        
+        state.topics = action.payload.recommendations || {};
+        
+        
+        state.categories = Object.keys(state.topics);
+        
+        
         applyFilters(state);
       })
       .addCase(fetchTopics.rejected, (state, action) => {
@@ -229,7 +280,7 @@ const learningSlice = createSlice({
         state.error = action.payload as string;
       })
       
-      // Fetch topic detail cases
+     
       .addCase(fetchTopicDetail.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -243,23 +294,7 @@ const learningSlice = createSlice({
         state.error = action.payload as string;
       })
       
-      // Bookmark topic cases
-      .addCase(bookmarkTopic.fulfilled, (state, action) => {
-        const topicId = action.payload as string;
-        if (!state.bookmarkedTopics.includes(topicId)) {
-          state.bookmarkedTopics.push(topicId);
-        }
-      })
-      
-      // Mark topic as read cases
-      .addCase(markTopicAsRead.fulfilled, (state, action) => {
-        const topicId = action.payload as string;
-        if (!state.readTopics.includes(topicId)) {
-          state.readTopics.push(topicId);
-        }
-      })
-      
-      // Fetch user topics status cases
+    
       .addCase(fetchUserTopicsStatus.fulfilled, (state, action) => {
         const { bookmarkedTopics, readTopics } = action.payload as { 
           bookmarkedTopics: string[]; 
@@ -267,20 +302,39 @@ const learningSlice = createSlice({
         };
         state.bookmarkedTopics = bookmarkedTopics;
         state.readTopics = readTopics;
+      })
+      
+      
+      .addCase(fetchDailySummary.pending, (state) => {
+        state.dailySummaryLoading = true;
+        state.dailySummaryError = null;
+      })
+      .addCase(fetchDailySummary.fulfilled, (state, action: PayloadAction<DailySummary>) => {
+        state.dailySummaryLoading = false;
+        state.dailySummaryError = null;
+        state.dailySummary = action.payload;
+      })
+      .addCase(fetchDailySummary.rejected, (state, action) => {
+        state.dailySummaryLoading = false;
+        state.dailySummaryError = action.payload as string;
       });
   },
 });
 
-// Helper function to apply filters (search term, category) and pagination
+
 function applyFilters(state: LearningState) {
-  let filtered = [...state.topics];
+  let filtered: TopicItem[] = [];
   
-  // Apply category filter if not "All"
   if (state.selectedCategory !== 'All') {
-    filtered = filtered.filter(topic => topic.category === state.selectedCategory);
+   
+    filtered = state.topics[state.selectedCategory] || [];
+  } else {
+    
+    Object.values(state.topics).forEach(categoryTopics => {
+      filtered = [...filtered, ...categoryTopics];
+    });
   }
   
-  // Apply search filter
   if (state.searchTerm.trim() !== '') {
     const searchTerm = state.searchTerm.toLowerCase();
     filtered = filtered.filter(topic => 
@@ -289,17 +343,13 @@ function applyFilters(state: LearningState) {
     );
   }
   
-  // Update filtered topics
   state.filteredTopics = filtered;
   
-  // Update pagination info
   state.totalPages = Math.ceil(filtered.length / state.itemsPerPage);
   if (state.currentPage > state.totalPages && state.totalPages > 0) {
     state.currentPage = state.totalPages;
   }
 }
-
-// Export actions and reducer
 export const { 
   setSearchTerm, 
   setSelectedCategory, 
