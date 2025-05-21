@@ -245,7 +245,7 @@ def generate_news_based_topics(category: str, expertise_level: str, news_context
 
 {news_context}
 
-Generate a list of 8-10 specific topics within the financial category of {category} that would be:
+Generate a list of 4-5 specific topics within the financial category of {category} that would be:
 1. Relevant to current trends and market developments
 2. Appropriate for a {expertise_level} level audience
 3. Diverse enough to cover different aspects of {category}
