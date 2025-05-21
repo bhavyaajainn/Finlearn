@@ -29,35 +29,32 @@ import {
 import { useRouter } from "next/navigation";
 import { AiOutlineGoogle } from "react-icons/ai";
 
-// Tab interface
+
 type TabType = "signin" | "signup";
 
-export default function UserAvatar() {
-  // Redux
+interface UserAvatarProps {
+  externalTrigger?: boolean;
+}
+
+export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
+  
   const dispatch = useAppDispatch();
   const { user, loading, error, verificationEmailSent } = useAppSelector(
     (state) => state.auth
   );
   const router = useRouter();
-
-  // Local state for both forms separately
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("signin");
-
-  // Separate state for signin and signup forms
   const [signinEmail, setSigninEmail] = useState("");
   const [signinPassword, setSigninPassword] = useState("");
   const [showSigninPassword, setShowSigninPassword] = useState(false);
-
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [showSignupPassword, setShowSignupPassword] = useState(false);
-
-  // State for resending verification email
   const [resendingEmail, setResendingEmail] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
 
-  // Password validation states
+  
   const [passwordValid, setPasswordValid] = useState({
     length: false,
     hasUppercase: false,
@@ -66,43 +63,14 @@ export default function UserAvatar() {
     hasSpecial: false,
   });
 
+  
+  useEffect(() => {
+    if (externalTrigger) {
+      setIsModalOpen(true);
+    }
+  }, [externalTrigger]);
 
-  // const [open, setOpen] = useState<boolean>();
-  // const [expertise, setExpertise] = useState("");
-  // const [topics, setTopics] = useState<string[]>([]);
-
-  // const handleSave = async () => {
-  //   if (!expertise || topics.length === 0 || !user) return;
-
-  //   try {
-  //     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${user.uid}`, {
-  //       method: "POST",
-  //       body: JSON.stringify({
-  //         expertise_level: expertise,
-  //         categories: topics,
-  //       }),
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //     });
-
-  //     console.log(res);
-
-  //     if (!res.ok) {
-  //       const errorData = await res.json().catch(() => ({}));
-  //       throw new Error(errorData?.message || "Failed to save data.");
-  //     }
-
-  //     toast.success("Data stored successfully! You can start learning now.");
-  //     setOpen(false);
-  //     router.push("/dashboard");
-  //   } catch (error: any) {
-  //     toast.error(error.message || "Something went wrong. Please try again.");
-  //   }
-  // };
-
-
-  // Check password strength
+  
   useEffect(() => {
     if (signupPassword) {
       setPasswordValid({
@@ -125,12 +93,11 @@ export default function UserAvatar() {
     }
   }, [signupPassword]);
 
-  // Check authentication state on mount
+  
   useEffect(() => {
     dispatch(checkAuthState());
   }, [dispatch]);
-
-  // Toggle modal visibility
+ 
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
     if (!isModalOpen) {
@@ -138,16 +105,14 @@ export default function UserAvatar() {
       setResendSuccess(false);
     }
   };
-
-  // Switch between signin and signup tabs
+ 
   const switchTab = (tab: TabType) => {
     setActiveTab(tab);
-    // Clear verification status when switching tabs
     dispatch(clearVerificationStatus());
     setResendSuccess(false);
   };
 
-  // Toggle password visibility
+  
   const toggleSigninPasswordVisibility = (e: React.MouseEvent) => {
     e.preventDefault();
     setShowSigninPassword(!showSigninPassword);
@@ -158,7 +123,7 @@ export default function UserAvatar() {
     setShowSignupPassword(!showSignupPassword);
   };
 
-  // Reset form fields when modal is closed
+  
   useEffect(() => {
     if (!isModalOpen) {
       setSigninEmail("");
@@ -170,7 +135,7 @@ export default function UserAvatar() {
     }
   }, [isModalOpen]);
 
-  // Also reset fields when switching tabs
+  
   useEffect(() => {
     if (activeTab === "signin") {
       setSignupEmail("");
@@ -182,7 +147,7 @@ export default function UserAvatar() {
       setShowSigninPassword(false);
     }
 
-    // Reset validation when switching tabs
+    
     if (activeTab === "signup") {
       setPasswordValid({
         length: false,
@@ -194,7 +159,7 @@ export default function UserAvatar() {
     }
   }, [activeTab]);
 
-  // Handle resend verification email
+  
   const handleResendVerificationEmail = async () => {
     setResendingEmail(true);
     try {
@@ -207,7 +172,7 @@ export default function UserAvatar() {
     }
   };
 
-  // Authentication handlers
+  
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -216,26 +181,22 @@ export default function UserAvatar() {
       ).unwrap();
 
       setIsModalOpen(false);
-      router.push("/dashboard"); // Add this line to redirect to dashboard
+      router.push("/dashboard"); 
     } catch (err) {
       console.error("Sign-in failed:", err);
-      // Don't close modal if email is not verified
-      if (err !== 'email-not-verified') {
-        // Handle other errors normally
-      }
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check if password meets all requirements
+    
     const allRequirementsMet = Object.values(passwordValid).every(
       (value) => value === true
     );
 
     if (!allRequirementsMet) {
-      return; // Don't submit if password requirements are not met
+      return; 
     }
 
     try {
@@ -266,13 +227,13 @@ export default function UserAvatar() {
     }
   };
 
-  // Get password strength score (0-4)
+  
   const getPasswordStrength = () => {
     const criteria = Object.values(passwordValid);
     return criteria.filter(Boolean).length;
   };
 
-  // Password strength indicator
+  
   const renderPasswordStrengthIndicator = () => {
     const strength = getPasswordStrength();
     const strengthLabels = ["Very weak", "Weak", "Medium", "Good", "Strong"];
@@ -300,7 +261,7 @@ export default function UserAvatar() {
     );
   };
 
-  // Render email verification message
+  
   const renderEmailVerificationMessage = () => {
     return (
 
@@ -349,7 +310,7 @@ export default function UserAvatar() {
     );
   };
 
-  // If loading, show a loading indicator
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800">
@@ -360,7 +321,6 @@ export default function UserAvatar() {
 
   return (
     <>
-      {/* Avatar button - Always show a user icon, even when logged in */}
       <button
         onClick={user ? handleSignOut : toggleModal}
         className={`flex items-center justify-center w-8 h-8 rounded-full ${user
@@ -371,12 +331,9 @@ export default function UserAvatar() {
       >
         <User size={16} className="text-white" />
       </button>
-
-      {/* Modal */}
       <AnimatePresence>
         {isModalOpen && !user && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -384,17 +341,14 @@ export default function UserAvatar() {
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
               onClick={toggleModal}
             />
-
-            {/* Modal content */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ type: "spring", duration: 0.5 }}
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-6 z-50 overflow-y-auto max-h-[90vh]"
-              onClick={(e) => e.stopPropagation()} // Prevent modal closing when clicking inside
+              onClick={(e) => e.stopPropagation()} 
             >
-              {/* Close button */}
               <div className="flex justify-end mb-2">
                 <button
                   onClick={toggleModal}
@@ -403,11 +357,7 @@ export default function UserAvatar() {
                   <X size={20} />
                 </button>
               </div>
-
-              {/* Email verification message */}
               {error === 'email-not-verified' && renderEmailVerificationMessage()}
-
-              {/* Error message - with custom user-friendly messages */}
               {error && error !== 'email-not-verified' && (
                 <div className="mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-md text-red-400 text-sm flex items-start">
                   <AlertCircle
@@ -425,8 +375,6 @@ export default function UserAvatar() {
                   </div>
                 </div>
               )}
-
-              {/* Verification email sent success message */}
               {verificationEmailSent && !error && (
                 <div className="mb-4 p-3 bg-green-400/10 border border-green-400/20 rounded-md text-green-400 text-sm flex items-start">
                   <CheckCircle
@@ -442,7 +390,6 @@ export default function UserAvatar() {
                 </div>
               )}
 
-              {/* Tabs */}
               <div className="flex mb-6 border-b border-zinc-800">
                 <button
                   onClick={() => switchTab("signin")}
@@ -465,8 +412,6 @@ export default function UserAvatar() {
                   Sign Up
                 </button>
               </div>
-
-              {/* Sign in form */}
               {activeTab === "signin" && (
                 <motion.div
                   initial={{ opacity: 0, x: -10 }}
@@ -567,7 +512,6 @@ export default function UserAvatar() {
                 </motion.div>
               )}
 
-              {/* Sign up form */}
               {activeTab === "signup" && (
                 <motion.div
                   initial={{ opacity: 0, x: 10 }}
@@ -634,10 +578,8 @@ export default function UserAvatar() {
                         </button>
                       </div>
 
-                      {/* Password strength meter */}
                       {signupPassword && renderPasswordStrengthIndicator()}
 
-                      {/* Password requirements */}
                       <div className="mt-3 space-y-1.5">
                         <p className="text-sm text-gray-400 flex items-center mb-1">
                           <Info size={14} className="mr-1.5" />
@@ -706,5 +648,4 @@ export default function UserAvatar() {
       </AnimatePresence>
     </>
   );
-  // }
 }
