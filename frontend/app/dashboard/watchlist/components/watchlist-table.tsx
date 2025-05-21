@@ -52,14 +52,35 @@ export default function WatchlistTable() {
     fetchWatchlist();
   }, [user?.uid]);
 
-  const handleRowClick = (name: string , asset: string) => {
+  const handleRowClick = (name: string, asset: string) => {
     router.push(`/dashboard/watchlist/${name}/${asset}`);
   };
-  // const removeFromWatchlist = (e: React.MouseEvent, id: string) => {
-  //   e.stopPropagation();
-  //   setWatchlist((prev) => prev.filter((asset) => asset.id !== id));
-  // };
-
+  const removeFromWatchlist = async (e: React.MouseEvent, id: string, asset_type: string) => {
+    e.stopPropagation();
+    const DELETE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/remove?user_id=${user?.uid}&symbol=${id}&asset_type=${asset_type}`;
+  
+    try {
+      const res = await fetch(DELETE_URL, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+  
+      if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+  
+      // ✅ Update local watchlist state
+      setWatchlist((prev) =>
+        prev.filter((asset: any) => asset.symbol !== id || asset.asset_type !== asset_type)
+      );
+  
+      toast.success(`Asset ${id} removed from watchlist!`);
+    } catch (error: any) {
+      console.error("Error removing from watchlist:", error);
+      toast("Failed to remove asset from watchlist");
+    }
+  };
+  
   return (
     <div className="overflow-x-auto">
       <Table className="w-full">
@@ -77,7 +98,7 @@ export default function WatchlistTable() {
             <TableRow
               key={asset.name}
               className="cursor-pointer hover:bg-gray-800/50 transition-colors"
-              onClick={() => handleRowClick(asset.symbol,asset.asset_type)}
+              onClick={() => handleRowClick(asset.symbol, asset.asset_type)}
             >
               <TableCell className="font-medium">
                 <div>
@@ -117,7 +138,7 @@ export default function WatchlistTable() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-950/50"
-                  // onClick={(e) => removeFromWatchlist(e, asset.name)}
+                    onClick={(e) => removeFromWatchlist(e, asset.symbol, asset.asset_type)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

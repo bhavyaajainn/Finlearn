@@ -88,10 +88,6 @@ export default function WatchlistDetails() {
   const params = useParams()
   // const assetName = params?.id ? decodeURIComponent(params.id as string) : '';
 
-  console.log(params);
-
-  console.log(user?.uid);
-
   useEffect(() => {
     const isParamsReady = params.id && params?.id.length >= 2;
     const isUserReady = !!user?.uid;
