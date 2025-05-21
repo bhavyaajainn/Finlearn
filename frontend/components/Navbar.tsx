@@ -1,16 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
 import UserAvatar from "./UserAvatar"
 
-export default function Navbar() {
+interface NavbarProps {
+    showAuthModal?: boolean;
+    setShowAuthModal?: (show: boolean) => void;
+}
+
+export default function Navbar({ showAuthModal, setShowAuthModal }: NavbarProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen)
+    } 
+    useEffect(() => {
+        if (showAuthModal) {
+            
+            if (setShowAuthModal) {
+                
+                
+                setTimeout(() => {
+                    setShowAuthModal(false)
+                }, 100)
+            }
+        }
+    }, [showAuthModal, setShowAuthModal])
+
+    
+    const handleTryItNow = () => {
+        if (setShowAuthModal) {
+            setShowAuthModal(true)
+        }
     }
 
     return (
@@ -22,8 +46,6 @@ export default function Navbar() {
                             FinLearn <span className="text-blue-400">AI</span>
                         </Link>
                     </div>
-
-                    {/* Desktop menu */}
                     <div className="hidden md:flex items-center space-x-8">
                         <Link href="#features" className="text-gray-300 hover:text-blue-400 transition-colors">
                             Features
@@ -37,13 +59,17 @@ export default function Navbar() {
                         <Link href="#roadmap" className="text-gray-300 hover:text-blue-400 transition-colors">
                             Plans
                         </Link>
-                        <Button className="bg-blue-600 hover:bg-blue-700 text-white">Try It Now</Button>
-                        <UserAvatar /> {/* Add the UserAvatar component here */}
+                        {/* Modified to trigger auth modal */}
+                        <Button 
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={handleTryItNow}
+                        >
+                            Try It Now
+                        </Button>
+                        <UserAvatar externalTrigger={showAuthModal} />
                     </div>
-
-                    {/* Mobile menu button */}
                     <div className="md:hidden flex items-center space-x-4">
-                        <UserAvatar /> {/* Add the UserAvatar component to mobile view */}
+                        <UserAvatar externalTrigger={showAuthModal} />
                         <button
                             type="button"
                             className="text-gray-300 hover:text-white"
@@ -55,8 +81,6 @@ export default function Navbar() {
                     </div>
                 </div>
             </div>
-
-            {/* Mobile menu */}
             {isMenuOpen && (
                 <div className="md:hidden bg-zinc-900 border-b border-zinc-800">
                     <div className="container max-w-6xl mx-auto px-4 py-4 space-y-4">
@@ -88,7 +112,15 @@ export default function Navbar() {
                         >
                             Roadmap
                         </Link>
-                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">Try It Now</Button>
+                        <Button 
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => {
+                                handleTryItNow()
+                                toggleMenu()
+                            }}
+                        >
+                            Try It Now
+                        </Button>
                     </div>
                 </div>
             )}
