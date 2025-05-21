@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 import json
 
 def get_day_summary_prompt(topics: List[Dict[str, str]]) -> str:
@@ -7,19 +7,24 @@ def get_day_summary_prompt(topics: List[Dict[str, str]]) -> str:
     return f"Summarize what a user learned today based on reading: {joined}. Then give 3 quiz questions on it."
 
 
-def get_beginner_article_prompt(category: str) -> str:
+def get_beginner_article_prompt(category: str, topic: Optional[str] = None) -> str:
     """Get prompt for generating beginner-level financial articles.
     
     Args:
         category: The financial category to focus on
+        topic: Optional specific topic within the category
         
     Returns:
         Specialized prompt for beginner-level content
     """
-    return f"""Generate a comprehensive beginner-friendly article about the latest developments in {category}.
+    # Determine focus: general category or specific topic
+    focus = f"{topic} in the context of {category}" if topic else category
+    title_focus = f"{topic}" if topic else f"{category}"
+    
+    return f"""Generate a comprehensive beginner-friendly article about {focus}.
 
     The article should:
-    - Start with fundamental concepts in {category} that novice investors need to understand
+    - Start with fundamental concepts that novice investors need to understand
     - Explain recent news or trends in simple, accessible language
     - Define all financial terms when they first appear
     - Use clear real-world examples and analogies
@@ -33,9 +38,11 @@ def get_beginner_article_prompt(category: str) -> str:
     1. The exact term as it appears in the article
     2. A brief 1-2 sentence explanation suitable for beginners
     
+    IMPORTANT: Make sure to include all key concepts as tooltip words too!
+    
     Format your response as valid JSON with this exact structure:
     {{
-      "title": "Engaging article title",
+      "title": "Engaging article title about {title_focus}",
       "content": "The full article with markdown formatting",
       "tooltip_words": [
         {{"word": "term1", "tooltip": "Simple explanation of term1"}},
@@ -43,20 +50,26 @@ def get_beginner_article_prompt(category: str) -> str:
       ],
       "key_concepts": ["concept1", "concept2", "concept3"],
       "difficulty_level": "beginner",
-      "category": "{category}"
+      "category": "{category}",
+      "topic": "{topic if topic else category}"
     }}
     """
 
-def get_intermediate_article_prompt(category: str) -> str:
+def get_intermediate_article_prompt(category: str, topic: Optional[str] = None) -> str:
     """Get prompt for generating intermediate-level financial articles.
     
     Args:
         category: The financial category to focus on
+        topic: Optional specific topic within the category
         
     Returns:
         Specialized prompt for intermediate-level content
     """
-    return f"""Generate a comprehensive intermediate-level article about the latest developments in {category}.
+    # Determine focus: general category or specific topic
+    focus = f"{topic} in the context of {category}" if topic else category
+    title_focus = f"{topic}" if topic else f"{category}"
+    
+    return f"""Generate a comprehensive intermediate-level article about {focus}.
 
     The article should:
     - Assume basic knowledge of financial concepts but provide context for specialized terms
@@ -72,9 +85,11 @@ def get_intermediate_article_prompt(category: str) -> str:
     1. The exact term as it appears in the article
     2. A concise explanation suitable for intermediate readers
     
+    IMPORTANT: Make sure to include all key concepts as tooltip words too!
+    
     Format your response as valid JSON with this exact structure:
     {{
-      "title": "Engaging and informative article title",
+      "title": "Engaging and informative article title about {title_focus}",
       "content": "The full article with markdown formatting",
       "tooltip_words": [
         {{"word": "term1", "tooltip": "Concise explanation of term1"}},
@@ -82,20 +97,26 @@ def get_intermediate_article_prompt(category: str) -> str:
       ],
       "key_concepts": ["concept1", "concept2", "concept3"],
       "difficulty_level": "intermediate",
-      "category": "{category}"
+      "category": "{category}",
+      "topic": "{topic if topic else category}"
     }}
     """
 
-def get_advanced_article_prompt(category: str) -> str:
+def get_advanced_article_prompt(category: str, topic: Optional[str] = None) -> str:
     """Get prompt for generating advanced-level financial articles.
     
     Args:
         category: The financial category to focus on
+        topic: Optional specific topic within the category
         
     Returns:
         Specialized prompt for advanced-level content
     """
-    return f"""Generate a comprehensive advanced-level article about the latest developments in {category}.
+    # Determine focus: general category or specific topic
+    focus = f"{topic} in the context of {category}" if topic else category
+    title_focus = f"{topic}" if topic else f"{category}"
+    
+    return f"""Generate a comprehensive advanced-level article about {focus}.
 
     The article should:
     - Provide sophisticated analysis of recent developments without simplifying complex concepts
@@ -111,9 +132,11 @@ def get_advanced_article_prompt(category: str) -> str:
     1. The exact term as it appears in the article
     2. A precise, technical explanation suitable for advanced readers
     
+    IMPORTANT: Make sure to include all key concepts as tooltip words too!
+    
     Format your response as valid JSON with this exact structure:
     {{
-      "title": "Sophisticated and precise article title",
+      "title": "Sophisticated and precise article title about {title_focus}",
       "content": "The full article with markdown formatting",
       "tooltip_words": [
         {{"word": "term1", "tooltip": "Technical explanation of term1"}},
@@ -121,7 +144,8 @@ def get_advanced_article_prompt(category: str) -> str:
       ],
       "key_concepts": ["concept1", "concept2", "concept3"],
       "difficulty_level": "advanced",
-      "category": "{category}"
+      "category": "{category}",
+      "topic": "{topic if topic else category}"
     }}
     """
 
@@ -174,4 +198,61 @@ def get_topic_article_prompt(category: str, topic: str, expertise_level: str) ->
       "category": "{category}",
       "topic": "{topic}"
     }}
+    """
+
+def get_article_prompt(category: str, expertise_level: str, topic: Optional[str] = None) -> str:
+    """Get prompt for generating financial articles at any expertise level.
+    
+    Args:
+        category: The financial category
+        expertise_level: Target audience level (beginner, intermediate, advanced)
+        topic: Optional specific topic within the category
+        
+    Returns:
+        Specialized prompt for content generation
+    """
+    # Determine focus and customize instructions based on expertise level
+    focus = f"{topic} in the context of {category}" if topic else category
+    
+    # Expertise-specific instructions
+    if expertise_level == "beginner":
+        depth = "- Use simple language with clear examples\n    - Define all terminology\n    - Include real-world analogies\n    - Explain practical implications"
+    elif expertise_level == "advanced":
+        depth = "- Include sophisticated analysis\n    - Reference advanced theories and models\n    - Provide technical details\n    - Discuss strategic implications"
+    else:  # intermediate
+        depth = "- Balance depth with accessibility\n    - Provide practical insights\n    - Assume basic financial knowledge\n    - Include some technical details"
+    
+    return f"""Generate a financial article about {focus} for {expertise_level}-level readers.
+
+    Structure requirements:
+    - Create an engaging, specific title
+    - Use clear headings and subheadings
+    - Include latest developments and context
+    
+    Content requirements:
+    {depth}
+    - Focus on providing valuable insights
+    - Include the most current information available
+    - IMPORTANT: Add numerical citations [1][2] etc. for all facts and statements
+    - Include a brief references section at the end listing the citation sources
+    
+    IMPORTANT: Identify technical financial terms and concepts that need explanation.
+    For each term, provide a concise explanation appropriate for the {expertise_level} level.
+    
+    Return your response as a FLAT (not nested) JSON structure like this:
+    {{
+      "title": "Your article title here",
+      "content": "The full article with markdown formatting",
+      "tooltip_words": [
+        {{"word": "Term 1", "tooltip": "Explanation for term 1"}},
+        {{"word": "Term 2", "tooltip": "Explanation for term 2"}}
+      ],
+      "references": [
+        "Source 1: Publication name, article title,link, date",
+        "Source 2: Publication name, article title,link, date"
+      ]
+    }}
+    
+    DO NOT nest JSON objects inside the content field. Keep tooltip_words as a separate array at the top level.
+    Include at least 5-8 important tooltip words with clear explanations.
     """

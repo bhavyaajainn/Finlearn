@@ -5,20 +5,17 @@ import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
 import { 
   fetchTopics, 
   fetchTopicDetail, 
-  clearCurrentTopic,
   fetchUserTopicsStatus,
-  bookmarkTopic,
-  markTopicAsRead,
   setSearchTerm,
   setSelectedCategory,
   setCurrentPage,
-  toggleBookmark,
   markAsRead,
+  fetchDailySummary,
   TopicItem,
   RelatedConcept
 } from '@/app/store/slices/learningSlice';
 
-// Import components
+
 import ArticleCard from './components/ArticleCard';
 import ArticleView from './components/ArticleView';
 import ConceptModal from './components/ConceptModal';
@@ -28,16 +25,12 @@ import SearchAndFilters from './components/SearchAndFilters';
 import Pagination from './components/Pagination';
 import NoResults from './components/NoResults';
 
-// Example data for daily summary and quiz, since we're not implementing that API
-import { dailySummary } from './mockData';
-
 const LearningHub = () => {
-  // Get state from Redux store
+  
   const dispatch = useAppDispatch();
   const { 
     topics, 
     filteredTopics,
-    currentTopic,
     loading, 
     error,
     searchTerm,
@@ -45,108 +38,123 @@ const LearningHub = () => {
     currentPage,
     itemsPerPage,
     totalPages,
-    bookmarkedTopics,
-    readTopics
+    readTopics,
+    categories,
+    dailySummary,
+    dailySummaryLoading,
+    dailySummaryError 
   } = useAppSelector(state => state.learning);
   
   const { user } = useAppSelector(state => state.auth);
   
-  // Local state
+  
   const [selectedTopicItem, setSelectedTopicItem] = useState<TopicItem | null>(null);
+  const [topicDetail, setTopicDetail] = useState<any>(null);
   const [showConcept, setShowConcept] = useState<RelatedConcept | null>(null);
   const [showDailySummary, setShowDailySummary] = useState<boolean>(false);
   const [showQuiz, setShowQuiz] = useState<boolean>(false);
+  const [topicDetailLoading, setTopicDetailLoading] = useState(false);
+  const [topicDetailError, setTopicDetailError] = useState<string | null>(null);
   
-  // Fetch topics and user status on initial load
+  
   useEffect(() => {
-    dispatch(fetchTopics());
-    
-    // If user is logged in, fetch their bookmarked and read topics
-    if (user?.uid) {
+    if (user?.uid && Object.keys(topics).length === 0 && !loading) {
+      dispatch(fetchTopics(user.uid));
       dispatch(fetchUserTopicsStatus(user.uid));
     }
-  }, [dispatch, user]);
+  }, [dispatch, user, topics, loading]);
   
-  // Get current page items
+  
+  const handleSearchChange = (term: string) => {
+    dispatch(setSearchTerm(term));
+  };
+  
+  
+  const handleCategoryChange = (category: string) => {
+    
+    const capitalizedCategory = category
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    dispatch(setSelectedCategory(capitalizedCategory));
+  };
+  
+  
+  const handlePageChange = (page: number) => {
+    dispatch(setCurrentPage(page));
+  };
+  
+  
+  const handleArticleSelect = async (topic: TopicItem) => {
+    setSelectedTopicItem(topic);
+    setTopicDetailLoading(true);
+    setTopicDetailError(null);
+    
+    try {
+      
+      const resultAction = await dispatch(fetchTopicDetail({ 
+        topicId: topic.topic_id, 
+        userId: user?.uid || '' 
+      })).unwrap();
+      
+      setTopicDetail(resultAction);
+    } catch (error) {
+      setTopicDetailError('Failed to load topic details');
+      console.error('Error fetching topic detail:', error);
+    } finally {
+      setTopicDetailLoading(false);
+    }
+    
+    
+    dispatch(markAsRead(topic.topic_id));
+    
+  };
+  
+  
+  const handleConceptClick = (concept: RelatedConcept) => {
+    setShowConcept(concept);
+  };
+  
+  
+  const handleResetFilters = () => {
+    dispatch(setSearchTerm(''));
+    dispatch(setSelectedCategory('All')); 
+  };
+  
+  
+  const handleCloseArticleView = () => {
+    setSelectedTopicItem(null);
+    setTopicDetail(null);
+  };
+
+  
+  const handleDailySummaryOpen = () => {
+    if (user?.uid) {
+      dispatch(fetchDailySummary(user.uid));
+    }
+    setShowDailySummary(true);
+  };
+
+  
   const getCurrentPageItems = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredTopics.slice(startIndex, endIndex);
   };
+
   
-  // Get unique categories from topics
-  const getCategories = () => {
-    const categoriesSet = new Set<string>();
-    topics.forEach(topic => {
-      if (topic.category) {
-        categoriesSet.add(topic.category);
-      }
-    });
-    return Array.from(categoriesSet);
-  };
-  
-  // Handler for search term change
-  const handleSearchChange = (term: string) => {
-    dispatch(setSearchTerm(term));
-  };
-  
-  // Handler for category change
-  const handleCategoryChange = (category: string) => {
-    dispatch(setSelectedCategory(category));
-  };
-  
-  // Handler for page change
-  const handlePageChange = (page: number) => {
-    dispatch(setCurrentPage(page));
-  };
-  
-  // Handler for article selection
-  const handleArticleSelect = (topic: TopicItem) => {
-    setSelectedTopicItem(topic);
-    dispatch(fetchTopicDetail(topic.topic_id));
-    
-    // Mark as read in local state
-    dispatch(markAsRead(topic.topic_id));
-    
-    // If user is logged in, update on server
-    if (user?.uid) {
-      dispatch(markTopicAsRead({ userId: user.uid, topicId: topic.topic_id }));
-    }
-  };
-  
-  // Handler for bookmark toggle
-  const handleBookmarkToggle = (topicId: string) => {
-    // Update in local state
-    dispatch(toggleBookmark(topicId));
-    
-    // If user is logged in, update on server
-    if (user?.uid) {
-      dispatch(bookmarkTopic({ userId: user.uid, topicId }));
-    }
-  };
-  
-  // Handler for concept click
-  const handleConceptClick = (concept: RelatedConcept) => {
-    setShowConcept(concept);
-  };
-  
-  // Handler for reset filters
-  const handleResetFilters = () => {
-    dispatch(setSearchTerm(''));
-    dispatch(setSelectedCategory('All'));
-  };
-  
-  // Close article view and clear current topic
-  const handleCloseArticleView = () => {
-    setSelectedTopicItem(null);
-    dispatch(clearCurrentTopic());
-  };
+  const capitalizedCategories = categories.map(category => 
+    category.split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  );
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="container max-w-6xl mx-auto px-4 py-8">
+      <div className="container max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-white mb-2">Learning Hub</h1>
-        <p className="text-gray-400 mb-6">Your personalized financial knowledge center</p>
+        <p className="text-gray-400 mb-8">Your personalized financial knowledge center</p>
         
         {/* Top section with search and filters - Only show when no article is selected */}
         {!selectedTopicItem && (
@@ -155,8 +163,8 @@ const LearningHub = () => {
             onSearchChange={handleSearchChange}
             selectedCategory={selectedCategory}
             onCategoryChange={handleCategoryChange}
-            categories={getCategories()}
-            onDailySummaryOpen={() => setShowDailySummary(true)}
+            categories={capitalizedCategories}
+            onDailySummaryOpen={handleDailySummaryOpen}
           />
         )}
         
@@ -175,7 +183,7 @@ const LearningHub = () => {
               <h3 className="text-xl font-semibold text-red-400 mb-2">Error Loading Content</h3>
               <p className="text-gray-300">{error}</p>
               <button 
-                onClick={() => dispatch(fetchTopics())}
+                onClick={() => user?.uid && dispatch(fetchTopics(user.uid))}
                 className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md"
               >
                 Try Again
@@ -187,20 +195,34 @@ const LearningHub = () => {
           {!selectedTopicItem && !loading && !error && (
             <>
               {filteredTopics.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {getCurrentPageItems().map((topic) => (
-                    <ArticleCard 
-                      key={topic.topic_id}
-                      topicId={topic.topic_id}
-                      topicTitle={topic.title}
-                      topicDescription={topic.description}
-                      category={topic.category}
-                      level={topic.level}
-                      isBookmarked={bookmarkedTopics.includes(topic.topic_id)}
-                      isRead={readTopics.includes(topic.topic_id)}
-                    />
-                  ))}
-                </div>
+                <>
+                  {/* Grid layout for all articles */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {getCurrentPageItems().map((topic) => (
+                      <div 
+                        key={topic.topic_id} 
+                        onClick={() => handleArticleSelect(topic)} 
+                        className="h-full"
+                      >
+                        <ArticleCard 
+                          topicId={topic.topic_id}
+                          topicTitle={topic.title}
+                          topicDescription={topic.description}
+                          category={topic.category}
+                          level={topic.expertise_level}
+                          isRead={readTopics.includes(topic.topic_id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Pagination */}
+                  <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </>
               ) : (
                 <NoResults 
                   searchTerm={searchTerm}
@@ -208,13 +230,6 @@ const LearningHub = () => {
                   onReset={handleResetFilters}
                 />
               )}
-              
-              {/* Pagination */}
-              <Pagination 
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
             </>
           )}
           
@@ -222,13 +237,11 @@ const LearningHub = () => {
           {selectedTopicItem && (
             <ArticleView 
               topic={selectedTopicItem}
-              topicDetail={currentTopic}
-              loading={loading}
-              error={error}
+              topicDetail={topicDetail}
+              loading={topicDetailLoading}
+              error={topicDetailError}
               onClose={handleCloseArticleView}
-              onBookmarkToggle={handleBookmarkToggle}
               onConceptClick={handleConceptClick}
-              isBookmarked={bookmarkedTopics.includes(selectedTopicItem.topic_id)}
             />
           )}
         </div>
@@ -242,6 +255,8 @@ const LearningHub = () => {
       
       <DailySummaryModal 
         dailySummary={dailySummary}
+        isLoading={dailySummaryLoading}
+        error={dailySummaryError}
         isOpen={showDailySummary}
         onClose={() => setShowDailySummary(false)}
         onQuizStart={() => {
