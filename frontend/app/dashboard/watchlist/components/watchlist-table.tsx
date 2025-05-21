@@ -12,14 +12,14 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Eye, Trash2 } from "lucide-react";
-import { useAppSelector } from "@/app/store/hooks";import { toast } from "sonner";
+import { useAppSelector } from "@/app/store/hooks"; import { toast } from "sonner";
 
 export default function WatchlistTable() {
   const router = useRouter();
   const [watchlist, setWatchlist] = useState([]);
   const { user } = useAppSelector((state) => state.auth);
 
-  const API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist?user_id=${user?.uid}&asset_type=crypto&include_similar=false`;
+  const API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist?user_id=${user?.uid}&include_similar=false`;
 
   useEffect(() => {
     const fetchWatchlist = async () => {
@@ -52,10 +52,9 @@ export default function WatchlistTable() {
     fetchWatchlist();
   }, [user?.uid]);
 
-  const handleRowClick = (name: string) => {
-    router.push(`/dashboard/watchlist/${name}`);
+  const handleRowClick = (name: string , asset: string) => {
+    router.push(`/dashboard/watchlist/${name}/${asset}`);
   };
-
   // const removeFromWatchlist = (e: React.MouseEvent, id: string) => {
   //   e.stopPropagation();
   //   setWatchlist((prev) => prev.filter((asset) => asset.id !== id));
@@ -68,6 +67,7 @@ export default function WatchlistTable() {
           <TableRow>
             <TableHead className="text-blue-400">Asset</TableHead>
             <TableHead className="text-blue-400 text-right">Price</TableHead>
+            <TableHead className="text-blue-400 text-right">Asset Type</TableHead>
             <TableHead className="text-blue-400 text-center">Insights</TableHead>
             <TableHead className="text-blue-400 text-right">Actions</TableHead>
           </TableRow>
@@ -77,7 +77,7 @@ export default function WatchlistTable() {
             <TableRow
               key={asset.name}
               className="cursor-pointer hover:bg-gray-800/50 transition-colors"
-              onClick={() => handleRowClick(asset.name)}
+              onClick={() => handleRowClick(asset.symbol,asset.asset_type)}
             >
               <TableCell className="font-medium">
                 <div>
@@ -86,7 +86,10 @@ export default function WatchlistTable() {
                 </div>
               </TableCell>
               <TableCell className="text-right font-mono">
-                ${Number(asset.current_price.toFixed(8))}
+                ${Number(asset.current_price)}
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {asset.asset_type}
               </TableCell>
               <TableCell className="text-center">
                 <Button
@@ -114,7 +117,7 @@ export default function WatchlistTable() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-950/50"
-                    // onClick={(e) => removeFromWatchlist(e, asset.name)}
+                  // onClick={(e) => removeFromWatchlist(e, asset.name)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
