@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import List, Dict, Any, Optional
 from firebase_admin import firestore
 import time
@@ -273,3 +274,4 @@ def get_cached_research(symbol: str, asset_type: str, expertise_level: str) -> O
     except Exception as e:
         logger.error(f"Error retrieving cached research: {e}")
         return None
+    

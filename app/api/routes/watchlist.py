@@ -20,7 +20,7 @@ from app.services.firebase import add_to_watchlist, remove_from_watchlist
 # from app.services.assets import get_stock_info
 from app.services.ai import get_deep_research_on_stock
 from app.api.models import AssetType, AddAssetRequest, SearchRequest
-from app.services.ai.perplexity import fetch_asset_news, get_interactive_asset_analysis, get_interactive_asset_analysis_streaming, search_assets_with_perplexity, get_similar_stocks, get_similar_crypto
+from app.services.ai.perplexity import search_assets_with_perplexity, get_similar_stocks, get_similar_crypto
 from app.services.firebase.watchlist import get_related_topics, get_user_expertise_level, get_user_interests, get_user_watchlists, log_asset_research
 
 router = APIRouter()

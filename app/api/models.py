@@ -149,3 +149,33 @@ class SimilarAsset(BaseModel):
     name: str
     price: float
     reason: str
+
+
+class GlossaryTerm(BaseModel):
+    term: str
+    definition: str
+    example: Optional[str] = None
+
+
+class Quote(BaseModel):
+    text: str
+    author: Optional[str] = None
+
+
+class NewsItem(BaseModel):
+    id: str
+    title: str
+    summary: str
+    source: str
+    url: Optional[str] = None
+    published_at: Optional[datetime] = None
+    topics: List[str] = Field(default_factory=list)
+
+
+class DashboardResponse(BaseModel):
+    user_id: str
+    expertise_level: ExpertiseLevel
+    glossary_term: List[GlossaryTerm]
+    quote: Quote
+    trending_news: List[NewsItem]
+    timestamp: datetime

@@ -32,3 +32,112 @@ ARTICLE_SCHEMA_DEFINITION = {
     },
     "required": ["title", "content", "tooltip_words", "references"]
 }
+
+
+
+
+GLOSSARY_TERMS_SCHEMA = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "term": {
+                "type": "string",
+                "description": "The financial term or concept being defined"
+            },
+            "definition": {
+                "type": "string",
+                "description": "Clear explanation of the term adjusted to user's expertise level"
+            },
+            "example": {
+                "type": "string",
+                "description": "Real-world example or application of the term"
+            }
+        },
+        "required": ["term", "definition"]
+    }
+}
+
+FINANCE_QUOTE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "text": {
+            "type": "string",
+            "description": "Quote text related to finance, investing, or financial literacy"
+        },
+        "author": {
+            "type": "string",
+            "description": "Name of the person who said or wrote the quote"
+        }
+    },
+    "required": ["text"]
+}
+
+NEWS_ITEM_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string", 
+            "description": "Unique identifier for the news item in UUID format"
+        },
+        "title": {
+            "type": "string",
+            "description": "Title of the news article"
+        },
+        "summary": {
+            "type": "string",
+            "description": "Brief summary of the news tailored to user's expertise level"
+        },
+        "source": {
+            "type": "string",
+            "description": "Original source of the news (publication, website, etc.)"
+        },
+        "url": {
+            "type": "string",
+            "description": "Link to the full article"
+        },
+        "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Publication date and time in ISO format"
+        },
+        "topics": {
+            "type": "array",
+            "description": "List of financial topics related to the article",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": ["id", "title", "summary", "source"]
+}
+
+TRENDING_NEWS_SCHEMA = {
+    "type": "array",
+    "description": "List of trending finance news items",
+    "items": NEWS_ITEM_SCHEMA
+}
+
+DASHBOARD_RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "user_id": {
+            "type": "string",
+            "description": "Identifier for the user"
+        },
+        "expertise_level": {
+            "type": "string",
+            "enum": ["beginner", "intermediate", "advanced"],
+            "description": "User's financial expertise level"
+        },
+        "glossary_term": GLOSSARY_TERMS_SCHEMA,
+        "quote": FINANCE_QUOTE_SCHEMA,
+        "trending_news": TRENDING_NEWS_SCHEMA,
+        "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the dashboard content was generated"
+        }
+    },
+    "required": ["user_id", "expertise_level", "glossary_term", "quote", "trending_news", "timestamp"]
+}
