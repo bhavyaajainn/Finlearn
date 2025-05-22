@@ -57,46 +57,18 @@ export interface DailySummary {
     end: string;
   };
   statistics: {
-    total_articles_read: number;
-    total_tooltips_viewed: number;
-    category_breakdown: { [key: string]: number };
-    top_categories: [string, number][];
-    predominant_level: string;
-    level_breakdown: {
-      beginner: number;
-      intermediate: number;
-      advanced: number;
-    };
-    unique_topics_explored: number;
-    unique_terms_learned: number;
+    articles_read: number;
+    tooltips_viewed: number;
+    categories: Record<string, number>;
   };
   streak: {
     current_streak: number;
-    user_id: string;
     last_active: string;
     updated_at: string;
     longest_streak: number;
   };
-  articles_read: {
-    date: string;
-    topic_title: string;
-    expertise_level: string;
-    category: string;
-    user_id: string;
-    activity_type: string;
-    timestamp: string;
-    topic_id: string;
-  }[];
-  tooltips_viewed: {
-    tooltip: string;
-    date: string;
-    word: string;
-    topic_title: string;
-    user_id: string;
-    activity_type: string;
-    timestamp: string;
-    topic_id: string;
-  }[];
+  articles_read: string[];
+  tooltips_viewed: any[];
   summary: string;
   quiz_questions: {
     question: string;
