@@ -96,7 +96,7 @@ const NewsCard = ({ title, description, category, readTime, date }: NewsCardProp
 export function Dashboard() {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState<boolean>(false);
   const dispatch = useAppDispatch();
-  
+
   const { user } = useAppSelector((state) => state.auth);
   const { preferences, loading } = useAppSelector((state) => state.preferences);
 
@@ -136,9 +136,9 @@ export function Dashboard() {
 
   return (
     <>
-      <UserPreferencesDialog 
-        open={showPreferencesDialog} 
-        onOpenChange={setShowPreferencesDialog} 
+      <UserPreferencesDialog
+        open={showPreferencesDialog}
+        onOpenChange={setShowPreferencesDialog}
       />
     
       <div className="max-w-full px-2 py-4">
@@ -236,8 +236,10 @@ export function Dashboard() {
           <motion.div variants={item}>
             <GlossaryCard />
           </motion.div>
+
         </motion.div>
       </div>
     </>
+
   )
 }
