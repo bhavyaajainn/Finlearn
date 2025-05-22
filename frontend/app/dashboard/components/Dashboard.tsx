@@ -5,100 +5,76 @@ import { useState, useEffect } from "react"
 import { useAppSelector, useAppDispatch } from "@/app/store/hooks"
 import { fetchUserPreferences } from "@/app/store/slices/preferencesSlice"
 import UserPreferencesDialog from "./UserPreferencesDialog"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { UserInfo } from "./UserInfo"
 import { GlossaryCard } from "./GlossaryCard"
 import MotivationCard from "./MotivationCard"
 import Watchlist from "./Watchlist"
 import { 
-  ArrowRight, 
-  ChevronRight, 
-  Clock, 
   Award, 
   Trophy,
-  Newspaper,
-  BookOpen
+  BookOpen,
+  BarChart3,
+  TrendingUp,
+  Target,
+  Zap
 } from "lucide-react"
 import Link from "next/link"
 
-// Mock data for trending news
-const trendingNews = [
-  {
-    id: "news-1",
-    title: "Understanding Market Volatility: What Every Investor Should Know",
-    description: "Learn how market volatility works and strategies to navigate uncertain market conditions effectively.",
-    category: "Markets",
-    readTime: 5,
-    date: "2025-05-15",
-  },
-  {
-    id: "news-2",
-    title: "The Rise of DeFi: A New Era in Financial Technology",
-    description: "Explore how decentralized finance is transforming traditional financial systems and creating new investment opportunities.",
-    category: "Crypto",
-    readTime: 7,
-    date: "2025-05-14",
-  },
-  {
-    id: "news-3",
-    title: "ESG Investing: Balancing Profit with Purpose",
-    description: "How environmental, social, and governance factors are becoming essential considerations for modern investors.",
-    category: "Investing",
-    readTime: 6,
-    date: "2025-05-13",
-  }
-]
-
-// News card component
-interface NewsCardProps {
-  title: string
-  description: string
-  category: string
-  readTime: number
-  date: string
+// Interface for dashboard essentials API response
+interface GlossaryTerm {
+  term: string;
+  definition: string;  
+  example: string;
 }
 
-const NewsCard = ({ title, description, category, readTime, date }: NewsCardProps) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card className="bg-black border-blue-900/50 h-full hover:border-blue-500/50 transition-all duration-300">
-        <CardContent className="p-6">
-          <div className="mb-3 flex justify-between">
-            <Badge className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">
-              {category}
-            </Badge>
-            <div className="flex items-center text-gray-400 text-xs">
-              <Clock className="h-3 w-3 mr-1" />
-              {readTime} min read
-            </div>
-          </div>
-          <h3 className="text-base font-semibold text-white mb-2 line-clamp-2">{title}</h3>
-          <p className="text-gray-400 text-xs mb-3 line-clamp-2">{description}</p>
-          <div className="flex justify-between items-center mt-2">
-            <span className="text-xs text-gray-500">{date}</span>
-            <Button variant="link" className="p-0 h-auto text-blue-400 hover:text-blue-300 flex items-center text-xs">
-              Read more <ChevronRight className="h-3 w-3 ml-1" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  )
+interface Quote {
+  text: string;
+  author: string;
+}
+
+interface DashboardEssentials {
+  user_id: string;
+  expertise_level: string;
+  glossary_term: GlossaryTerm[];
+  quote: Quote;
+  timestamp: string;
 }
 
 export function Dashboard() {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState<boolean>(false);
+  const [dashboardEssentials, setDashboardEssentials] = useState<DashboardEssentials | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const dispatch = useAppDispatch();
-
   const { user } = useAppSelector((state) => state.auth);
-  const { preferences, loading } = useAppSelector((state) => state.preferences);
+  const { preferences } = useAppSelector((state) => state.preferences);
+
+  // Fetch dashboard essentials
+  useEffect(() => {
+    const fetchDashboardEssentials = async () => {
+      if (!user?.uid) return;
+      
+      setLoading(true);
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/dashboard/home/essential?user_id=${user.uid}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard essentials');
+        }
+        const data = await response.json();
+        setDashboardEssentials(data);
+      } catch (err) {
+        console.error('Error fetching dashboard essentials:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardEssentials();
+  }, [user?.uid]);
 
   // Check if we need to show the preferences dialog
   useEffect(() => {
@@ -106,13 +82,11 @@ export function Dashboard() {
       dispatch(fetchUserPreferences(user.uid))
         .unwrap()
         .then((data) => {
-          // If no preferences are set, show the dialog
           if (!data || !data.expertise_level || !data.categories || data.categories.length === 0) {
             setShowPreferencesDialog(true);
           }
         })
         .catch(() => {
-          // If there's an error fetching preferences, show the dialog
           setShowPreferencesDialog(true);
         });
     }
@@ -142,13 +116,16 @@ export function Dashboard() {
       />
     
       <div className="max-w-full px-2 py-4">
-        <motion.div variants={container} initial="hidden" animate="show" className="grid gap-4">
+        <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
 
           {/* Progress Section */}
           <motion.div variants={item}>
             <Card className="bg-black border-blue-900/50 w-full">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg text-white">Your Progress</CardTitle>
+                <CardTitle className="text-lg text-white flex items-center">
+                  <BarChart3 className="text-blue-400 mr-2 h-5 w-5" />
+                  Your Progress
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-6 sm:grid-cols-3">
@@ -200,46 +177,87 @@ export function Dashboard() {
             </Card>
           </motion.div>
 
-          {/* Trending News Section */}
+          {/* Quick Actions */}
           <motion.div variants={item}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <Newspaper className="text-blue-400 mr-2 h-5 w-5" />
-                <h2 className="text-xl font-bold text-white">Trending Financial News</h2>
-              </div>
-              <Button variant="link" asChild className="text-blue-400 hover:text-blue-300">
-                <Link href="/dashboard/news">
-                  View all <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {trendingNews.map((news) => (
-                <NewsCard 
-                  key={news.id}
-                  title={news.title}
-                  description={news.description}
-                  category={news.category}
-                  readTime={news.readTime}
-                  date={news.date}
-                />
-              ))}
-            </div>
+            <Card className="bg-black border-blue-900/50 w-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg text-white flex items-center">
+                  <Zap className="text-yellow-400 mr-2 h-5 w-5" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    {
+                      icon: BookOpen,
+                      label: "Continue Learning",
+                      href: "/dashboard/learning",
+                      color: "from-blue-500/20 to-cyan-500/20",
+                      iconColor: "text-blue-400"
+                    },
+                    {
+                      icon: TrendingUp,
+                      label: "View Watchlist", 
+                      href: "/dashboard/watchlist",
+                      color: "from-green-500/20 to-emerald-500/20",
+                      iconColor: "text-green-400"
+                    },
+                    {
+                      icon: Target,
+                      label: "Update Profile",
+                      href: "/dashboard/profile",
+                      color: "from-purple-500/20 to-pink-500/20",
+                      iconColor: "text-purple-400"
+                    }
+                  ].map((action, index) => (
+                    <Link key={index} href={action.href}>
+                      <motion.div
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`bg-gradient-to-br ${action.color} rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer group`}
+                      >
+                        <div className="text-center">
+                          <div className="mb-2 flex justify-center">
+                            <action.icon className={`h-6 w-6 ${action.iconColor} group-hover:scale-110 transition-transform duration-300`} />
+                          </div>
+                          <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                            {action.label}
+                          </span>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
-          {/* Motivation Card */}
+          {/* Motivation Card - Using API data */}
           <motion.div variants={item}>
-            <MotivationCard />
+            <MotivationCard 
+              quote={dashboardEssentials?.quote} 
+              loading={loading}
+              error={error}
+            />
           </motion.div>
 
-          {/* Glossary Card and Watchlist */}
+          {/* Glossary Card - Using API data */}
           <motion.div variants={item}>
-            <GlossaryCard />
+            <GlossaryCard 
+              glossaryTerms={dashboardEssentials?.glossary_term || []}
+              loading={loading}
+              error={error}
+            />
+          </motion.div>
+
+          {/* Watchlist */}
+          <motion.div variants={item}>
+            <Watchlist />
           </motion.div>
 
         </motion.div>
       </div>
     </>
-
   )
 }
