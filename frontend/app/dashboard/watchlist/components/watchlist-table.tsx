@@ -58,7 +58,7 @@ export default function WatchlistTable() {
   const removeFromWatchlist = async (e: React.MouseEvent, id: string, asset_type: string) => {
     e.stopPropagation();
     const DELETE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/remove?user_id=${user?.uid}&symbol=${id}&asset_type=${asset_type}`;
-  
+
     try {
       const res = await fetch(DELETE_URL, {
         method: "DELETE",
@@ -66,30 +66,30 @@ export default function WatchlistTable() {
           "Content-Type": "application/json",
         },
       });
-  
+
       if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
-  
+
       // ✅ Update local watchlist state
       setWatchlist((prev) =>
         prev.filter((asset: any) => asset.symbol !== id || asset.asset_type !== asset_type)
       );
-  
+
       toast.success(`Asset ${id} removed from watchlist!`);
     } catch (error: any) {
       console.error("Error removing from watchlist:", error);
       toast("Failed to remove asset from watchlist");
     }
   };
-  
+
   return (
     <div className="overflow-x-auto">
       <Table className="w-full">
         <TableHeader className="bg-gray-800">
           <TableRow>
             <TableHead className="text-blue-400">Asset</TableHead>
-            <TableHead className="text-blue-400 text-right">Price</TableHead>
-            <TableHead className="text-blue-400 text-right">Asset Type</TableHead>
-            <TableHead className="text-blue-400 text-center">Insights</TableHead>
+            <TableHead className="text-blue-400 text-right hidden sm:table-cell">Price</TableHead>
+            <TableHead className="text-blue-400 text-right hidden md:table-cell">Asset Type</TableHead>
+            <TableHead className="text-blue-400 text-center hidden lg:table-cell">Insights</TableHead>
             <TableHead className="text-blue-400 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -101,18 +101,16 @@ export default function WatchlistTable() {
               onClick={() => handleRowClick(asset.symbol, asset.asset_type)}
             >
               <TableCell className="font-medium">
-                <div>
-                  <div className="font-bold">{asset.name}</div>
-                  <div className="text-gray-400 text-sm">{asset.symbol}</div>
-                </div>
+                <div className="font-bold">{asset.name}</div>
+                <div className="text-gray-400 text-sm">{asset.symbol}</div>
               </TableCell>
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right font-mono hidden sm:table-cell">
                 ${Number(asset.current_price)}
               </TableCell>
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right font-mono hidden md:table-cell">
                 {asset.asset_type}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center hidden lg:table-cell">
                 <Button
                   variant="link"
                   className="text-gray-400 text-sm hover:text-blue-400 cursor-pointer"
@@ -147,6 +145,7 @@ export default function WatchlistTable() {
             </TableRow>
           ))}
         </TableBody>
+
       </Table>
       {watchlist.length === 0 && (
         <p className="text-center text-gray-400 mt-6">No assets in watchlist.</p>

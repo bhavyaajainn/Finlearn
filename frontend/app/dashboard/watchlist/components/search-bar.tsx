@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from 'lucide-react';
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Command,
@@ -17,7 +17,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-// Mock search results
 const searchResults = [
   { id: "aapl", name: "Apple Inc.", ticker: "AAPL", type: "stock" },
   { id: "tsla", name: "Tesla, Inc.", ticker: "TSLA", type: "stock" },
@@ -34,27 +33,26 @@ export default function SearchAssets() {
 
   const handleSelect = (id: string) => {
     console.log(`Selected asset with ID: ${id}`);
-    // Here you would add the asset to the watchlist
     setOpen(false);
     setSearchQuery("");
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <div className="relative">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search for stocks, crypto, or ETFs..."
-              className="pl-10 bg-gray-900 border-gray-700 focus:border-blue-500 h-12 text-white"
+              className="w-full pl-10 bg-gray-900 border-gray-700 focus:border-blue-500 h-12 text-white"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onClick={() => setOpen(true)}
             />
           </div>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-full" align="start">
+        <PopoverContent className="w-[calc(100vw-2rem)] max-w-lg p-0" align="start">
           <Command className="bg-gray-900 border border-gray-700 rounded-lg">
             <CommandInput
               placeholder="Search assets..."
@@ -66,17 +64,14 @@ export default function SearchAssets() {
               <CommandEmpty className="py-6 text-center text-gray-400">
                 No assets found.
               </CommandEmpty>
+
               <CommandGroup heading="Stocks">
                 {searchResults
                   .filter(
                     (result) =>
                       result.type === "stock" &&
-                      (result.name
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()) ||
-                        result.ticker
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase()))
+                      (result.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        result.ticker.toLowerCase().includes(searchQuery.toLowerCase()))
                   )
                   .map((result) => (
                     <CommandItem
@@ -86,24 +81,19 @@ export default function SearchAssets() {
                     >
                       <div className="flex flex-col">
                         <span className="font-medium">{result.name}</span>
-                        <span className="text-sm text-gray-400">
-                          {result.ticker}
-                        </span>
+                        <span className="text-sm text-gray-400">{result.ticker}</span>
                       </div>
                     </CommandItem>
                   ))}
               </CommandGroup>
+
               <CommandGroup heading="Cryptocurrencies">
                 {searchResults
                   .filter(
                     (result) =>
                       result.type === "crypto" &&
-                      (result.name
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()) ||
-                        result.ticker
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase()))
+                      (result.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        result.ticker.toLowerCase().includes(searchQuery.toLowerCase()))
                   )
                   .map((result) => (
                     <CommandItem
@@ -113,24 +103,19 @@ export default function SearchAssets() {
                     >
                       <div className="flex flex-col">
                         <span className="font-medium">{result.name}</span>
-                        <span className="text-sm text-gray-400">
-                          {result.ticker}
-                        </span>
+                        <span className="text-sm text-gray-400">{result.ticker}</span>
                       </div>
                     </CommandItem>
                   ))}
               </CommandGroup>
+
               <CommandGroup heading="ETFs">
                 {searchResults
                   .filter(
                     (result) =>
                       result.type === "etf" &&
-                      (result.name
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()) ||
-                        result.ticker
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase()))
+                      (result.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        result.ticker.toLowerCase().includes(searchQuery.toLowerCase()))
                   )
                   .map((result) => (
                     <CommandItem
@@ -140,9 +125,7 @@ export default function SearchAssets() {
                     >
                       <div className="flex flex-col">
                         <span className="font-medium">{result.name}</span>
-                        <span className="text-sm text-gray-400">
-                          {result.ticker}
-                        </span>
+                        <span className="text-sm text-gray-400">{result.ticker}</span>
                       </div>
                     </CommandItem>
                   ))}

@@ -358,24 +358,25 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Main Content */}
-      <div className="container mx-auto py-8 px-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Your Profile</h1>
-          <p className="text-gray-400">Manage your account and learning preferences</p>
+      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="mb-6 px-2 sm:px-0">
+          <h1 className="text-2xl sm:text-3xl font-bold">Your Profile</h1>
+          <p className="text-gray-400 text-sm sm:text-base">
+            Manage your account and learning preferences
+          </p>
         </div>
 
         <div className="grid gap-6">
           {/* Basic Information */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
+            <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
               <div className="flex items-center">
                 <User className="h-5 w-5 text-blue-400 mr-2" />
                 <h2 className="text-lg font-medium">Basic Information</h2>
               </div>
               <button
                 onClick={() => setEditing(!editing)}
-                className="flex items-center bg-transparent text-blue-400 border border-blue-600 px-3 py-1.5 rounded-md text-sm hover:bg-blue-900/30"
+                className="flex items-center bg-transparent text-blue-400 border border-blue-600 px-3 py-1.5 rounded-md text-sm hover:bg-blue-900/30 whitespace-nowrap"
               >
                 {editing ? (
                   <>
@@ -391,10 +392,10 @@ const ProfilePage = () => {
               </button>
             </div>
             <div className="p-4">
-              <div className="flex flex-col md:flex-row">
+              <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex flex-col items-center md:w-1/4 mb-6 md:mb-0">
                   <div className="relative">
-                    <div className="w-32 h-32 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
+                    <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
                       <User className="h-16 w-16 text-blue-400/70" />
                     </div>
                     {editing && (
@@ -406,7 +407,7 @@ const ProfilePage = () => {
                     )}
                   </div>
 
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 mt-4 flex-wrap justify-center">
                     <div className="bg-blue-900/30 text-blue-400 border border-blue-800 px-2 py-1 rounded-full text-xs flex items-center">
                       <Award className="h-3 w-3 mr-1" />
                       Finance Enthusiast
@@ -418,10 +419,11 @@ const ProfilePage = () => {
                   </div>
                 </div>
 
-                <div className="md:w-3/4 md:pl-8">
-                  <div className="grid grid-cols-2 gap-y-2 gap-x-8">
-                    {/* Left Column - User Information */}
+                <div className="md:w-3/4 md:pl-8 w-full">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+                    {/* Left Column */}
                     <div className="space-y-4">
+                      {/* Name */}
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Name</div>
                         {editing ? (
@@ -431,10 +433,11 @@ const ProfilePage = () => {
                             className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         ) : (
-                          <div className="text-white">{name}</div>
+                          <div className="text-white break-words">{name}</div>
                         )}
                       </div>
 
+                      {/* Email */}
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Email</div>
                         {editing ? (
@@ -444,17 +447,18 @@ const ProfilePage = () => {
                             className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         ) : (
-                          <div className="text-white">{email}</div>
+                          <div className="text-white break-words">{email}</div>
                         )}
                       </div>
 
+                      {/* Member Since */}
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Member Since</div>
                         <div className="text-white">April 15, 2025</div>
                       </div>
                     </div>
 
-                    {/* Right Column - Streak Information */}
+                    {/* Right Column */}
                     <div className="space-y-4">
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Current Streak</div>
@@ -475,13 +479,13 @@ const ProfilePage = () => {
           {/* Topics of Interest */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-6 flex-wrap">
               <LineChart className="h-6 w-6 text-blue-400" />
               <h2 className="text-xl font-semibold text-white">Personalize Your Experience</h2>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid grid-cols-2 w-1/2 bg-zinc-800 p-1">
+              <TabsList className="grid grid-cols-1 sm:grid-cols-2 w-full sm:w-1/2 bg-zinc-800 p-1 rounded-md">
                 <TabsTrigger
                   value="expertise"
                   className="data-[state=active]:bg-blue-900/50 text-white data-[state=active]:text-blue-300 cursor-pointer"
@@ -489,7 +493,10 @@ const ProfilePage = () => {
                   <User className="h-4 w-4 mr-2" />
                   Expertise
                 </TabsTrigger>
-                <TabsTrigger value="topics" className="data-[state=active]:bg-blue-900/50 text-white data-[state=active]:text-blue-300 cursor-pointer">
+                <TabsTrigger
+                  value="topics"
+                  className="data-[state=active]:bg-blue-900/50 text-white data-[state=active]:text-blue-300 cursor-pointer"
+                >
                   <BookOpen className="h-4 w-4 mr-2" />
                   Topics
                 </TabsTrigger>
@@ -498,7 +505,7 @@ const ProfilePage = () => {
               <TabsContent value="expertise" className="space-y-6 mt-4">
                 <p className="text-gray-400 text-sm">Select your expertise level to help us tailor your learning journey.</p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {["beginner", "intermediate", "advanced"].map((level) => (
                     <button
                       key={level}
@@ -558,161 +565,30 @@ const ProfilePage = () => {
                   />
                 </div>
 
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row justify-between gap-2">
                   <Button
                     variant="secondary"
-                    className="border-zinc-700 text-black cursor-pointer hover:bg-slate-300"
+                    className="border-zinc-700 text-black cursor-pointer hover:bg-slate-300 flex-1 sm:flex-none"
                     onClick={() => setActiveTab("expertise")}
                   >
                     Back
                   </Button>
                   <Button
                     variant="default"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer flex-1 sm:flex-none"
                     onClick={updatePreferences}
                     disabled={topics.length === 0}
                   >
-                    Save Topics
+                    Save Preferences
                   </Button>
                 </div>
               </TabsContent>
-
             </Tabs>
-          </div>
-
-
-
-          {/* Learning Progress Card with improved tabs */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-            <div className="p-4">
-              <div className="flex items-center mb-2">
-                <Award className="h-5 w-5 text-blue-400 mr-2" />
-                <h2 className="text-lg font-medium">Learning Progress</h2>
-              </div>
-
-              {/* Improved Tab Navigation */}
-              <div className="flex bg-zinc-800 rounded-lg p-1 mb-6 mt-4">
-                <button
-                  onClick={() => setActiveTab("streak")}
-                  className={`flex items-center justify-center flex-1 py-3 rounded-md transition-all duration-200 ${activeTab === "streak"
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "text-gray-400 hover:bg-zinc-700"
-                    }`}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Learning Streak
-                </button>
-                <button
-                  onClick={() => setActiveTab("challenges")}
-                  className={`flex items-center justify-center flex-1 py-3 rounded-md transition-all duration-200 ${activeTab === "challenges"
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "text-gray-400 hover:bg-zinc-700"
-                    }`}
-                >
-                  <Award className="mr-2 h-4 w-4" />
-                  Challenges
-                </button>
-              </div>
-
-              {/* Tab Content */}
-              <div>
-                {activeTab === "streak" ? (
-                  <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium">Activity Calendar</h3>
-                      <div className="flex bg-zinc-800 rounded-md overflow-hidden">
-                        <button
-                          onClick={() => setCalendarView("30days")}
-                          className={`px-3 py-1.5 text-sm ${calendarView === "30days" ? "bg-blue-600 text-white" : "text-gray-400"}`}
-                        >
-                          30 Days
-                        </button>
-                        <button
-                          onClick={() => setCalendarView("6months")}
-                          className={`px-3 py-1.5 text-sm ${calendarView === "6months" ? "bg-blue-600 text-white" : "text-gray-400"}`}
-                        >
-                          6 Months
-                        </button>
-                        <button
-                          onClick={() => setCalendarView("1year")}
-                          className={`px-3 py-1.5 text-sm ${calendarView === "1year" ? "bg-blue-600 text-white" : "text-gray-400"}`}
-                        >
-                          1 Year
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-zinc-800 rounded-lg p-4 overflow-x-auto">
-                      {renderActivityHeatmap()}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {challengesData.map((challenge) => (
-                      <div key={challenge.id} className="bg-zinc-800 rounded-lg p-4">
-                        <div className="flex items-start gap-4">
-                          <div className={`rounded-full p-2.5 ${challenge.completed ? 'bg-green-900/30' : 'bg-blue-900/30'}`}>
-                            {challenge.icon}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-medium flex items-center">
-                                  {challenge.name}
-                                  {challenge.completed && (
-                                    <BadgeCheck className="h-4 w-4 text-green-400 ml-2" />
-                                  )}
-                                </h4>
-                                <p className="text-gray-400 text-sm mt-1">{challenge.description}</p>
-                              </div>
-
-                              {challenge.completed ? (
-                                <div className="bg-green-900/30 text-green-400 border border-green-800 px-2 py-1 rounded-full text-xs">
-                                  Completed
-                                </div>
-                              ) : (
-                                <div className="bg-blue-900/30 text-blue-400 border border-blue-800 px-2 py-1 rounded-full text-xs">
-                                  In Progress
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="mt-3">
-                              <div className="flex justify-between items-center mb-1.5">
-                                <span className="text-sm text-gray-400">Progress</span>
-                                <span className="text-sm">{challenge.progress}%</span>
-                              </div>
-                              <div className="h-2 w-full bg-zinc-700 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${challenge.completed ? 'bg-green-500' : 'bg-blue-600'}`}
-                                  style={{ width: `${challenge.progress}%` }}
-                                ></div>
-                              </div>
-                            </div>
-
-                            <div className="mt-3 flex justify-between items-center text-sm">
-                              <div className="text-gray-400">
-                                Reward: <span className="text-blue-400">{challenge.reward}</span>
-                              </div>
-                              {!challenge.completed && (
-                                <button className="text-blue-400 hover:text-blue-300 flex items-center">
-                                  View Details
-                                  <ChevronRight className="h-4 w-4 ml-1" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </div>
     </div>
+
   );
 };
 
