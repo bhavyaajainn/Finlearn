@@ -179,3 +179,17 @@ class DashboardResponse(BaseModel):
     quote: Quote
     trending_news: List[NewsItem]
     timestamp: datetime
+
+class DashboardEssentialResponse(BaseModel):
+    """Light dashboard response with glossary and quote only."""
+    user_id: str
+    expertise_level: str
+    glossary_term: List[GlossaryTerm]
+    quote: Quote
+    timestamp: datetime
+
+class DashboardNewsResponse(BaseModel):
+    """Dashboard news response."""
+    user_id: str
+    trending_news: List[NewsItem]
+    timestamp: datetime

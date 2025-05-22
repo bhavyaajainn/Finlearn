@@ -141,3 +141,41 @@ DASHBOARD_RESPONSE_SCHEMA = {
     },
     "required": ["user_id", "expertise_level", "glossary_term", "quote", "trending_news", "timestamp"]
 }
+
+NEWS_ARTICLE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {
+            "type": "string",
+            "description": "Engaging article title"
+        },
+        "content": {
+            "type": "string",
+            "description": "Full article content with citations [1][2] etc."
+        },
+        "tooltip_words": {
+            "type": "array",
+            "description": "List of terms used in the article and their explanations",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "word": {
+                        "type": "string",
+                        "description": "Financial term actually appearing in the content"
+                    },
+                    "tooltip": {
+                        "type": "string", 
+                        "description": "Explanation appropriate for user's expertise level"
+                    }
+                },
+                "required": ["word", "tooltip"]
+            }
+        },
+        "references": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "List of citation sources used in creating the article"
+        }
+    },
+    "required": ["title", "content", "tooltip_words", "references"]
+}

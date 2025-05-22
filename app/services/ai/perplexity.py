@@ -1220,80 +1220,99 @@ For each news item, provide a unique ID, title, summary, source, and other requi
 
 def generate_news_article(
     news_id: str,
+    news_item: Dict[str, Any],
     expertise_level: str
 ) -> Dict[str, Any]:
-    """Generate a detailed article for a trending news item with appropriate tooltips.
+    """Generate a detailed article for a specific news item with separate tooltips and references.
     
     Args:
         news_id: ID of the news item
+        news_item: Details of the news item (title, summary, etc.)
         expertise_level: User's expertise level
         
     Returns:
-        Detailed article with tooltips
+        Detailed article with separate tooltips and references
     """
-    prompt = f"""Write a comprehensive analysis of a recent financial news story for a {expertise_level}-level investor.
+    # Extract details from the news item
+    title = news_item.get("title", "Recent Financial News")
+    summary = news_item.get("summary", "Recent developments in financial markets")
+    source = news_item.get("source", "Financial Times")
+    topics = news_item.get("topics", [])
+    topics_str = ", ".join(topics) if topics else "finance"
+    
+    prompt = f"""Write a comprehensive analysis of the following financial news story for a {expertise_level}-level investor:
 
-IMPORTANT FORMATTING: For any financial term or concept that might need explanation for a {expertise_level}-level reader, embed a tooltip using this exact format:
-"[concept name]{{tooltip:Explanation appropriate for {expertise_level} level.}}"
+NEWS TITLE: {title}
+SUMMARY: {summary}
+SOURCE: {source}
+TOPICS: {topics_str}
 
-Examples:
-- "The [Federal Reserve]{{tooltip:The central banking system of the United States that manages the country's monetary policy.}} announced..."
-- "This could impact the [yield curve]{{tooltip:A line plotting interest rates of bonds with equal credit quality but different maturity dates.}}..."
+Structure requirements:
+- Use the provided news as your main focus
+- Create an engaging, specific title based on the news
+- Use clear sections and paragraphs
+- Include latest developments and context
+- Add numerical citations [1][2] etc. for all facts and statements
+- Include a references section listing all citation sources
 
-Your article should:
-1. Start with a compelling title and introduction
-2. Provide thorough analysis of the news and its implications
-3. Include relevant context and background information
-4. Discuss potential impacts on different market sectors
-5. Mention expert opinions or market reactions
-6. End with a conclusion or outlook
+Content requirements:
+- Focus on providing valuable insights related to this specific news item
+- Include the most current information available about this topic
+- Make the analysis thorough but accessible for {expertise_level} level readers
+- Discuss implications of this news for investors
 
-Include at least 5-10 tooltips for financial terms appropriate to the user's {expertise_level} level.
+IMPORTANT: Identify technical financial terms and concepts that need explanation.
+For each term, provide a concise explanation appropriate for the {expertise_level} level.
+DO NOT embed tooltips directly in the content.
 
-Format your response as a valid JSON object with these fields:
+Return your response as a FLAT (not nested) JSON structure like this:
 {{
-  "title": "Engaging article title",
-  "content": "Full article with embedded tooltips using the format specified",
-  "key_points": ["Point 1", "Point 2", "Point 3"],
-  "related_topics": ["Topic 1", "Topic 2"]
+  "title": "Your article title here",
+  "content": "The full article with markdown formatting including citations [1][2]",
+  "tooltip_words": [
+    {{"word": "Term 1", "tooltip": "Explanation for term 1"}},
+    {{"word": "Term 2", "tooltip": "Explanation for term 2"}}
+  ],
+  "references": [
+    "Source 1: Publication name, article title, link, date",
+    "Source 2: Publication name, article title, link, date"
+  ]
 }}
+
+DO NOT nest JSON objects inside the content field. Keep tooltip_words as a separate array at the top level.
+Include at least 5-8 important tooltip words with clear explanations for terms ACTUALLY USED in the content.
 """
     
     try:
-        response = call_perplexity_api(prompt)
+        # Use schema-based approach for structured response
+        from app.services.ai.schemas import NEWS_ARTICLE_SCHEMA
         
-        # Parse the response
-        try:
-            # Try to extract JSON from markdown code blocks
-            if "```json" in response:
-                json_start = response.find("```json") + 7
-                json_end = response.find("```", json_start)
-                json_str = response[json_start:json_end].strip()
-                article = json.loads(json_str)
-            else:
-                # Try parsing the entire response as JSON
-                article = json.loads(response)
-            
-            return article
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse article JSON: {e}")
-            # Return a basic structure for the article if JSON parsing fails
-            return {
-                "title": "Analysis of Recent Financial News",
-                "content": response,
-                "key_points": ["Unable to format key points"],
-                "related_topics": []
-            }
+        # Get structured response using the schema
+        article = call_perplexity_api_with_schema(prompt, NEWS_ARTICLE_SCHEMA)
         
+        # Add reading time estimate (avg reading speed: 250 words/min)
+        content_words = len(article["content"].split())
+        article["reading_time_minutes"] = max(1, round(content_words / 250))
+        
+        return article
+            
     except Exception as e:
         logger.error(f"Error generating news article: {e}")
+        # Return fallback article with separate tooltips
         return {
-            "title": "Error Generating Article",
-            "content": f"We encountered an error while generating this article: {str(e)}",
-            "key_points": [],
-            "related_topics": []
+            "title": "Market Update: Latest Developments in Finance",
+            "content": "We apologize, but we couldn't generate the article you requested. Please try again later.\n\nThis content would normally contain an analysis of recent financial news with relevant citations [1].\n\n## References\n[1] System Error Log. Financial article generation service, unavailable.",
+            "tooltip_words": [
+                {"word": "Market Volatility", "tooltip": "The rate at which the price of assets increases or decreases."},
+                {"word": "Inflation", "tooltip": "The rate at which prices for goods and services rise over time."}
+            ],
+            "references": [
+                "Financial Times. (2023). Latest market developments, https://ft.com, Recent date.",
+                "System Error Log. Financial article generation service, unavailable."
+            ],
+            "reading_time_minutes": 1
         }
+
 
 
 def get_financial_glossary_term(expertise_level: str) -> List[Dict[str, Any]]:

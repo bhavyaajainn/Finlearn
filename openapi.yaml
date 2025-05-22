@@ -56,7 +56,8 @@ paths:
       - watchlist
       summary: Search For Assets
       description: "Search for assets by name or symbol.\n\nArgs:\n    search_request:\
-        \ Search parameters\n    \nReturns:\n    List of matching assets"
+        \ Search parameters\n    \nReturns:\n    List of matching assets with minimal\
+        \ info for fast display"
       operationId: search_for_assets_watchlist_search_post
       requestBody:
         content:
@@ -197,6 +198,13 @@ paths:
           type: boolean
           default: true
           title: Include News
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
       responses:
         '200':
           description: Successful Response
@@ -301,6 +309,50 @@ paths:
               schema:
                 type: object
                 title: Response Get Topic Article Article Topic  Topic Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /article/topic/{topic_id}/stream:
+    get:
+      tags:
+      - learning
+      summary: Get Topic Article Streaming
+      description: Streaming version that shows progress as article is generated.
+      operationId: get_topic_article_streaming_article_topic__topic_id__stream_get
+      parameters:
+      - name: topic_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Topic Id
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: level
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/ExpertiseLevel'
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
         '422':
           description: Validation Error
           content:
@@ -606,9 +658,6 @@ paths:
       tags:
       - dashboard
       summary: Get Dashboard Content
-      description: "Get personalized dashboard content for a user.\n\nArgs:\n    user_id:\
-        \ User identifier\n    \nReturns:\n    Dashboard content including glossary\
-        \ term, quote, and trending news"
       operationId: get_dashboard_content_dashboard_home_get
       parameters:
       - name: user_id
@@ -617,14 +666,89 @@ paths:
         schema:
           type: string
           title: User Id
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                title: Response Get Dashboard Content Dashboard Home Get
+                $ref: '#/components/schemas/DashboardResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /dashboard/home/essential:
+    get:
+      tags:
+      - dashboard
+      summary: Get Dashboard Essential Content
+      description: Get lighter dashboard content (glossary and quote) with parallel
+        execution.
+      operationId: get_dashboard_essential_content_dashboard_home_essential_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardEssentialResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /dashboard/home/news:
+    get:
+      tags:
+      - dashboard
+      summary: Get Dashboard News
+      description: Get trending news for the dashboard.
+      operationId: get_dashboard_news_dashboard_home_news_get
+      parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardNewsResponse'
         '422':
           description: Validation Error
           content:
@@ -638,8 +762,8 @@ paths:
       summary: Get News Article
       description: "Get detailed article about a trending news item with tooltips.\n\
         \nArgs:\n    news_id: ID of the news item\n    user_id: User identifier\n\
-        \    \nReturns:\n    Detailed article with tooltips based on user's expertise\
-        \ level"
+        \    refresh: Force refresh cached content\n    \nReturns:\n    Detailed article\
+        \ with tooltips based on user's expertise level"
       operationId: get_news_article_dashboard_news__news_id__get
       parameters:
       - name: news_id
@@ -654,6 +778,13 @@ paths:
         schema:
           type: string
           title: User Id
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
       responses:
         '200':
           description: Successful Response
@@ -733,6 +864,87 @@ components:
       - expertise_level
       - categories
       title: Categories
+    DashboardEssentialResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        expertise_level:
+          type: string
+          title: Expertise Level
+        glossary_term:
+          items:
+            $ref: '#/components/schemas/GlossaryTerm'
+          type: array
+          title: Glossary Term
+        quote:
+          $ref: '#/components/schemas/Quote'
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+      type: object
+      required:
+      - user_id
+      - expertise_level
+      - glossary_term
+      - quote
+      - timestamp
+      title: DashboardEssentialResponse
+      description: Light dashboard response with glossary and quote only.
+    DashboardNewsResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        trending_news:
+          items:
+            $ref: '#/components/schemas/NewsItem'
+          type: array
+          title: Trending News
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+      type: object
+      required:
+      - user_id
+      - trending_news
+      - timestamp
+      title: DashboardNewsResponse
+      description: Dashboard news response.
+    DashboardResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        expertise_level:
+          $ref: '#/components/schemas/ExpertiseLevel'
+        glossary_term:
+          items:
+            $ref: '#/components/schemas/GlossaryTerm'
+          type: array
+          title: Glossary Term
+        quote:
+          $ref: '#/components/schemas/Quote'
+        trending_news:
+          items:
+            $ref: '#/components/schemas/NewsItem'
+          type: array
+          title: Trending News
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+      type: object
+      required:
+      - user_id
+      - expertise_level
+      - glossary_term
+      - quote
+      - trending_news
+      - timestamp
+      title: DashboardResponse
     ExpertiseLevel:
       type: string
       enum:
@@ -740,6 +952,24 @@ components:
       - intermediate
       - advanced
       title: ExpertiseLevel
+    GlossaryTerm:
+      properties:
+        term:
+          type: string
+          title: Term
+        definition:
+          type: string
+          title: Definition
+        example:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Example
+      type: object
+      required:
+      - term
+      - definition
+      title: GlossaryTerm
     HTTPValidationError:
       properties:
         detail:
@@ -749,6 +979,57 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    NewsItem:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          type: string
+          title: Title
+        summary:
+          type: string
+          title: Summary
+        source:
+          type: string
+          title: Source
+        url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Url
+        published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Published At
+        topics:
+          items:
+            type: string
+          type: array
+          title: Topics
+      type: object
+      required:
+      - id
+      - title
+      - summary
+      - source
+      title: NewsItem
+    Quote:
+      properties:
+        text:
+          type: string
+          title: Text
+        author:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Author
+      type: object
+      required:
+      - text
+      title: Quote
     SearchRequest:
       properties:
         query:
