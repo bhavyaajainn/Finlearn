@@ -201,20 +201,6 @@ const ProfilePage = () => {
     setActivityData(data);
   }, []);
 
-  const handleSaveProfile = () => {
-    setEditing(false);
-  };
-
-  const toggleInterest = (id: string) => {
-    setInterests(
-      interests.map((interest) =>
-        interest.id === id
-          ? { ...interest, selected: !interest.selected }
-          : interest
-      )
-    );
-  };
-
   const getCalendarDays = () => {
     return calendarView === "30days" ? 30 : calendarView === "6months" ? 180 : 365;
   };
@@ -513,7 +499,7 @@ const ProfilePage = () => {
                 <p className="text-gray-400 text-sm">Select your expertise level to help us tailor your learning journey.</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {["beginner", "intermediate", "expert"].map((level) => (
+                  {["beginner", "intermediate", "advanced"].map((level) => (
                     <button
                       key={level}
                       onClick={() => handleExpertiseSelect(level)}
@@ -526,7 +512,7 @@ const ProfilePage = () => {
                       <div className="text-xs text-center text-gray-400">
                         {level === "beginner" && "New to the subject, learning fundamentals"}
                         {level === "intermediate" && "Comfortable with basics, expanding knowledge"}
-                        {level === "expert" && "Advanced knowledge, seeking deep insights"}
+                        {level === "advanced" && "Advanced knowledge, seeking deep insights"}
                       </div>
                     </button>
                   ))}
