@@ -110,12 +110,12 @@ export interface DailySummary {
   generated_at: string;
 }
 
-
 interface LearningState {
   topics: CategoryTopics;
   filteredTopics: TopicItem[];
   currentTopic: TopicDetailResponse | null;
   loading: boolean;
+  filterLoading: boolean; // New loading state for filtering
   error: string | null;
   searchTerm: string;
   selectedCategory: string;
@@ -130,12 +130,12 @@ interface LearningState {
   dailySummaryError: string | null;
 }
 
-
 const initialState: LearningState = {
   topics: {},
   filteredTopics: [],
   currentTopic: null,
   loading: false,
+  filterLoading: false,
   error: null,
   searchTerm: '',
   selectedCategory: 'All',
@@ -150,12 +150,12 @@ const initialState: LearningState = {
   dailySummaryError: null
 };
 
+// Fetch all topics (initial load)
 export const fetchTopics = createAsyncThunk(
   'learning/fetchTopics',
   async (userId: string, { rejectWithValue }) => {
     try {
-      
-      const response = await fetch(`https://finlearn.onrender.com/user/recommendedtopics?user_id=${userId}`);
+      const response = await fetch(`http://127.0.0.1:8000/user/recommendedtopics?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch topics');
@@ -169,12 +169,57 @@ export const fetchTopics = createAsyncThunk(
   }
 );
 
+// Fetch topics by category filter
+export const fetchTopicsByCategory = createAsyncThunk(
+  'learning/fetchTopicsByCategory',
+  async ({ userId, category }: { userId: string; category: string }, { rejectWithValue }) => {
+    try {
+      let url = `http://127.0.0.1:8000/user/recommendedtopics?user_id=${userId}`;
+      
+      // If category is 'All', fetch all topics
+      if (category === 'All') {
+        console.log('Fetching all topics with URL:', url);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch topics');
+        }
+        
+        const data = await response.json();
+        console.log('All topics API response:', data);
+        return { data, category: 'All' };
+      }
+      
+      // Fetch topics for specific category
+      // Convert category to lowercase for API call
+      const categoryParam = category.toLowerCase();
+      url += `&category=${encodeURIComponent(categoryParam)}`;
+      
+      console.log('Fetching category topics with URL:', url);
+      console.log('Category parameter:', categoryParam);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch topics for category: ${category}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Category ${category} API response:`, data);
+      return { data, category };
+    } catch (error: any) {
+      console.error('Error in fetchTopicsByCategory:', error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const fetchTopicDetail = createAsyncThunk(
   'learning/fetchTopicDetail',
   async ({ topicId, userId }: { topicId: string; userId: string }, { rejectWithValue }) => {
     try {
-      
-      const response = await fetch(`https://finlearn.onrender.com/article/topic/${topicId}?user_id=${userId}`);
+      const response = await fetch(`http://127.0.0.1:8000/article/topic/${topicId}?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch topic details');
@@ -206,7 +251,7 @@ export const fetchDailySummary = createAsyncThunk(
   'learning/fetchDailySummary',
   async (userId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://finlearn.onrender.com/summary?user_id=${userId}`);
+      const response = await fetch(`http://127.0.0.1:8000/summary?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch daily summary');
@@ -220,7 +265,6 @@ export const fetchDailySummary = createAsyncThunk(
   }
 );
 
-
 const learningSlice = createSlice({
   name: 'learning',
   initialState,
@@ -228,12 +272,15 @@ const learningSlice = createSlice({
     setSearchTerm: (state, action: PayloadAction<string>) => {
       state.searchTerm = action.payload;
       state.currentPage = 1; 
-      applyFilters(state);
+      applySearchFilter(state);
     },
     setSelectedCategory: (state, action: PayloadAction<string>) => {
-      state.selectedCategory = action.payload;
-      state.currentPage = 1; 
-      applyFilters(state);
+      // Only update if it's actually different
+      if (state.selectedCategory !== action.payload) {
+        state.selectedCategory = action.payload;
+        state.currentPage = 1;
+      }
+      // Don't apply filters here - this will be handled by the async action
     },
     setCurrentPage: (state, action: PayloadAction<number>) => {
       state.currentPage = action.payload;
@@ -258,29 +305,90 @@ const learningSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      
+      // Fetch all topics
       .addCase(fetchTopics.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchTopics.fulfilled, (state, action: PayloadAction<TopicResponse>) => {
         state.loading = false;
-        
-        
         state.topics = action.payload.recommendations || {};
-        
-        
         state.categories = Object.keys(state.topics);
         
-        
-        applyFilters(state);
+        // If no category is selected or 'All' is selected, show all topics
+        if (state.selectedCategory === 'All') {
+          applyFiltersForAllTopics(state);
+        }
       })
       .addCase(fetchTopics.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
       
-     
+      // Fetch topics by category
+      .addCase(fetchTopicsByCategory.pending, (state) => {
+        state.filterLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchTopicsByCategory.fulfilled, (state, action) => {
+        state.filterLoading = false;
+        const { data, category } = action.payload;
+        
+        console.log('Category API Response:', { data, category }); // Debug log
+        
+        if (category === 'All') {
+          // Update all topics
+          state.topics = data.recommendations || {};
+          state.categories = Object.keys(state.topics);
+          applyFiltersForAllTopics(state);
+        } else {
+          // Update topics for specific category
+          if (data.recommendations && Object.keys(data.recommendations).length > 0) {
+            // Merge new topics with existing ones
+            state.topics = { ...state.topics, ...data.recommendations };
+            
+            // Find topics for the selected category (convert to lowercase for matching)
+            const categoryKey = Object.keys(data.recommendations).find(
+              key => key.toLowerCase() === category.toLowerCase()
+            ) || category;
+            
+            console.log('Looking for category:', category, 'Found key:', categoryKey); // Debug log
+            console.log('Available topics for category:', data.recommendations[categoryKey]); // Debug log
+            
+            if (data.recommendations[categoryKey] && Array.isArray(data.recommendations[categoryKey])) {
+              state.filteredTopics = data.recommendations[categoryKey];
+            } else {
+              // If direct match fails, try to find topics in any category
+              let allTopicsForCategory: TopicItem[] = [];
+              Object.values(data.recommendations).forEach(categoryTopics => {
+                if (Array.isArray(categoryTopics)) {
+                  allTopicsForCategory = [...allTopicsForCategory, ...categoryTopics];
+                }
+              });
+              state.filteredTopics = allTopicsForCategory;
+            }
+          } else {
+            console.log('No recommendations found in response'); // Debug log
+            state.filteredTopics = [];
+          }
+          
+          // Apply search filter if there's a search term
+          if (state.searchTerm.trim() !== '') {
+            applySearchFilter(state);
+          }
+          
+          // Update pagination
+          updatePagination(state);
+        }
+        
+        console.log('Final filtered topics:', state.filteredTopics); // Debug log
+      })
+      .addCase(fetchTopicsByCategory.rejected, (state, action) => {
+        state.filterLoading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Other existing cases...
       .addCase(fetchTopicDetail.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -294,7 +402,6 @@ const learningSlice = createSlice({
         state.error = action.payload as string;
       })
       
-    
       .addCase(fetchUserTopicsStatus.fulfilled, (state, action) => {
         const { bookmarkedTopics, readTopics } = action.payload as { 
           bookmarkedTopics: string[]; 
@@ -303,7 +410,6 @@ const learningSlice = createSlice({
         state.bookmarkedTopics = bookmarkedTopics;
         state.readTopics = readTopics;
       })
-      
       
       .addCase(fetchDailySummary.pending, (state) => {
         state.dailySummaryLoading = true;
@@ -321,35 +427,53 @@ const learningSlice = createSlice({
   },
 });
 
-
-function applyFilters(state: LearningState) {
+// Helper functions
+function applyFiltersForAllTopics(state: LearningState) {
   let filtered: TopicItem[] = [];
   
-  if (state.selectedCategory !== 'All') {
-   
-    filtered = state.topics[state.selectedCategory] || [];
-  } else {
-    
-    Object.values(state.topics).forEach(categoryTopics => {
-      filtered = [...filtered, ...categoryTopics];
-    });
-  }
+  console.log('All topics in state:', state.topics); // Debug log
   
-  if (state.searchTerm.trim() !== '') {
-    const searchTerm = state.searchTerm.toLowerCase();
-    filtered = filtered.filter(topic => 
-      topic.title.toLowerCase().includes(searchTerm) || 
-      topic.description.toLowerCase().includes(searchTerm)
-    );
-  }
+  // Combine all topics from all categories
+  Object.entries(state.topics).forEach(([categoryName, categoryTopics]) => {
+    console.log(`Processing category ${categoryName}:`, categoryTopics); // Debug log
+    if (Array.isArray(categoryTopics)) {
+      filtered = [...filtered, ...categoryTopics];
+    }
+  });
+  
+  console.log('Combined filtered topics:', filtered); // Debug log
   
   state.filteredTopics = filtered;
   
-  state.totalPages = Math.ceil(filtered.length / state.itemsPerPage);
+  // Apply search filter if there's a search term
+  if (state.searchTerm.trim() !== '') {
+    applySearchFilter(state);
+  }
+  
+  updatePagination(state);
+}
+
+function applySearchFilter(state: LearningState) {
+  if (state.searchTerm.trim() === '') {
+    return;
+  }
+  
+  const searchTerm = state.searchTerm.toLowerCase();
+  state.filteredTopics = state.filteredTopics.filter(topic => 
+    topic.title.toLowerCase().includes(searchTerm) || 
+    topic.description.toLowerCase().includes(searchTerm)
+  );
+  
+  updatePagination(state);
+}
+
+function updatePagination(state: LearningState) {
+  state.totalPages = Math.ceil(state.filteredTopics.length / state.itemsPerPage);
   if (state.currentPage > state.totalPages && state.totalPages > 0) {
     state.currentPage = state.totalPages;
   }
 }
+
 export const { 
   setSearchTerm, 
   setSelectedCategory, 
