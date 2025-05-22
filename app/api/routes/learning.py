@@ -2,7 +2,9 @@
 
 This module provides endpoints for financial learning and educational content.
 """
+import asyncio
 from datetime import datetime, timedelta
+from functools import partial
 from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any, Optional, List
 from enum import Enum
@@ -20,13 +22,14 @@ from app.services.firebase.reading_log import (
     get_daily_reading_stats,
     get_user_read_history,
     get_user_tooltip_history,
-    get_user_streak_data
+    get_user_streak_data,
+    track_viewed_topic
 )
 from app.services.ai.perplexity import generate_article, generate_quiz_questions
 from app.services.firebase import log_topic_read, get_user_day_log
 from app.api.models import DeepDiveResponse,ArticleResponse, TooltipView
 from app.services.ai.claude import generate_category_topics, get_deep_dive
-from app.services.firebase.cache import cache_article, cache_topics, get_cached_article, get_cached_topics,find_topic_by_id
+from app.services.firebase.cache import cache_article, cache_topics, get_cached_article, get_cached_topics,find_topic_by_id, get_cached_topics_fast, get_cached_user_preferences, get_topic_by_id_fast
 from app.services.firebase.categories import get_user_categories
 
 
@@ -214,7 +217,13 @@ async def get_user_recommended_topics(
         List of recommended topics across user's selected categories
     """
     # 1. First get user preferences
-    user_preferences = get_user_selected_categories(user_id)
+    cached_preferences = get_cached_user_preferences(user_id)
+    if cached_preferences:
+        expertise_level = cached_preferences.get("expertise_level", "intermediate")
+        selected_categories = cached_preferences.get("categories", [])
+    else:
+        user_preferences = get_user_selected_categories(user_id)
+    
     
     if not user_preferences:
         raise HTTPException(status_code=404, detail="No preferences found for this user")
@@ -241,18 +250,28 @@ async def get_user_recommended_topics(
     # 3. Fetch topics for each category
     recommendations = {}
     
-    for cat in categories_to_process:
-        # Check if we need to refresh
+    # Define an async function to process each category
+    async def process_category(cat):
         need_refresh = refresh or should_refresh_topics(cat, expertise_level)
         
-        # Get or generate topics
         if need_refresh:
-            topics = get_daily_topics(cat, expertise_level, user_id)
+            # Run CPU-intensive operation in a thread pool
+            loop = asyncio.get_event_loop()
+            topics = await loop.run_in_executor(
+                None, 
+                partial(get_daily_topics, cat, expertise_level, user_id)
+            )
         else:
-            topics = get_cached_topics(cat, expertise_level) or []
+            topics = get_cached_topics_fast(cat, expertise_level) or []
         
-        # Select 2 topics from each category (or fewer if not enough)
-        recommendations[cat] = topics[:2] if topics else []
+        return cat, topics[:2] if topics else []
+
+    # Process all categories concurrently
+    category_tasks = [process_category(cat) for cat in categories_to_process]
+    results = await asyncio.gather(*category_tasks)
+    
+    # Convert results to recommendations dictionary
+    recommendations = {cat: topics for cat, topics in results}
     
     # 4. Define date range for reading history (last 90 days)
     from datetime import date, timedelta
@@ -309,7 +328,7 @@ async def get_topic_article(
         Generated article with tooltips for the specific topic
     """
     # Get the topic details from cache
-    topic = find_topic_by_id(topic_id)
+    topic = get_topic_by_id_fast(topic_id)
     
     if not topic:
         raise HTTPException(status_code=404, detail=f"Topic with ID {topic_id} not found")
@@ -338,34 +357,132 @@ async def get_topic_article(
         # Cache the article for future requests
         cache_article(topic_id, expertise_level, article)
     
-    # Track that the user viewed this topic
-    from app.services.firebase.reading_log import track_viewed_topic
-    track_viewed_topic(
-        user_id=user_id, 
-        category=category, 
-        topic_id=topic_id,
-        topic_title=title,
-        expertise_level=expertise_level
-    )
-
-    # Track tooltips if they exist
-    for tooltip_item in article.get("tooltip_words", []):
-        word = tooltip_item.get("word")
-        tooltip = tooltip_item.get("tooltip")
-        if word and tooltip:
-            log_tooltip_viewed(
-                user_id=user_id, 
-                word=word, 
-                tooltip=tooltip, 
-                from_topic=title,
-                topic_id=topic_id
-            )
-    
-    return {
+    response = {
         "user_id": user_id,
         "topic_id": topic_id,
         "article": article
     }
+
+    # Schedule background task for tracking
+    asyncio.create_task(track_article_view(
+        user_id=user_id,
+        category=category,
+        topic_id=topic_id,
+        topic_title=title,
+        expertise_level=expertise_level,
+        tooltips=article.get("tooltip_words", [])
+    ))
+    
+    return response
+
+async def track_article_view(
+    user_id: str,
+    category: str,
+    topic_id: str,
+    topic_title: str,
+    expertise_level: str,
+    tooltips: List[Dict]
+):
+    """Track article view and tooltips in background."""
+    # Run blocking operations in thread pool
+    await asyncio.to_thread(
+        track_viewed_topic,
+        user_id=user_id,
+        category=category,
+        topic_id=topic_id,
+        topic_title=topic_title,
+        expertise_level=expertise_level
+    )
+
+from fastapi.responses import StreamingResponse
+import json
+
+@router.get("/article/topic/{topic_id}/stream")
+async def get_topic_article_streaming(
+    user_id: str,
+    topic_id: str,
+    level: ExpertiseLevel = None,
+    refresh: bool = False
+):
+    """Streaming version that shows progress as article is generated."""
+    # Get topic details
+    topic = get_topic_by_id_fast(topic_id)
+    if not topic:
+        raise HTTPException(status_code=404, detail=f"Topic with ID {topic_id} not found")
+    
+    expertise_level = level.value if level else topic.get("expertise_level", "intermediate")
+    category = topic.get("category")
+    title = topic.get("title")
+    
+    async def generate_stream():
+        # Send metadata immediately
+        yield json.dumps({
+            "type": "metadata",
+            "user_id": user_id,
+            "topic_id": topic_id,
+            "title": title,
+            "category": category
+        }) + "\n"
+        
+        # Check cache unless refresh requested
+        article = None if refresh else get_cached_article(topic_id, expertise_level)
+        
+        if article:
+            # Send cached article
+            yield json.dumps({
+                "type": "article",
+                "content": article
+            }) + "\n"
+        else:
+            # Send generation status
+            yield json.dumps({
+                "type": "status",
+                "message": "Generating article..."
+            }) + "\n"
+            
+            # Generate article in thread pool
+            article = await asyncio.to_thread(
+                generate_article,
+                category=category,
+                topic=title,
+                expertise_level=expertise_level,
+                user_id=user_id
+            )
+            
+            # Cache generated article
+            asyncio.create_task(asyncio.to_thread(
+                cache_article,
+                topic_id=topic_id,
+                expertise_level=expertise_level,
+                article=article
+            ))
+            
+            # Send generated article
+            yield json.dumps({
+                "type": "article",
+                "content": article
+            }) + "\n"
+        
+        # Track view in background
+        asyncio.create_task(track_article_view(
+            user_id=user_id,
+            category=category,
+            topic_id=topic_id,
+            topic_title=title,
+            expertise_level=expertise_level,
+            tooltips=article.get("tooltip_words", [])
+        ))
+        
+        # Send completion
+        yield json.dumps({
+            "type": "complete",
+            "timestamp": datetime.now().isoformat()
+        }) + "\n"
+    
+    return StreamingResponse(
+        generate_stream(),
+        media_type="application/x-ndjson"
+    )
 
 @router.post("/tooltip/view")
 async def log_tooltip_view(tooltip_data: TooltipView) -> Dict[str, Any]:

@@ -245,7 +245,7 @@ def generate_news_based_topics(category: str, expertise_level: str, news_context
 
 {news_context}
 
-Generate a list of 8-10 specific topics within the financial category of {category} that would be:
+Generate a list of 4-5 specific topics within the financial category of {category} that would be:
 1. Relevant to current trends and market developments
 2. Appropriate for a {expertise_level} level audience
 3. Diverse enough to cover different aspects of {category}
@@ -1139,282 +1139,274 @@ Only return the most important news that could potentially affect the asset's va
         return []
 
 
-# Add these functions to your existing perplexity.py file
-
 def fetch_trending_finance_news(
     expertise_level: str,
     user_interests: List[str] = None,
     limit: int = 3
 ) -> List[Dict[str, Any]]:
-    """Fetch trending finance news tailored to the user's expertise and interests.
-    
-    Args:
-        expertise_level: User's expertise level (beginner/intermediate/advanced)
-        user_interests: List of financial topics the user is interested in
-        limit: Maximum number of news items to return
-        
-    Returns:
-        List of trending news items with details
-    """
+    """Fetch trending finance news tailored to the user's expertise and interests."""
     # Create interest string for personalization
     interest_str = ", ".join(user_interests) if user_interests else "general finance"
     
-    prompt = f"""Find the {limit} most significant trending finance news stories from the past 24 hours.
+    prompt = f"""Find EXACTLY {limit} most significant trending finance news stories from the past 24-48 hours.
     
 Focus on topics related to: {interest_str}
 
 The content should be appropriate for a {expertise_level}-level investor.
 
-For each news item, provide:
-1. A unique ID (create an alphanumeric identifier)
-2. Headline (attention-grabbing but accurate)
-3. Brief summary (1-2 sentences)
-4. Category (e.g., stocks, cryptocurrency, personal finance)
-5. Why it matters (explain significance for investors at {expertise_level} level)
-6. Source name (publication)
-7. Publication date (ISO format)
+YOU MUST RETURN EXACTLY {limit} NEWS ITEMS, not more, not less.
 
-Format your response as a valid JSON array with this structure:
-[
-  {{
-    "id": "unique-alphanumeric-id",
-    "headline": "Headline about the news",
-    "summary": "Brief summary of the news item",
-    "category": "Category of the news",
-    "why_it_matters": "Why this news is significant",
-    "source": "Source publication",
-    "date": "2023-05-15T13:45:00Z"
-  }},
-  ...
-]
+For each news item, provide a unique ID, title, summary, source, and other required information.
 """
     
     try:
-        response = call_perplexity_api(prompt)
+        # Use schema-based approach for structured response
+        from app.services.ai.schemas import TRENDING_NEWS_SCHEMA
         
-        # Parse the response
-        try:
-            # Try to extract JSON from markdown code blocks
-            if "```json" in response:
-                json_start = response.find("```json") + 7
-                json_end = response.find("```", json_start)
-                json_str = response[json_start:json_end].strip()
-                news_items = json.loads(json_str)
+        # Get structured response using the schema
+        news_items = call_perplexity_api_with_schema(prompt, TRENDING_NEWS_SCHEMA)
+        
+        # Ensure we have a list of items
+        if not isinstance(news_items, list):
+            logger.warning(f"Expected list but got {type(news_items)}, converting to list")
+            if isinstance(news_items, dict) and "title" in news_items:
+                news_items = [news_items]
             else:
-                # Try parsing the entire response as JSON
-                news_items = json.loads(response)
+                news_items = []
+        
+        # Add UUIDs to each item
+        for item in news_items:
+            item["id"] = str(uuid.uuid4())
+        
+        # Ensure we have exactly 'limit' news items
+        current_date = datetime.now().isoformat()
+        fallback_topics = ["stocks", "bonds", "cryptocurrency", "personal finance", "market trends"]
+        
+        # Add fallback items if we have fewer than requested
+        while len(news_items) < limit:
+            logger.warning(f"Only got {len(news_items)} news items, adding fallback items")
+            fallback_idx = len(news_items)
+            topic = fallback_topics[fallback_idx % len(fallback_topics)]
             
-            # Ensure the response is a list
-            if not isinstance(news_items, list):
-                logger.warning(f"Unexpected news response format: {type(news_items)}")
-                return []
-            
-            return news_items[:limit]
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse news JSON: {e}")
-            return []
+            news_items.append({
+                "id": f"fallback-{fallback_idx}",
+                "title": f"Latest Developments in {topic.capitalize()}",
+                "summary": f"Recent market trends affecting {topic} investments.",
+                "source": "Financial Times",
+                "url": None,
+                "published_at": current_date,
+                "topics": [topic]
+            })
+        
+        # Return exactly 'limit' items
+        return news_items[:limit]
         
     except Exception as e:
         logger.error(f"Error fetching trending finance news: {e}")
-        return []
+        # Return fallback news items
+        current_date = datetime.now().isoformat()
+        return [
+            {
+                "id": f"fallback-{i}",
+                "title": f"Latest Developments in {topic.capitalize()}",
+                "summary": f"Recent market trends affecting {topic} investments.",
+                "source": "Financial Times",
+                "url": None,
+                "published_at": current_date,
+                "topics": [topic]
+            }
+            for i, topic in enumerate(["stocks", "bonds", "cryptocurrency"][:limit])
+        ]
 
 def generate_news_article(
     news_id: str,
+    news_item: Dict[str, Any],
     expertise_level: str
 ) -> Dict[str, Any]:
-    """Generate a detailed article for a trending news item with appropriate tooltips.
+    """Generate a detailed article for a specific news item with separate tooltips and references.
     
     Args:
         news_id: ID of the news item
+        news_item: Details of the news item (title, summary, etc.)
         expertise_level: User's expertise level
         
     Returns:
-        Detailed article with tooltips
+        Detailed article with separate tooltips and references
     """
-    prompt = f"""Write a comprehensive analysis of a recent financial news story for a {expertise_level}-level investor.
+    # Extract details from the news item
+    title = news_item.get("title", "Recent Financial News")
+    summary = news_item.get("summary", "Recent developments in financial markets")
+    source = news_item.get("source", "Financial Times")
+    topics = news_item.get("topics", [])
+    topics_str = ", ".join(topics) if topics else "finance"
+    
+    prompt = f"""Write a comprehensive analysis of the following financial news story for a {expertise_level}-level investor:
 
-IMPORTANT FORMATTING: For any financial term or concept that might need explanation for a {expertise_level}-level reader, embed a tooltip using this exact format:
-"[concept name]{{tooltip:Explanation appropriate for {expertise_level} level.}}"
+NEWS TITLE: {title}
+SUMMARY: {summary}
+SOURCE: {source}
+TOPICS: {topics_str}
 
-Examples:
-- "The [Federal Reserve]{{tooltip:The central banking system of the United States that manages the country's monetary policy.}} announced..."
-- "This could impact the [yield curve]{{tooltip:A line plotting interest rates of bonds with equal credit quality but different maturity dates.}}..."
+Structure requirements:
+- Use the provided news as your main focus
+- Create an engaging, specific title based on the news
+- Use clear sections and paragraphs
+- Include latest developments and context
+- Add numerical citations [1][2] etc. for all facts and statements
+- Include a references section listing all citation sources
 
-Your article should:
-1. Start with a compelling title and introduction
-2. Provide thorough analysis of the news and its implications
-3. Include relevant context and background information
-4. Discuss potential impacts on different market sectors
-5. Mention expert opinions or market reactions
-6. End with a conclusion or outlook
+Content requirements:
+- Focus on providing valuable insights related to this specific news item
+- Include the most current information available about this topic
+- Make the analysis thorough but accessible for {expertise_level} level readers
+- Discuss implications of this news for investors
 
-Include at least 5-10 tooltips for financial terms appropriate to the user's {expertise_level} level.
+IMPORTANT: Identify technical financial terms and concepts that need explanation.
+For each term, provide a concise explanation appropriate for the {expertise_level} level.
+DO NOT embed tooltips directly in the content.
 
-Format your response as a valid JSON object with these fields:
+Return your response as a FLAT (not nested) JSON structure like this:
 {{
-  "title": "Engaging article title",
-  "content": "Full article with embedded tooltips using the format specified",
-  "key_points": ["Point 1", "Point 2", "Point 3"],
-  "related_topics": ["Topic 1", "Topic 2"]
+  "title": "Your article title here",
+  "content": "The full article with markdown formatting including citations [1][2]",
+  "tooltip_words": [
+    {{"word": "Term 1", "tooltip": "Explanation for term 1"}},
+    {{"word": "Term 2", "tooltip": "Explanation for term 2"}}
+  ],
+  "references": [
+    "Source 1: Publication name, article title, link, date",
+    "Source 2: Publication name, article title, link, date"
+  ]
 }}
+
+DO NOT nest JSON objects inside the content field. Keep tooltip_words as a separate array at the top level.
+Include at least 5-8 important tooltip words with clear explanations for terms ACTUALLY USED in the content.
 """
     
     try:
-        response = call_perplexity_api(prompt)
+        # Use schema-based approach for structured response
+        from app.services.ai.schemas import NEWS_ARTICLE_SCHEMA
         
-        # Parse the response
-        try:
-            # Try to extract JSON from markdown code blocks
-            if "```json" in response:
-                json_start = response.find("```json") + 7
-                json_end = response.find("```", json_start)
-                json_str = response[json_start:json_end].strip()
-                article = json.loads(json_str)
-            else:
-                # Try parsing the entire response as JSON
-                article = json.loads(response)
-            
-            return article
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse article JSON: {e}")
-            # Return a basic structure for the article if JSON parsing fails
-            return {
-                "title": "Analysis of Recent Financial News",
-                "content": response,
-                "key_points": ["Unable to format key points"],
-                "related_topics": []
-            }
+        # Get structured response using the schema
+        article = call_perplexity_api_with_schema(prompt, NEWS_ARTICLE_SCHEMA)
         
+        # Add reading time estimate (avg reading speed: 250 words/min)
+        content_words = len(article["content"].split())
+        article["reading_time_minutes"] = max(1, round(content_words / 250))
+        
+        return article
+            
     except Exception as e:
         logger.error(f"Error generating news article: {e}")
+        # Return fallback article with separate tooltips
         return {
-            "title": "Error Generating Article",
-            "content": f"We encountered an error while generating this article: {str(e)}",
-            "key_points": [],
-            "related_topics": []
+            "title": "Market Update: Latest Developments in Finance",
+            "content": "We apologize, but we couldn't generate the article you requested. Please try again later.\n\nThis content would normally contain an analysis of recent financial news with relevant citations [1].\n\n## References\n[1] System Error Log. Financial article generation service, unavailable.",
+            "tooltip_words": [
+                {"word": "Market Volatility", "tooltip": "The rate at which the price of assets increases or decreases."},
+                {"word": "Inflation", "tooltip": "The rate at which prices for goods and services rise over time."}
+            ],
+            "references": [
+                "Financial Times. (2023). Latest market developments, https://ft.com, Recent date.",
+                "System Error Log. Financial article generation service, unavailable."
+            ],
+            "reading_time_minutes": 1
         }
 
-def get_financial_glossary_term(expertise_level: str) -> Dict[str, Any]:
-    """Get financial glossary terms of the day tailored to user's expertise level.
+
+
+def get_financial_glossary_term(expertise_level: str) -> List[Dict[str, Any]]:
+    """Get financial glossary terms tailored to user's expertise level.
     
     Args:
         expertise_level: User's expertise level
         
     Returns:
-        Three financial terms with definitions and examples
+        List of three financial terms with definitions and examples
     """
-    prompt = f"""Generate three different 'Financial Terms of the Day' for a {expertise_level}-level investor.
+    prompt = f"""Generate EXACTLY THREE different 'Financial Terms of the Day' for a {expertise_level}-level investor.
+
+You MUST return THREE terms, not more, not less.
 
 Each term should be:
 1. Appropriate for a {expertise_level} level of understanding
 2. Relevant to current financial markets or fundamental concepts
 3. Explained clearly with a definition
 4. Illustrated with a practical example
-5. Accompanied by why it's important to understand
-
-The three terms should cover different areas of finance (e.g., investing, economics, personal finance).
-
-Format your response as a valid JSON object with these fields:
-{{
-  "terms": [
-    {{
-      "term": "First financial term",
-      "definition": "Clear and concise definition",
-      "example": "Practical example of the term in use",
-      "importance": "Why this term matters for investors"
-    }},
-    {{
-      "term": "Second financial term",
-      "definition": "Clear and concise definition",
-      "example": "Practical example of the term in use",
-      "importance": "Why this term matters for investors"
-    }},
-    {{
-      "term": "Third financial term",
-      "definition": "Clear and concise definition",
-      "example": "Practical example of the term in use",
-      "importance": "Why this term matters for investors"
-    }}
-  ]
-}}
 """
     
     try:
-        response = call_perplexity_api(prompt)
+        # Use schema-based approach for structured response
+        from app.services.ai.schemas import GLOSSARY_TERMS_SCHEMA
         
-        # Parse the response
-        try:
-            # Try to extract JSON from markdown code blocks
-            if "```json" in response:
-                json_start = response.find("```json") + 7
-                json_end = response.find("```", json_start)
-                json_str = response[json_start:json_end].strip()
-                terms_data = json.loads(json_str)
+        # Get structured response using the schema
+        terms_data = call_perplexity_api_with_schema(prompt, GLOSSARY_TERMS_SCHEMA)
+        
+        # Ensure we have a list of exactly three terms
+        if not isinstance(terms_data, list):
+            logger.warning(f"Expected list but got {type(terms_data)}, converting to list")
+            # If it's a single term dictionary, wrap it in a list
+            if isinstance(terms_data, dict) and "term" in terms_data:
+                terms_data = [terms_data]
             else:
-                # Try parsing the entire response as JSON
-                terms_data = json.loads(response)
-            
-            # Ensure we have a terms array, even if parsing didn't work as expected
-            if "terms" not in terms_data or not isinstance(terms_data["terms"], list):
-                # Create a default structure
-                return {
-                    "terms": [
-                        {
-                            "term": "Financial Literacy",
-                            "definition": "The ability to understand and effectively use various financial skills.",
-                            "example": "Understanding how investments work and managing a budget.",
-                            "importance": "Helps individuals make informed financial decisions."
-                        }
-                    ]
+                terms_data = []
+        
+        # Ensure we have exactly 3 terms
+        while len(terms_data) < 3:
+            logger.warning(f"Only got {len(terms_data)} terms, adding fallback terms")
+            # Add fallback terms if we have fewer than 3
+            fallback_terms = [
+                {
+                    "term": "Financial Literacy",
+                    "definition": "The ability to understand and effectively use various financial skills.",
+                    "example": "Understanding how investments work and managing a budget."
+                },
+                {
+                    "term": "Compound Interest",
+                    "definition": "Interest calculated on both the initial principal and previously accumulated interest.",
+                    "example": "A $1,000 investment earning 5% compounded annually becomes $1,276 after 5 years."
+                },
+                {
+                    "term": "Risk Tolerance",
+                    "definition": "The degree of variability in investment returns that an investor is willing to withstand.",
+                    "example": "A conservative investor might prefer bonds over volatile stocks."
                 }
-                
-            return terms_data
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse glossary terms JSON: {e}")
-            return {
-                "terms": [
-                    {
-                        "term": "Financial Literacy",
-                        "definition": "The ability to understand and effectively use various financial skills.",
-                        "example": "Understanding how investments work and managing a budget.",
-                        "importance": "Helps individuals make informed financial decisions."
-                    },
-                    {
-                        "term": "Compound Interest",
-                        "definition": "Interest calculated on both the initial principal and previously accumulated interest.",
-                        "example": "A $1,000 investment earning 5% compounded annually becomes $1,276 after 5 years.",
-                        "importance": "Shows how investments can grow exponentially over time."
-                    },
-                    {
-                        "term": "Risk Tolerance",
-                        "definition": "The degree of variability in investment returns that an investor is willing to withstand.",
-                        "example": "A conservative investor might prefer bonds over volatile stocks.",
-                        "importance": "Helps determine the appropriate asset allocation for an investor."
-                    }
-                ]
-            }
+            ]
+            # Add terms we don't already have
+            for term in fallback_terms:
+                if len(terms_data) < 3:
+                    terms_data.append(term)
+        
+        # Limit to exactly 3 terms
+        return terms_data[:3]
         
     except Exception as e:
         logger.error(f"Error generating glossary terms: {e}")
-        return {
-            "terms": [
-                {
-                    "term": "Error",
-                    "definition": "Unable to generate terms",
-                    "example": "",
-                    "importance": ""
-                }
-            ]
-        }
+        # Return fallback list of 3 terms
+        return [
+            {
+                "term": "Financial Literacy",
+                "definition": "The ability to understand and effectively use various financial skills.",
+                "example": "Understanding how investments work and managing a budget."
+            },
+            {
+                "term": "Compound Interest",
+                "definition": "Interest calculated on both the initial principal and accumulated interest.",
+                "example": "A $1,000 investment earning 5% compounded annually becomes $1,276 after 5 years."
+            },
+            {
+                "term": "Risk Tolerance",
+                "definition": "The degree of variability in investment returns an investor can withstand.",
+                "example": "A conservative investor might prefer bonds over volatile stocks."
+            }
+        ]
+    
 
 def get_finance_quote() -> Dict[str, Any]:
     """Get motivational finance quote of the day.
     
     Returns:
-        Quote with author and explanation
+        Quote with author
     """
     prompt = """Generate an inspiring quote related to finance, investing, or money management.
 
@@ -1422,45 +1414,24 @@ The quote should be:
 1. Motivational or thought-provoking
 2. Attributed to a real person (famous investor, entrepreneur, economist, etc.)
 3. Relevant to financial success or wisdom
-4. Accompanied by a brief explanation of its meaning
-
-Format your response as a valid JSON object with these fields:
-{
-  "quote": "The full quote text",
-  "author": "Name of the person who said it",
-  "explanation": "Brief explanation of what this quote means"
-}
 """
     
     try:
-        response = call_perplexity_api(prompt)
+        # Use schema-based approach for structured response
+        from app.services.ai.schemas import FINANCE_QUOTE_SCHEMA
         
-        # Parse the response
-        try:
-            # Try to extract JSON from markdown code blocks
-            if "```json" in response:
-                json_start = response.find("```json") + 7
-                json_end = response.find("```", json_start)
-                json_str = response[json_start:json_end].strip()
-                quote = json.loads(json_str)
-            else:
-                # Try parsing the entire response as JSON
-                quote = json.loads(response)
+        # Get structured response using the schema
+        quote_data = call_perplexity_api_with_schema(prompt, FINANCE_QUOTE_SCHEMA)
+        
+        # Rename key from 'text' to 'quote' for backwards compatibility if needed
+        if 'text' in quote_data and 'quote' not in quote_data:
+            quote_data['quote'] = quote_data['text']
             
-            return quote
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse quote JSON: {e}")
-            return {
-                "quote": "The best investment you can make is in yourself.",
-                "author": "Warren Buffett",
-                "explanation": "Investing in your knowledge and skills provides the highest return."
-            }
+        return quote_data
         
     except Exception as e:
         logger.error(f"Error generating finance quote: {e}")
         return {
-            "quote": "Error generating quote",
-            "author": "",
-            "explanation": ""
+            "text": "The best investment you can make is in yourself.",
+            "author": "Warren Buffett"
         }
