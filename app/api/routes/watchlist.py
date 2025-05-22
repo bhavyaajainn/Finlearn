@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 from app.services.assets.data import fast_search_assets, get_asset_info, get_asset_info_async, get_similar_assets, get_similar_assets_async, search_assets
 from app.services.firebase import add_to_watchlist, remove_from_watchlist
 # from app.services.assets import get_stock_info
+from app.services.ai.perplexity import fetch_asset_news, get_interactive_asset_analysis
 from app.services.ai import get_deep_research_on_stock
 from app.api.models import AssetType, AddAssetRequest, SearchRequest
 from app.services.ai.perplexity import search_assets_with_perplexity, get_similar_stocks, get_similar_crypto
