@@ -88,13 +88,15 @@ export default function WatchlistDetails() {
   const params = useParams()
   // const assetName = params?.id ? decodeURIComponent(params.id as string) : '';
 
+  console.log(user?.uid);
   useEffect(() => {
     const isParamsReady = params.id && params?.id.length >= 2;
     const isUserReady = !!user?.uid;
 
     if (!isParamsReady || !isUserReady) return;
 
-    const API_URL = params.id ? `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/research/${params.id[0]}?user_id=${user.uid}&asset_type=${params.id[1]}&include_comparison=true&include_news=true` : '';
+
+    const API_URL = params.id ? `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/research/${params.id[0]}?user_id=${user.uid}&asset_type=${params.id[1]}&include_comparison=true&include_news=true&refresh=false` : '';
 
     console.log(API_URL);
 

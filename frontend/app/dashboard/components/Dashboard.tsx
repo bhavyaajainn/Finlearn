@@ -12,7 +12,7 @@ import UserPreferencesDialog from "./UserPreferencesDialog"
 export function Dashboard() {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState<boolean>(false);
   const dispatch = useAppDispatch();
-  
+
   const { user } = useAppSelector((state) => state.auth);
   const { preferences, loading } = useAppSelector((state) => state.preferences);
 
@@ -51,13 +51,14 @@ export function Dashboard() {
 
   return (
     <>
-      <UserPreferencesDialog 
-        open={showPreferencesDialog} 
-        onOpenChange={setShowPreferencesDialog} 
+      <UserPreferencesDialog
+        open={showPreferencesDialog}
+        onOpenChange={setShowPreferencesDialog}
       />
-    
-      <div className="h-full p-6 container mx-auto">
+
+      <div className="h-full px-4 sm:px-6 py-6 container mx-auto">
         <motion.div variants={container} initial="hidden" animate="show" className="grid gap-6">
+
           <motion.div variants={item}>
             <h1 className="text-2xl font-bold text-white">Dashboard</h1>
             <p className="text-gray-400">Welcome to your financial journey</p>
@@ -66,14 +67,18 @@ export function Dashboard() {
           <motion.div variants={item}>
             <UserInfo />
           </motion.div>
-          
-          <MotivationCard />
+
+          <motion.div variants={item}>
+            <MotivationCard />
+          </motion.div>
 
           <motion.div variants={item}>
             <GlossaryCard />
           </motion.div>
+
         </motion.div>
       </div>
     </>
+
   )
 }

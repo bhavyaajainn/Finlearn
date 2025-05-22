@@ -1,12 +1,11 @@
 "use client"
 
 import type React from "react"
-
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Flame, Trophy, TrendingUp, Calendar } from "lucide-react"
+import { Flame, TrendingUp, Calendar } from "lucide-react"
 
 export function UserInfo() {
   return (
@@ -15,15 +14,16 @@ export function UserInfo() {
         <CardTitle className="text-lg text-white">Your Progress</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-6 sm:grid-cols-3">
-          <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 px-2 sm:px-4">
+          {/* Days Visited Section */}
+          <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-yellow-500" />
               <span className="text-sm font-medium text-gray-200">Days Visited Learning Hub</span>
             </div>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap min-w-0">
               <span className="text-2xl font-bold text-white">1,250</span>
-              <Badge variant="outline" className="bg-green-950/50 text-green-400 border-green-800">
+              <Badge variant="outline" className="bg-green-950/50 text-green-400 border-green-800 flex items-center">
                 <TrendingUp className="mr-1 h-3 w-3" />
                 20 Days Steak
               </Badge>
@@ -36,13 +36,14 @@ export function UserInfo() {
             <span className="text-xs text-gray-400">Keep Participating in Quizzes to earn more XP!</span>
           </div>
 
-          <div className="flex flex-col gap-2">
+          {/* Quizzes Participated Section */}
+          <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-orange-500" />
               <span className="text-sm font-medium text-gray-200">No. Quizzez you participated</span>
             </div>
             <motion.div
-              className="flex items-baseline gap-2"
+              className="flex items-baseline gap-2 flex-wrap min-w-0"
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               transition={{
@@ -51,20 +52,19 @@ export function UserInfo() {
                 duration: 1.5,
               }}
             >
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-white">1,250</span>
-              </div>
+              <span className="text-2xl font-bold text-white">1,250</span>
             </motion.div>
             <Progress value={65} className="h-2 bg-blue-500" />
             <span className="text-xs text-gray-400">650 XP until next level</span>
           </div>
 
-          <div className="flex flex-col gap-2">
+          {/* Concepts Learned Section */}
+          <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
               <BookIcon className="h-4 w-4 text-blue-500" />
               <span className="text-sm font-medium text-gray-200">Concepts Learned</span>
             </div>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap min-w-0">
               <span className="text-2xl font-bold text-white">42</span>
               <span className="text-sm text-gray-400">of 100</span>
             </div>
