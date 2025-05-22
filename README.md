@@ -78,7 +78,7 @@ Small design elements like tooltips, streaks, and nudges significantly boosted e
 - **Rohan Singla** - [@rohanBuilds](https://x.com/rohanBuilds)
 
 ## Hackathon
-FinLearn AI was developed as part of the MoveAI Hackathon.
+FinLearn AI was developed as part of the Perplexity AI Hackathon.
 
 ## License
 This project is licensed under the [MIT License](LICENSE).
