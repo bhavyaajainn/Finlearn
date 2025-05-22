@@ -198,6 +198,9 @@ def track_article_view(user_id: str, news_id: str) -> None:
         
         # Add to user activity collection
         db.collection("user_learning_activity").add(activity)
+
+        from app.services.firebase.reading_log import update_user_streak
+        update_user_streak(user_id, is_article_view=True)
         
         # Get the news item details for additional tracking
         news_item = get_news_item_by_id(news_id)
