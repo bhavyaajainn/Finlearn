@@ -26,6 +26,9 @@ steps:
       - '--service-account'
       - '217321872324-compute@developer.gserviceaccount.com'
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 substitutions:
   _PERPLEXITY_API_KEY: "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"
   _SERVICE_ACCOUNT_EMAIL: "217321872324-compute@developer.gserviceaccount.com"
