@@ -275,3 +275,100 @@ def get_cached_research(symbol: str, asset_type: str, expertise_level: str) -> O
         logger.error(f"Error retrieving cached research: {e}")
         return None
     
+
+
+def get_cached_user_summary(
+    user_id: str, 
+    period: str,
+    start_date_str: str,
+    end_date_str: str
+) -> Optional[Dict[str, Any]]:
+    """Get cached summary if available and valid."""
+    try:
+        cache_key = f"user_summary:{user_id}:{period}:{start_date_str}:{end_date_str}"
+        doc = db.collection("user_summary_cache").document(cache_key).get()
+        
+        if not doc.exists:
+            return None
+            
+        cache_data = doc.to_dict()
+        
+        # Get user's last activity timestamp
+        last_activity_doc = db.collection("user_activity_timestamps").document(user_id).get()
+        
+        if last_activity_doc.exists:
+            last_activity = last_activity_doc.to_dict()
+            last_read_at = last_activity.get("last_read_at")
+            last_tooltip_at = last_activity.get("last_tooltip_at")
+            
+            # Determine the most recent activity
+            latest_activity = max(
+                last_read_at or "1970-01-01T00:00:00",
+                last_tooltip_at or "1970-01-01T00:00:00"
+            )
+            
+            # Check if cache is still valid (no new activity since cache was created)
+            cache_created_at = cache_data.get("cached_at", "1970-01-01T00:00:00")
+            
+            if latest_activity > cache_created_at:
+                logger.info(f"Cache invalid - new activity since last cache for user {user_id}")
+                return None
+                
+        # Check for general expiration (4 hours)
+        cache_timestamp = datetime.fromisoformat(cache_data.get("cached_at"))
+        if datetime.now() - cache_timestamp > timedelta(hours=4):
+            logger.info(f"Cache expired for user {user_id}")
+            return None
+            
+        return cache_data.get("data")
+        
+    except Exception as e:
+        logger.error(f"Error retrieving cached summary: {e}")
+        return None
+
+def cache_user_summary(
+    user_id: str,
+    period: str,
+    start_date_str: str,
+    end_date_str: str,
+    summary_data: Dict[str, Any]
+) -> None:
+    """Cache user summary data with metadata."""
+    try:
+        cache_key = f"user_summary:{user_id}:{period}:{start_date_str}:{end_date_str}"
+        now = datetime.now().isoformat()
+        
+        db.collection("user_summary_cache").document(cache_key).set({
+            "user_id": user_id,
+            "period": period,
+            "start_date": start_date_str,
+            "end_date": end_date_str,
+            "cached_at": now,
+            "expires_at": (datetime.now() + timedelta(hours=4)).isoformat(),
+            "data": summary_data
+        })
+        
+        logger.info(f"Cached summary for user {user_id}, period {period}")
+    except Exception as e:
+        logger.error(f"Error caching user summary: {e}")
+
+def update_user_activity_timestamp(user_id: str, activity_type: str) -> None:
+    """Update user's last activity timestamp when they read articles or view tooltips."""
+    try:
+        now = datetime.now().isoformat()
+        
+        # Update the timestamp for the specific activity type
+        if activity_type in ["article_read", "topic_view"]:
+            field = "last_read_at"
+        elif activity_type == "tooltip_view":
+            field = "last_tooltip_at"
+        else:
+            field = f"last_{activity_type}_at"
+        
+        db.collection("user_activity_timestamps").document(user_id).set({
+            field: now,
+            "updated_at": now
+        }, merge=True)
+        
+    except Exception as e:
+        logger.error(f"Error updating activity timestamp: {e}")

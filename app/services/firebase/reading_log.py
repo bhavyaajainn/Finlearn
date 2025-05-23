@@ -103,11 +103,12 @@ def log_topic_read(user_id: str, topic: str, subtopic: Optional[str] = None, cat
 #     update_user_streak(user_id)
 
 
-def update_user_streak(user_id: str) -> None:
+def update_user_streak(user_id: str, is_article_view: bool = False) -> None:
     """Update user's daily learning streak.
     
     Args:
         user_id: User identifier
+        is_article_view: Whether this update is from an article view
     """
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
@@ -121,11 +122,12 @@ def update_user_streak(user_id: str) -> None:
         last_active = datetime.fromisoformat(streak_data.get("last_active")).date()
         current_streak = streak_data.get("current_streak", 0)
         longest_streak = streak_data.get("longest_streak", 0)
+        total_articles = streak_data.get("total_articles", 0)
         
         # Check if streak should continue or reset
         if last_active == today:
-            # Already logged today, nothing to update
-            return
+            # Already logged today, nothing to update for streak
+            pass
         elif last_active == yesterday:
             # Continuing the streak
             current_streak += 1
@@ -135,16 +137,22 @@ def update_user_streak(user_id: str) -> None:
         
         # Update longest streak if needed
         longest_streak = max(longest_streak, current_streak)
+        
+        # Increment total articles if this is an article view
+        if is_article_view:
+            total_articles += 1
     else:
         # First time user activity
         current_streak = 1
         longest_streak = 1
+        total_articles = 1 if is_article_view else 0
     
     # Update streak data
     streak_ref.set({
         "user_id": user_id,
         "current_streak": current_streak,
         "longest_streak": longest_streak,
+        "total_articles": total_articles,
         "last_active": today.isoformat(),
         "updated_at": datetime.now()
     }, merge=True)
@@ -292,6 +300,7 @@ def get_user_streak_data(user_id: str) -> Dict[str, Any]:
             "user_id": user_id,
             "current_streak": 0,
             "longest_streak": 0,
+            "total_articles": 0,
             "last_active": None
         }
 
@@ -401,8 +410,11 @@ def track_viewed_topic(user_id: str, category: str, topic_id: str, topic_title: 
     # Convert to list to check if any results exist
     recent_views_list = list(recent_views)
     
+    is_new_view = False
+    
     if not recent_views_list:
         # No recent views found, log a new one
+        is_new_view = True
         log_user_activity(
             user_id=user_id,
             activity_type="topic_view",
@@ -422,8 +434,11 @@ def track_viewed_topic(user_id: str, category: str, topic_id: str, topic_title: 
         })
     
     # Only update streak for new views or first view of the day
-    if not recent_views_list or recent_views_list[0].to_dict().get("date") != now.date().isoformat():
-        update_user_streak(user_id)
+    if is_new_view or recent_views_list[0].to_dict().get("date") != now.date().isoformat():
+        # Pass True to indicate this is an article view
+        update_user_streak(user_id, is_article_view=True)
+    from app.services.firebase.cache import update_user_activity_timestamp
+    update_user_activity_timestamp(user_id, "article_read")
 
 def log_tooltip_viewed(user_id: str, word: str, tooltip: str, from_topic: str = None, topic_id: str = None) -> None:
     """Log when a user views a tooltip."""
