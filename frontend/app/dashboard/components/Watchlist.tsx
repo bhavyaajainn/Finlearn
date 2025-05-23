@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowDown, ArrowUp, AlertCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
@@ -6,59 +6,15 @@ import { motion } from "framer-motion"
 import { useAppSelector } from '@/app/store/hooks'
 import { useRouter } from 'next/navigation'
 
-// Interface for watchlist item from API
-interface WatchlistItem {
-  asset_type: string;
-  symbol: string;
-  added_on: string;
-  notes: string;
-  name: string;
-  current_price: number;
-  price_change: number;
-  price_change_percent: number;
-  currency: string;
-  exchange: string;
-  sector: string;
-  industry: string;
-  market_cap: number;
-}
-
-interface WatchlistResponse {
-  watchlist: WatchlistItem[];
-  count: number;
-}
-
 const Watchlist = () => {
-  const [watchlistData, setWatchlistData] = useState<WatchlistItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useAppSelector((state) => state.auth);
   const router = useRouter();
-
-  // Fetch watchlist data
-  useEffect(() => {
-    const fetchWatchlist = async () => {
-      if (!user?.uid) return;
-      
-      setLoading(true);
-      try {
-        const response = await fetch(`http://127.0.0.1:8000/watchlist?user_id=${user.uid}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch watchlist');
-        }
-        const data: WatchlistResponse = await response.json();
-        // Show only first 5 items for dashboard
-        setWatchlistData(data.watchlist.slice(0, 5));
-      } catch (err) {
-        console.error('Error fetching watchlist:', err);
-        setError('Failed to load watchlist');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWatchlist();
-  }, [user?.uid]);
+  
+  // Get watchlist data from Redux store
+  const { 
+    watchlist, 
+    loading: { watchlist: loading }, 
+    error: { watchlist: error } 
+  } = useAppSelector((state) => state.dashboard);
 
   // Format price based on currency
   const formatPrice = (price: number, currency: string) => {
@@ -141,7 +97,7 @@ const Watchlist = () => {
     );
   }
 
-  if (watchlistData.length === 0) {
+  if (watchlist.length === 0) {
     return (
       <Card className="bg-black border-blue-900/50 text-white">
         <CardHeader className="pb-2">
@@ -171,7 +127,7 @@ const Watchlist = () => {
       </CardHeader>
       <CardContent className="p-0">
         <div>
-          {watchlistData.map((item, i) => (
+          {watchlist.map((item, i) => (
             <motion.div 
               key={`${item.symbol}-${item.exchange}`}
               className="flex items-center justify-between py-3 px-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-900/50 transition-colors cursor-pointer"

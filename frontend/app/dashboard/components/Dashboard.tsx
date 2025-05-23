@@ -4,6 +4,11 @@ import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useAppSelector, useAppDispatch } from "@/app/store/hooks"
 import { fetchUserPreferences } from "@/app/store/slices/preferencesSlice"
+import { 
+  fetchDashboardEssentials, 
+  fetchStreakData, 
+  fetchWatchlist 
+} from "@/app/store/slices/dashboardSlice"
 import UserPreferencesDialog from "./UserPreferencesDialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -22,109 +27,32 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
-// Interface for dashboard essentials API response
-interface GlossaryTerm {
-  term: string;
-  definition: string;  
-  example: string;
-}
-
-interface Quote {
-  text: string;
-  author: string;
-}
-
-interface DashboardEssentials {
-  user_id: string;
-  expertise_level: string;
-  glossary_term: GlossaryTerm[];
-  quote: Quote;
-  timestamp: string;
-}
-
-// Interface for streak API response
-interface StreakData {
-  current_streak: number;
-  user_id: string;
-  last_active: string;
-  updated_at: string;
-  total_articles: number;
-  longest_streak: number;
-}
-
-interface StreakResponse {
-  user_id: string;
-  streak: StreakData;
-  fetched_at: string;
-}
-
 export function Dashboard() {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState<boolean>(false);
-  const [dashboardEssentials, setDashboardEssentials] = useState<DashboardEssentials | null>(null);
-  const [streakData, setStreakData] = useState<StreakData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [streakLoading, setStreakLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { preferences } = useAppSelector((state) => state.preferences);
+  const { 
+    essentials, 
+    streak, 
+    loading, 
+    error 
+  } = useAppSelector((state) => state.dashboard);
 
-  // Fetch dashboard essentials
+  // Fetch all dashboard data
   useEffect(() => {
-    const fetchDashboardEssentials = async () => {
-      if (!user?.uid) return;
+    if (user?.uid) {
+      // Fetch dashboard essentials
+      dispatch(fetchDashboardEssentials(user.uid));
       
-      setLoading(true);
-      try {
-        const response = await fetch(`http://127.0.0.1:8000/dashboard/home/essential?user_id=${user.uid}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch dashboard essentials');
-        }
-        const data = await response.json();
-        setDashboardEssentials(data);
-      } catch (err) {
-        console.error('Error fetching dashboard essentials:', err);
-        setError('Failed to load dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardEssentials();
-  }, [user?.uid]);
-
-  // Fetch streak data
-  useEffect(() => {
-    const fetchStreakData = async () => {
-      if (!user?.uid) return;
+      // Fetch streak data
+      dispatch(fetchStreakData({ userId: user.uid, refresh: true }));
       
-      setStreakLoading(true);
-      try {
-        const response = await fetch(`http://127.0.0.1:8000/user/streak?user_id=${user.uid}&refresh=true`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch streak data');
-        }
-        const data: StreakResponse = await response.json();
-        setStreakData(data.streak);
-      } catch (err) {
-        console.error('Error fetching streak data:', err);
-        // Set default values if API fails
-        setStreakData({
-          current_streak: 0,
-          longest_streak: 0,
-          total_articles: 0,
-          user_id: user?.uid || '',
-          last_active: '',
-          updated_at: ''
-        });
-      } finally {
-        setStreakLoading(false);
-      }
-    };
-
-    fetchStreakData();
-  }, [user?.uid]);
+      // Fetch watchlist (limited to 5 items for dashboard)
+      dispatch(fetchWatchlist({ userId: user.uid, limit: 5 }));
+    }
+  }, [user?.uid, dispatch]);
 
   // Check if we need to show the preferences dialog
   useEffect(() => {
@@ -159,7 +87,7 @@ export function Dashboard() {
   }
 
   // Calculate progress for concepts learned (assuming 100 total concepts as baseline)
-  const conceptsProgress = streakData ? Math.min((streakData.total_articles / 100) * 100, 100) : 0;
+  const conceptsProgress = streak ? Math.min((streak.total_articles / 100) * 100, 100) : 0;
 
   return (
     <>
@@ -189,10 +117,10 @@ export function Dashboard() {
                     </div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-bold text-white">
-                        {streakLoading ? "..." : streakData?.current_streak || 0}
+                        {loading.streak ? "..." : streak?.current_streak || 0}
                       </span>
                       <span className="text-sm text-gray-400">days</span>
-                      {!streakLoading && streakData && streakData.current_streak > 0 && (
+                      {!loading.streak && streak && streak.current_streak > 0 && (
                         <Badge variant="outline" className="bg-green-950/50 text-green-400 border-green-800 ml-2">
                           🔥 On Fire
                         </Badge>
@@ -201,7 +129,7 @@ export function Dashboard() {
                     <div className="flex gap-1">
                       {Array.from({ length: 7 }).map((_, i) => {
                         // Calculate which days to highlight based on current streak
-                        const daysToHighlight = Math.min(streakData?.current_streak || 0, 7);
+                        const daysToHighlight = Math.min(streak?.current_streak || 0, 7);
                         return (
                           <div 
                             key={i} 
@@ -222,13 +150,13 @@ export function Dashboard() {
                     </div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-bold text-white">
-                        {streakLoading ? "..." : streakData?.longest_streak || 0}
+                        {loading.streak ? "..." : streak?.longest_streak || 0}
                       </span>
                       <span className="text-sm text-gray-400">days</span>
                     </div>
                     <div className="mt-2 text-xs text-gray-400">
-                      {streakLoading ? "Loading..." : 
-                        streakData && streakData.longest_streak > streakData.current_streak ? 
+                      {loading.streak ? "Loading..." : 
+                        streak && streak.longest_streak > streak.current_streak ? 
                         "Keep going to beat your record!" : 
                         "You're at your best streak!"
                       }
@@ -242,13 +170,13 @@ export function Dashboard() {
                     </div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-bold text-white">
-                        {streakLoading ? "..." : streakData?.total_articles || 0}
+                        {loading.streak ? "..." : streak?.total_articles || 0}
                       </span>
                       <span className="text-sm text-gray-400">of 100</span>
                     </div>
                     <Progress value={conceptsProgress} className="h-2 bg-blue-900" />
                     <span className="text-xs text-gray-400">
-                      {100 - (streakData?.total_articles || 0)} more to master basics
+                      {100 - (streak?.total_articles || 0)} more to master basics
                     </span>
                   </div>
                 </div>
@@ -315,18 +243,18 @@ export function Dashboard() {
           {/* Motivation Card - Using API data */}
           <motion.div variants={item}>
             <MotivationCard 
-              quote={dashboardEssentials?.quote} 
-              loading={loading}
-              error={error}
+              quote={essentials?.quote} 
+              loading={loading.essentials}
+              error={error.essentials}
             />
           </motion.div>
 
           {/* Glossary Card - Using API data */}
           <motion.div variants={item}>
             <GlossaryCard 
-              glossaryTerms={dashboardEssentials?.glossary_term || []}
-              loading={loading}
-              error={error}
+              glossaryTerms={essentials?.glossary_term || []}
+              loading={loading.essentials}
+              error={error.essentials}
             />
           </motion.div>
 
