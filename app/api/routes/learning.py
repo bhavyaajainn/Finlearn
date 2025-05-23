@@ -555,6 +555,7 @@ async def get_user_summary(
     end_date_str = end_date_obj.isoformat()
     
     # Try to get from cache first (unless refresh is requested)
+    # Try to get from cache first (unless refresh is requested)
     if not refresh:
         from app.services.firebase.cache import get_cached_user_summary
         cached_summary = get_cached_user_summary(user_id, period, start_date_str, end_date_str)
@@ -563,13 +564,9 @@ async def get_user_summary(
             logger.info(f"Returning cached summary for user {user_id}")
             return cached_summary
     
-    # Run Firebase queries concurrently
+    # Run Firebase queries concurrently - REMOVED TOOLTIP QUERY
     read_history_task = asyncio.create_task(asyncio.to_thread(
         get_user_read_history, user_id, start_date_obj, end_date_obj
-    ))
-    
-    tooltip_history_task = asyncio.create_task(asyncio.to_thread(
-        get_user_tooltip_history, user_id, start_date_obj, end_date_obj
     ))
     
     streak_data_task = asyncio.create_task(asyncio.to_thread(
@@ -580,24 +577,23 @@ async def get_user_summary(
         get_user_expertise_level, user_id
     ))
     
-    # Wait for all Firebase queries to complete
+    # Wait for Firebase queries - REMOVED TOOLTIP AWAIT
     read_history = await read_history_task
-    tooltip_history = await tooltip_history_task
     streak_data = await streak_data_task
     expertise_level = await expertise_level_task
     
     if "user_id" in streak_data:
         del streak_data["user_id"]
     
-    # Calculate statistics (fast operation)
-    stats = calculate_reading_stats(read_history, tooltip_history)
+    # Calculate statistics - PASS EMPTY LIST FOR TOOLTIPS
+    stats = calculate_reading_stats(read_history, [])
     
-    # Run AI operations concurrently
+    # Run AI operations concurrently - PASS EMPTY LIST FOR TOOLTIPS
     ai_summary_task = asyncio.create_task(asyncio.to_thread(
         generate_reading_summary,
         user_id=user_id,
         read_articles=read_history,
-        tooltips=tooltip_history,
+        tooltips=[],  # Empty tooltips list
         period=period,
         stats=stats
     ))
@@ -627,14 +623,6 @@ async def get_user_summary(
         },
         "streak": streak_data,
         "articles_read": [article.get("topic_title", "") for article in read_history],
-        "tooltips_viewed": [
-            {
-                "word": tip.get("word", ""),
-                "tooltip": tip.get("tooltip", ""),
-                "topic_title": tip.get("from_topic", "") or tip.get("topic_title", "")
-            }
-            for tip in tooltip_history
-        ],
         "summary": ai_summary,
         "quiz_questions": quiz_questions,
         "generated_at": datetime.now().isoformat()
@@ -654,16 +642,19 @@ async def get_user_summary(
     return summary
 
 
-def calculate_reading_stats(read_history: List[Dict], tooltip_history: List[Dict]) -> Dict[str, Any]:
+def calculate_reading_stats(read_history: List[Dict], tooltip_history: List[Dict] = None) -> Dict[str, Any]:
     """Calculate statistics from reading history.
     
     Args:
         read_history: List of articles read by the user
-        tooltip_history: List of tooltips viewed by the user
+        tooltip_history: Optional list of tooltips viewed by the user
         
     Returns:
         Dictionary of calculated statistics
     """
+    # Handle case where tooltip_history is None
+    tooltip_history = tooltip_history or []
+    
     # Count articles by category
     categories = {}
     for article in read_history:
@@ -672,12 +663,6 @@ def calculate_reading_stats(read_history: List[Dict], tooltip_history: List[Dict
     
     # Get top categories
     top_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)[:3]
-    
-    # Count tooltips by category/topic
-    tooltip_topics = {}
-    for tooltip in tooltip_history:
-        topic = tooltip.get("from_topic", "general")
-        tooltip_topics[topic] = tooltip_topics.get(topic, 0) + 1
     
     # Calculate reading level based on article difficulty
     difficulty_levels = [article.get("difficulty_level", "intermediate") for article in read_history]
@@ -697,7 +682,7 @@ def calculate_reading_stats(read_history: List[Dict], tooltip_history: List[Dict
     
     return {
         "total_articles_read": len(read_history),
-        "total_tooltips_viewed": len(tooltip_history),
+        "total_tooltips_viewed": len(tooltip_history),  # Will be 0 with empty list
         "category_breakdown": categories,
         "top_categories": top_categories,
         "predominant_level": predominant_level,
@@ -706,8 +691,7 @@ def calculate_reading_stats(read_history: List[Dict], tooltip_history: List[Dict
             "intermediate": intermediate_count,
             "advanced": advanced_count
         },
-        "unique_topics_explored": len(set(article.get("topic", "") for article in read_history if "topic" in article)),
-        "unique_terms_learned": len(set(tooltip.get("word", "") for tooltip in tooltip_history))
+        "unique_topics_explored": len(set(article.get("topic", "") for article in read_history if "topic" in article))
     }
 
 

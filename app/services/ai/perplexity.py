@@ -486,73 +486,82 @@ def generate_article(
 def generate_reading_summary(
     user_id: str,
     read_articles: List[Dict[str, Any]],
-    tooltips: List[Dict[str, Any]],
-    period: str,
-    stats: Dict[str, Any]
+    tooltips: List[Dict[str, Any]] = None,  # Made optional
+    period: str = "day",
+    stats: Dict[str, Any] = None
 ) -> str:
-    """Generate an AI summary of user's reading activity.
+    """Generate an AI summary of user's reading activity focused only on articles.
     
     Args:
         user_id: User identifier
         read_articles: List of articles read by the user
-        tooltips: List of tooltips viewed by the user
+        tooltips: Optional list of tooltips viewed by the user (not used)
         period: Time period (day, week, month)
         stats: Calculated statistics
         
     Returns:
         AI-generated summary text
     """
+    # Skip tooltip processing completely
+    
     # Create article list for prompt
-    article_list = []
+    article_titles = []
     for article in read_articles:
-        category = article.get("category", "uncategorized")
         if "topic_details" in article and article["topic_details"]:
             title = article["topic_details"].get("title", "Untitled")
-            description = article["topic_details"].get("description", "")
-            article_list.append(f"- {title} ({category}): {description}")
+            article_titles.append(title)
+        elif "topic_title" in article:
+            article_titles.append(article.get("topic_title"))
         else:
+            category = article.get("category", "uncategorized")
             topic_id = article.get("topic_id", "unknown")
-            article_list.append(f"- Article on {category} (ID: {topic_id})")
+            article_titles.append(f"Article on {category}")
     
-    # Create tooltip list for prompt
-    tooltip_list = []
-    for tip in tooltips[:10]:  # Limit to 10 for prompt size
-        word = tip.get("word", "unknown term")
-        tooltip_list.append(f"- {word}")
+    # Create article titles string
+    article_titles_str = ", ".join(article_titles) if article_titles else "No articles"
     
-    # Build prompt
+    # Extract categories from stats or articles
+    top_categories = []
+    if stats and "top_categories" in stats:
+        top_categories = stats["top_categories"]
+    else:
+        # Extract categories from reading history
+        categories = {}
+        for article in read_articles:
+            category = article.get("category", "uncategorized")
+            categories[category] = categories.get(category, 0) + 1
+        top_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)[:3]
+    
+    top_categories_str = ", ".join([cat[0] for cat in top_categories]) if top_categories else "various topics"
+    
+    # Period text formatting
     period_text = "today" if period == "day" else f"this {period}"
     
-    prompt = f"""Create a personalized financial learning summary for a user based on their reading activity {period_text}. 
+    # Build prompt
+    prompt = f"""Create a personalized learning summary for a user who has read {len(read_articles)} financial articles 
+    over the past {period}.
     
-User's reading statistics:
-- Total articles read: {stats['total_articles_read']}
-- Total tooltips viewed: {stats['total_tooltips_viewed']}
-- Top categories: {', '.join(f"{cat} ({count})" for cat, count in stats.get('top_categories', [])[:3])}
-- Current reading level: {stats.get('predominant_level', 'intermediate')}
-
-Articles read:
-{chr(10).join(article_list[:10]) if article_list else "No articles read in this period."}
-
-Financial terms explored:
-{chr(10).join(tooltip_list) if tooltip_list else "No financial terms explored in this period."}
-
-Please provide:
-1. A personalized summary of their learning activity
-2. Insights about their focus areas
-3. Suggestions for what to explore next based on their interests
-4. A motivational note about their learning streak and progress
-
-Keep the summary conversational, encouraging, and highlight patterns in their learning habits.
-"""
+    Articles read: {article_titles_str}
+    
+    Top categories: {top_categories_str}
+    
+    Generate a concise, motivational summary of their learning progress that:
+    1. Acknowledges their progress and topics explored
+    2. Notes any focused areas of interest
+    3. Provides encouragement to continue learning
+    4. Suggests what they might explore next based on their interests
+    
+    Keep the tone friendly and conversational.
+    """
     
     try:
         summary = call_perplexity_api(prompt)
         return summary
     except Exception as e:
-        print(f"Error generating reading summary: {e}")
+        logger.error(f"Error generating reading summary: {e}")
         # Fallback response
-        return f"You've read {stats['total_articles_read']} articles and explored {stats['total_tooltips_viewed']} financial terms {period_text}. Keep up the great work on your financial learning journey!"
+        articles_count = len(read_articles)
+        return f"You've read {articles_count} article{'s' if articles_count != 1 else ''} {period_text}, focusing on {top_categories_str}. Keep up the great work on your financial learning journey!"
     
 def generate_quiz_questions(
     read_articles: List[Dict[str, Any]],
