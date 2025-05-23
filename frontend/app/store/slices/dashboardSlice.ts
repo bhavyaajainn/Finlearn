@@ -1,6 +1,4 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-
-// Interfaces
 export interface GlossaryTerm {
   term: string;
   definition: string;  
@@ -56,7 +54,6 @@ export interface WatchlistResponse {
   count: number;
 }
 
-// Dashboard state interface
 interface DashboardState {
   essentials: DashboardEssentials | null;
   streak: StreakData | null;
@@ -73,7 +70,6 @@ interface DashboardState {
   };
 }
 
-// Initial state
 const initialState: DashboardState = {
   essentials: null,
   streak: null,
@@ -90,12 +86,11 @@ const initialState: DashboardState = {
   },
 };
 
-// Async thunks
 export const fetchDashboardEssentials = createAsyncThunk(
   'dashboard/fetchEssentials',
   async (userId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/dashboard/home/essential?user_id=${userId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/home/essential?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard essentials');
@@ -113,7 +108,7 @@ export const fetchStreakData = createAsyncThunk(
   'dashboard/fetchStreak',
   async ({ userId, refresh = true }: { userId: string; refresh?: boolean }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/user/streak?user_id=${userId}&refresh=${refresh}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/streak?user_id=${userId}&refresh=${refresh}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch streak data');
@@ -131,14 +126,13 @@ export const fetchWatchlist = createAsyncThunk(
   'dashboard/fetchWatchlist',
   async ({ userId, limit = 5 }: { userId: string; limit?: number }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/watchlist?user_id=${userId}&include_similar=false`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/watchlist?user_id=${userId}&include_similar=false`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch watchlist');
       }
       
       const data: WatchlistResponse = await response.json();
-      // Return only the requested number of items for dashboard
       return data.watchlist.slice(0, limit);
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -146,7 +140,6 @@ export const fetchWatchlist = createAsyncThunk(
   }
 );
 
-// Dashboard slice
 const dashboardSlice = createSlice({
   name: 'dashboard',
   initialState,
@@ -169,7 +162,7 @@ const dashboardSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Dashboard Essentials
+     
       .addCase(fetchDashboardEssentials.pending, (state) => {
         state.loading.essentials = true;
         state.error.essentials = null;
@@ -183,7 +176,7 @@ const dashboardSlice = createSlice({
         state.error.essentials = action.payload as string;
       })
       
-      // Streak Data
+     
       .addCase(fetchStreakData.pending, (state) => {
         state.loading.streak = true;
         state.error.streak = null;
@@ -195,7 +188,7 @@ const dashboardSlice = createSlice({
       .addCase(fetchStreakData.rejected, (state, action) => {
         state.loading.streak = false;
         state.error.streak = action.payload as string;
-        // Set default values on error
+       
         state.streak = {
           current_streak: 0,
           longest_streak: 0,
@@ -206,7 +199,7 @@ const dashboardSlice = createSlice({
         };
       })
       
-      // Watchlist
+    
       .addCase(fetchWatchlist.pending, (state) => {
         state.loading.watchlist = true;
         state.error.watchlist = null;

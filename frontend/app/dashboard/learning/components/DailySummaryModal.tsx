@@ -52,7 +52,6 @@ export default function DailySummaryModal({
   onClose: () => void;
   onQuizStart: () => void;
 }) {
-  const [activeTab, setActiveTab] = useState('summary');
   
   if (!isOpen) return null;
   
@@ -78,7 +77,6 @@ export default function DailySummaryModal({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-zinc-800">
           <h3 className="text-xl sm:text-2xl font-semibold text-white">Your Learning Summary</h3>
           <button 
@@ -90,20 +88,11 @@ export default function DailySummaryModal({
           </button>
         </div>
         
-
-        
-        {/* Content */}
         <div className="overflow-y-auto p-4 sm:p-6 flex-grow">
-          {/* Loading State */}
           {isLoading && renderLoading()}
-          
-          {/* Error State */}
           {!isLoading && error && renderError()}
-          
-          {/* Summary Content */}
           {!isLoading && !error && dailySummary && (
             <div className="space-y-4 sm:space-y-6">
-              {/* Articles Read Today */}
               <div>
                 <h4 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">
                   Articles You've Read Today ({dailySummary.articles_read?.length || 0})
@@ -117,8 +106,6 @@ export default function DailySummaryModal({
                   ))}
                 </ul>
               </div>
-
-              {/* Statistics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                 <div className="bg-zinc-800/50 p-3 sm:p-4 rounded-lg border border-zinc-700/50 shadow-sm">
                   <div className="flex items-center mb-1 sm:mb-2">
@@ -142,8 +129,6 @@ export default function DailySummaryModal({
                   <div className="text-xl sm:text-2xl font-bold text-white">{dailySummary.streak?.longest_streak || 0} days</div>
                 </div>
               </div>
-
-              {/* Focus Areas */}
               <div className="bg-zinc-800/30 p-3 sm:p-5 rounded-lg border border-zinc-700/50">
                 <h4 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">Focus Areas</h4>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -162,8 +147,6 @@ export default function DailySummaryModal({
                   ))}
                 </div>
               </div>
-
-              {/* AI-Generated Summary */}
               <div className="bg-zinc-800/30 p-3 sm:p-5 rounded-lg border border-zinc-700/50">
                 <h4 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">Your Learning Journey</h4>
                 <div className="prose prose-invert max-w-none prose-sm sm:prose-base">
@@ -175,8 +158,6 @@ export default function DailySummaryModal({
             </div>
           )}
         </div>
-        
-        {/* Footer - Quiz and Close Buttons */}
         <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-3 p-4 sm:p-6 border-t border-zinc-800">
           {!isLoading && !error && dailySummary && dailySummary.quiz_questions && dailySummary.quiz_questions.length > 0 && (
             <button

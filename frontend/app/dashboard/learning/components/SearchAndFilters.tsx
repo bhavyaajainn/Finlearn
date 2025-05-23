@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Award, Loader2 } from 'lucide-react';
+import { Search, Award} from 'lucide-react';
 import { useAppSelector } from '@/app/store/hooks';
 
 interface SearchAndFiltersProps {
@@ -20,11 +20,9 @@ export default function SearchAndFilters({
   categories,
   onDailySummaryOpen
 }: SearchAndFiltersProps) {
-  // Get filter loading state from Redux
   const { filterLoading } = useAppSelector(state => state.learning);
 
   const handleCategoryClick = (category: string) => {
-    // Prevent clicking if already loading or if it's the same category
     if (filterLoading || selectedCategory === category) return;
     
     onCategoryChange(category);
@@ -32,7 +30,6 @@ export default function SearchAndFilters({
 
   return (
     <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mb-8">
-      {/* Search bar */}
       <div className="relative w-full md:w-1/3">
         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-gray-400" />
@@ -48,9 +45,7 @@ export default function SearchAndFilters({
       </div>
       
       <div className="flex flex-wrap justify-center md:justify-between w-full md:flex-1">
-        {/* Category filters */}
         <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-          {/* All categories button */}
           <button 
             onClick={() => handleCategoryClick('All')}
             disabled={filterLoading}
@@ -63,8 +58,6 @@ export default function SearchAndFilters({
 
             All
           </button>
-          
-          {/* Individual category buttons */}
           {categories.map((category) => (
             <button
               key={category}
@@ -80,8 +73,6 @@ export default function SearchAndFilters({
             </button>
           ))}
         </div>
-        
-        {/* Daily summary button */}
         <button
           onClick={onDailySummaryOpen}
           disabled={filterLoading}

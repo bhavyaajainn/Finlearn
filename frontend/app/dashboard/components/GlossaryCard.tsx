@@ -1,11 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, AlertCircle } from "lucide-react"
 
-// Interface for glossary term from API
 interface GlossaryTerm {
   term: string;
   definition: string;
@@ -19,7 +17,6 @@ interface GlossaryCardProps {
 }
 
 export function GlossaryCard({ glossaryTerms = [], loading = false, error = null }: GlossaryCardProps) {
-  // Fallback terms in case API fails
   const fallbackTerms: GlossaryTerm[] = [
     {
       term: "Compound Interest",
@@ -117,12 +114,10 @@ export function GlossaryCard({ glossaryTerms = [], loading = false, error = null
             <div className="p-4">
               <h3 className="text-white mb-2 font-semibold text-base group-hover:text-blue-400 transition-colors">
                 {item.term}
-              </h3>
-              
+              </h3>              
               <p className="text-gray-400 text-sm mb-3 line-clamp-2">
                 {item.definition}
               </p>
-
               {item.example && (
                 <div className="bg-blue-500/5 border border-blue-500/20 rounded-md p-2">
                   <p className="text-blue-300 text-xs">

@@ -1,7 +1,6 @@
 import React from 'react'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from '@/components/ui/button'
-import { ChevronRight, Quote, AlertCircle } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Quote, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 interface Quote {
@@ -16,7 +15,6 @@ interface MotivationCardProps {
 }
 
 const MotivationCard: React.FC<MotivationCardProps> = ({ quote, loading = false, error = null }) => {
-  // Fallback quote in case API fails
   const fallbackQuote = {
     text: "An investment in knowledge pays the best interest.",
     author: "Benjamin Franklin"

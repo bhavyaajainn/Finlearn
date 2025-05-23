@@ -15,7 +15,6 @@ export function UserInfo() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 px-2 sm:px-4">
-          {/* Days Visited Section */}
           <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-yellow-500" />
@@ -35,8 +34,6 @@ export function UserInfo() {
             </div>
             <span className="text-xs text-gray-400">Keep Participating in Quizzes to earn more XP!</span>
           </div>
-
-          {/* Quizzes Participated Section */}
           <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
               <Trophy className="h-4 w-4 text-orange-500" />
@@ -57,8 +54,6 @@ export function UserInfo() {
             <Progress value={65} className="h-2 bg-blue-900" />
             <span className="text-xs text-gray-400">650 XP until next level</span>
           </div>
-
-          {/* Concepts Learned Section */}
           <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
               <BookIcon className="h-4 w-4 text-blue-500" />

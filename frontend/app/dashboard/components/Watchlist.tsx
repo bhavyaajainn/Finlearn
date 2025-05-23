@@ -8,15 +8,12 @@ import { useRouter } from 'next/navigation'
 
 const Watchlist = () => {
   const router = useRouter();
-  
-  // Get watchlist data from Redux store
   const { 
     watchlist, 
     loading: { watchlist: loading }, 
     error: { watchlist: error } 
   } = useAppSelector((state) => state.dashboard);
 
-  // Format price based on currency
   const formatPrice = (price: number, currency: string) => {
     if (currency === 'INR') {
       return `₹${price.toLocaleString()}`;
@@ -24,7 +21,6 @@ const Watchlist = () => {
     return `$${price.toLocaleString()}`;
   };
 
-  // Format market cap
   const formatMarketCap = (marketCap: number, currency: string) => {
     const symbol = currency === 'INR' ? '₹' : '$';
     if (marketCap >= 1e12) {

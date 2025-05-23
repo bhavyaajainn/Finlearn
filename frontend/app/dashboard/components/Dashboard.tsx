@@ -32,7 +32,6 @@ export function Dashboard() {
   
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { preferences } = useAppSelector((state) => state.preferences);
   const { 
     essentials, 
     streak, 
@@ -40,27 +39,20 @@ export function Dashboard() {
     error 
   } = useAppSelector((state) => state.dashboard);
 
-  // Fetch all dashboard data
   useEffect(() => {
     if (user?.uid) {
-      // Fetch dashboard essentials
       dispatch(fetchDashboardEssentials(user.uid));
-      
-      // Fetch streak data
       dispatch(fetchStreakData({ userId: user.uid, refresh: true }));
-      
-      // Fetch watchlist (limited to 5 items for dashboard)
       dispatch(fetchWatchlist({ userId: user.uid, limit: 5 }));
     }
   }, [user?.uid, dispatch]);
 
-  // Check if we need to show the preferences dialog
   useEffect(() => {
     if (user) {
       dispatch(fetchUserPreferences(user.uid))
         .unwrap()
         .then((data) => {
-          if (!data || !data.expertise_level || !data.categories || data.categories.length === 0) {
+          if (!data?.expertise_level || !data?.categories?.length) {
             setShowPreferencesDialog(true);
           }
         })
@@ -70,7 +62,6 @@ export function Dashboard() {
     }
   }, [user, dispatch]);
 
-  // Animation variants
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -86,7 +77,6 @@ export function Dashboard() {
     show: { opacity: 1, y: 0 },
   }
 
-  // Calculate progress for concepts learned (assuming 100 total concepts as baseline)
   const conceptsProgress = streak ? Math.min((streak.total_articles / 100) * 100, 100) : 0;
 
   return (
@@ -98,8 +88,6 @@ export function Dashboard() {
     
       <div className="max-w-full px-2 py-4">
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
-
-          {/* Progress Section */}
           <motion.div variants={item}>
             <Card className="bg-black border-blue-900/50 w-full">
               <CardHeader className="pb-2">
@@ -183,8 +171,6 @@ export function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
-
-          {/* Quick Actions */}
           <motion.div variants={item}>
             <Card className="bg-black border-blue-900/50 w-full">
               <CardHeader className="pb-2">
@@ -239,8 +225,6 @@ export function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
-
-          {/* Motivation Card - Using API data */}
           <motion.div variants={item}>
             <MotivationCard 
               quote={essentials?.quote} 
@@ -248,8 +232,6 @@ export function Dashboard() {
               error={error.essentials}
             />
           </motion.div>
-
-          {/* Glossary Card - Using API data */}
           <motion.div variants={item}>
             <GlossaryCard 
               glossaryTerms={essentials?.glossary_term || []}
@@ -257,12 +239,9 @@ export function Dashboard() {
               error={error.essentials}
             />
           </motion.div>
-
-          {/* Watchlist */}
           <motion.div variants={item}>
             <Watchlist />
           </motion.div>
-
         </motion.div>
       </div>
     </>

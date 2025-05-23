@@ -6,7 +6,7 @@ import {
   fetchTopics, 
   fetchTopicDetail, 
   fetchUserTopicsStatus,
-  fetchTopicsByCategory, // New import
+  fetchTopicsByCategory, 
   setSearchTerm,
   setSelectedCategory,
   setCurrentPage,
@@ -31,7 +31,7 @@ const LearningHub = () => {
     topics, 
     filteredTopics,
     loading, 
-    filterLoading, // New loading state for filtering
+    filterLoading, 
     error,
     searchTerm,
     selectedCategory,
@@ -57,7 +57,6 @@ const LearningHub = () => {
   const lastCategoryRef = useRef<string>('');
   const isInitialLoadRef = useRef<boolean>(true);
   
-  // Initial data fetch
   useEffect(() => {
     if (user?.uid && Object.keys(topics).length === 0 && !loading && isInitialLoadRef.current) {
       isInitialLoadRef.current = false;
@@ -66,7 +65,6 @@ const LearningHub = () => {
     }
   }, [dispatch, user, topics, loading]);
 
-  // Cleanup effect
   useEffect(() => {
     return () => {
       lastCategoryRef.current = '';
@@ -74,27 +72,17 @@ const LearningHub = () => {
     };
   }, []);
   
-  // Handle search term changes
   const handleSearchChange = (term: string) => {
     dispatch(setSearchTerm(term));
   };
   
-  // Handle category changes with API call
   const handleCategoryChange = useCallback(async (category: string) => {
     if (!user?.uid) return;
-    
-    // Prevent API call if already loading, if the same category is selected, or if it's the same as last called
     if (filterLoading || selectedCategory === category || lastCategoryRef.current === category) {
       return;
     }
-    
-    // Update ref to track last category
     lastCategoryRef.current = category;
-    
-    // Update the selected category in state
     dispatch(setSelectedCategory(category));
-    
-    // Make API call to fetch topics for the selected category
     try {
       await dispatch(fetchTopicsByCategory({ 
         userId: user.uid, 
@@ -102,7 +90,6 @@ const LearningHub = () => {
       })).unwrap();
     } catch (error) {
       console.error('Error fetching topics for category:', error);
-      // Reset ref on error
       lastCategoryRef.current = '';
     }
   }, [user?.uid, filterLoading, selectedCategory, dispatch]);
@@ -110,7 +97,6 @@ const LearningHub = () => {
   const handlePageChange = (page: number) => {
     dispatch(setCurrentPage(page));
   };
-  
   const handleArticleSelect = async (topic: TopicItem) => {
     setSelectedTopicItem(topic);
     setTopicDetailLoading(true);
@@ -139,7 +125,6 @@ const LearningHub = () => {
   
   const handleResetFilters = async () => {
     dispatch(setSearchTerm(''));
-    // Only call API if not already on 'All' category
     if (selectedCategory !== 'All') {
       await handleCategoryChange('All');
     }
@@ -162,32 +147,16 @@ const LearningHub = () => {
     const endIndex = startIndex + itemsPerPage;
     return filteredTopics.slice(startIndex, endIndex);
   };
-
-  // Prepare capitalized categories for display
   const capitalizedCategories = categories.map(category => 
     category.split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ')
   );
-
-  // Debug logs
-  console.log('Current state:', {
-    loading,
-    filterLoading,
-    error,
-    selectedCategory,
-    categoriesCount: categories.length,
-    filteredTopicsCount: filteredTopics.length,
-    totalTopics: Object.keys(topics).length
-  });
-
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-white mb-2">Learning Hub</h1>
         <p className="text-gray-400 mb-8">Your personalized financial knowledge center</p>
-        
-        {/* Top section with search and filters - Only show when no article is selected */}
         {!selectedTopicItem && (
           <SearchAndFilters 
             searchTerm={searchTerm}
@@ -198,26 +167,19 @@ const LearningHub = () => {
             onDailySummaryOpen={handleDailySummaryOpen}
           />
         )}
-        
-        {/* Main content area */}
         <div className="grid grid-cols-1 gap-6">
-          {/* Loading state for initial load */}
           {loading && !selectedTopicItem && (
             <div className="flex justify-center items-center p-12">
               <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
               <span className="ml-4 text-gray-400">Loading topics...</span>
             </div>
           )}
-          
-          {/* Loading state for category filtering */}
           {filterLoading && !selectedTopicItem && (
             <div className="flex justify-center items-center p-12">
               <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
               <span className="ml-4 text-gray-400">Filtering topics...</span>
             </div>
           )}
-          
-          {/* Error state */}
           {error && !selectedTopicItem && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 text-center">
               <h3 className="text-xl font-semibold text-red-400 mb-2">Error Loading Content</h3>
@@ -230,13 +192,10 @@ const LearningHub = () => {
               </button>
             </div>
           )}
-          
-          {/* Articles grid */}
           {!selectedTopicItem && !loading && !filterLoading && !error && (
             <>
               {filteredTopics && filteredTopics.length > 0 ? (
                 <>
-                  {/* Grid layout for all articles */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getCurrentPageItems().map((topic) => (
                       <div 
@@ -255,8 +214,6 @@ const LearningHub = () => {
                       </div>
                     ))}
                   </div>
-                  
-                  {/* Pagination */}
                   <Pagination 
                     currentPage={currentPage}
                     totalPages={totalPages}
@@ -265,7 +222,6 @@ const LearningHub = () => {
                 </>
               ) : (
                 <>
-                  {/* Debug information */}
                   <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
                     <h4 className="text-yellow-400 font-semibold mb-2">Debug Info:</h4>
                     <pre className="text-xs text-gray-300">
@@ -288,8 +244,6 @@ const LearningHub = () => {
               )}
             </>
           )}
-          
-          {/* Article view */}
           {selectedTopicItem && (
             <ArticleView 
               topic={selectedTopicItem}
@@ -302,8 +256,6 @@ const LearningHub = () => {
           )}
         </div>
       </div>
-      
-      {/* Modals */}
       <ConceptModal 
         concept={showConcept} 
         onClose={() => setShowConcept(null)} 

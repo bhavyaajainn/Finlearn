@@ -14,16 +14,16 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        // Only ignore specific actions that might contain non-serializable data
+        
         ignoredActions: [
-          // Auth actions that might contain Firebase objects
+          
           'auth/signInWithGoogle/fulfilled',
           'auth/signInWithEmail/fulfilled',
           'auth/signUpWithEmail/fulfilled',
           'auth/checkAuthState/fulfilled',
           'auth/setUser',
         ],
-        // Only ignore paths that might contain non-serializable data
+        
         ignoredPaths: [],
       },
     }),
