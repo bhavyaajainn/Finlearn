@@ -9,6 +9,9 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any, Optional, List
 from enum import Enum
 import calendar
+import logging
+
+logger = logging.getLogger(__name__)
 
 # from app.services.ai import get_deep_dive, get_concept_summary, generate_day_summary, claude_generate_article
 # Import both providers' functions
@@ -39,6 +42,7 @@ from app.services.firebase.reading_log import log_tooltip_viewed
 
 from app.services.firebase.selectedcategories import get_user_selected_categories
 from app.services.firebase.cache import get_cache_timestamp
+from app.services.firebase.watchlist import get_user_expertise_level
 
 # Define expertise levels as an enum for validation
 class ExpertiseLevel(str, Enum):
@@ -500,6 +504,9 @@ async def log_tooltip_view(tooltip_data: TooltipView) -> Dict[str, Any]:
         tooltip_data.tooltip, 
         tooltip_data.from_topic
     )
+
+    from app.services.firebase.cache import update_user_activity_timestamp
+    update_user_activity_timestamp(tooltip_data.user_id, "tooltip_view")
     
     return {
         "status": "success",
@@ -515,105 +522,136 @@ from app.services.ai.perplexity import generate_reading_summary
 @router.get("/summary")
 async def get_user_summary(
     user_id: str,
-    period: str = "day",  # Options: day, week, month, custom
+    period: str = "day",
     start_date: Optional[str] = None,
-    end_date: Optional[str] = None
+    end_date: Optional[str] = None,
+    refresh: bool = False
 ) -> Dict[str, Any]:
-    """Get a summary of a user's reading activity.
-    
-    Args:
-        user_id: User identifier
-        period: Time period for the summary (day, week, month, custom)
-        start_date: Custom start date (format: YYYY-MM-DD)
-        end_date: Custom end date (format: YYYY-MM-DD)
-        
-    Returns:
-        Summary of user's reading activity for the specified period
-    """
-    # Calculate date range based on period
+    """Get a summary of user's reading activity with optimized performance."""
+    # Calculate date range based on period (existing code stays the same)
     today = datetime.now().date()
     
     if period == "day":
-        start_date = today
-        end_date = today
+        start_date_obj = today
+        end_date_obj = today
     elif period == "week":
-        # Start from Monday of current week
-        start_date = today - timedelta(days=today.weekday())
-        end_date = today
+        start_date_obj = today - timedelta(days=today.weekday())
+        end_date_obj = today
     elif period == "month":
-        # Start from first day of current month
-        start_date = today.replace(day=1)
-        end_date = today
+        start_date_obj = today.replace(day=1)
+        end_date_obj = today
     else:  # Custom period
         if not start_date or not end_date:
             raise HTTPException(status_code=400, detail="Custom period requires both start_date and end_date")
         
         try:
-            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
     
-    # Get reading history
-    read_history = get_user_read_history(user_id, start_date, end_date)
+    # Convert dates to strings for cache key
+    start_date_str = start_date_obj.isoformat()
+    end_date_str = end_date_obj.isoformat()
     
-    # Get tooltip history
-    tooltip_history = get_user_tooltip_history(user_id, start_date, end_date)
+    # Try to get from cache first (unless refresh is requested)
+    if not refresh:
+        from app.services.firebase.cache import get_cached_user_summary
+        cached_summary = get_cached_user_summary(user_id, period, start_date_str, end_date_str)
+        
+        if cached_summary:
+            logger.info(f"Returning cached summary for user {user_id}")
+            return cached_summary
     
-    # Get user's streak data
-    streak_data = get_user_streak_data(user_id)
-
+    # Run Firebase queries concurrently
+    read_history_task = asyncio.create_task(asyncio.to_thread(
+        get_user_read_history, user_id, start_date_obj, end_date_obj
+    ))
+    
+    tooltip_history_task = asyncio.create_task(asyncio.to_thread(
+        get_user_tooltip_history, user_id, start_date_obj, end_date_obj
+    ))
+    
+    streak_data_task = asyncio.create_task(asyncio.to_thread(
+        get_user_streak_data, user_id
+    ))
+    
+    expertise_level_task = asyncio.create_task(asyncio.to_thread(
+        get_user_expertise_level, user_id
+    ))
+    
+    # Wait for all Firebase queries to complete
+    read_history = await read_history_task
+    tooltip_history = await tooltip_history_task
+    streak_data = await streak_data_task
+    expertise_level = await expertise_level_task
+    
     if "user_id" in streak_data:
         del streak_data["user_id"]
     
-    # Calculate statistics
+    # Calculate statistics (fast operation)
     stats = calculate_reading_stats(read_history, tooltip_history)
     
-    # Generate AI summary
-    ai_summary = generate_reading_summary(
+    # Run AI operations concurrently
+    ai_summary_task = asyncio.create_task(asyncio.to_thread(
+        generate_reading_summary,
         user_id=user_id,
         read_articles=read_history,
         tooltips=tooltip_history,
         period=period,
         stats=stats
-    )
-
-    # Get user's expertise level
-    from app.services.firebase.watchlist import get_user_expertise_level
-    expertise_level = get_user_expertise_level(user_id)
+    ))
     
-    # Generate quiz questions based on reading history
-    quiz_questions = generate_quiz_questions(
+    quiz_questions_task = asyncio.create_task(asyncio.to_thread(
+        generate_quiz_questions,
         read_articles=read_history,
         expertise_level=expertise_level
-    )
+    ))
     
-    return {
+    # Wait for AI operations
+    ai_summary = await ai_summary_task
+    quiz_questions = await quiz_questions_task
+    
+    # Construct response
+    summary = {
         "user_id": user_id,
         "period": period,
         "date_range": {
-            "start": start_date.isoformat(),
-            "end": end_date.isoformat()
+            "start": start_date_str,
+            "end": end_date_str
         },
         "statistics": {
             "articles_read": stats["total_articles_read"],
             "tooltips_viewed": stats["total_tooltips_viewed"],
-            "categories": dict(stats["top_categories"]),  # Convert list of tuples to dict
+            "categories": dict(stats["top_categories"]),
         },
         "streak": streak_data,
         "articles_read": [article.get("topic_title", "") for article in read_history],
         "tooltips_viewed": [
-        {
-            "word": tip.get("word", ""),
-            "tooltip": tip.get("tooltip", ""),  # Include the actual definition
-            "topic_title": tip.get("from_topic", "") or tip.get("topic_title", "")
-        }
-        for tip in tooltip_history
+            {
+                "word": tip.get("word", ""),
+                "tooltip": tip.get("tooltip", ""),
+                "topic_title": tip.get("from_topic", "") or tip.get("topic_title", "")
+            }
+            for tip in tooltip_history
         ],
         "summary": ai_summary,
         "quiz_questions": quiz_questions,
         "generated_at": datetime.now().isoformat()
     }
+    
+    # Cache the summary for future requests
+    from app.services.firebase.cache import cache_user_summary
+    asyncio.create_task(asyncio.to_thread(
+        cache_user_summary,
+        user_id=user_id,
+        period=period,
+        start_date_str=start_date_str,
+        end_date_str=end_date_str,
+        summary_data=summary
+    ))
+    
+    return summary
 
 
 def calculate_reading_stats(read_history: List[Dict], tooltip_history: List[Dict]) -> Dict[str, Any]:

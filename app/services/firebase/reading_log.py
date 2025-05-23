@@ -437,6 +437,8 @@ def track_viewed_topic(user_id: str, category: str, topic_id: str, topic_title: 
     if is_new_view or recent_views_list[0].to_dict().get("date") != now.date().isoformat():
         # Pass True to indicate this is an article view
         update_user_streak(user_id, is_article_view=True)
+    from app.services.firebase.cache import update_user_activity_timestamp
+    update_user_activity_timestamp(user_id, "article_read")
 
 def log_tooltip_viewed(user_id: str, word: str, tooltip: str, from_topic: str = None, topic_id: str = None) -> None:
     """Log when a user views a tooltip."""
