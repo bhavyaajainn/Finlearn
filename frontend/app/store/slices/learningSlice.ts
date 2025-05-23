@@ -57,46 +57,18 @@ export interface DailySummary {
     end: string;
   };
   statistics: {
-    total_articles_read: number;
-    total_tooltips_viewed: number;
-    category_breakdown: { [key: string]: number };
-    top_categories: [string, number][];
-    predominant_level: string;
-    level_breakdown: {
-      beginner: number;
-      intermediate: number;
-      advanced: number;
-    };
-    unique_topics_explored: number;
-    unique_terms_learned: number;
+    articles_read: number;
+    tooltips_viewed: number;
+    categories: Record<string, number>;
   };
   streak: {
     current_streak: number;
-    user_id: string;
     last_active: string;
     updated_at: string;
     longest_streak: number;
   };
-  articles_read: {
-    date: string;
-    topic_title: string;
-    expertise_level: string;
-    category: string;
-    user_id: string;
-    activity_type: string;
-    timestamp: string;
-    topic_id: string;
-  }[];
-  tooltips_viewed: {
-    tooltip: string;
-    date: string;
-    word: string;
-    topic_title: string;
-    user_id: string;
-    activity_type: string;
-    timestamp: string;
-    topic_id: string;
-  }[];
+  articles_read: string[];
+  tooltips_viewed: any[];
   summary: string;
   quiz_questions: {
     question: string;
@@ -110,12 +82,12 @@ export interface DailySummary {
   generated_at: string;
 }
 
-
 interface LearningState {
   topics: CategoryTopics;
   filteredTopics: TopicItem[];
   currentTopic: TopicDetailResponse | null;
   loading: boolean;
+  filterLoading: boolean; // New loading state for filtering
   error: string | null;
   searchTerm: string;
   selectedCategory: string;
@@ -130,12 +102,12 @@ interface LearningState {
   dailySummaryError: string | null;
 }
 
-
 const initialState: LearningState = {
   topics: {},
   filteredTopics: [],
   currentTopic: null,
   loading: false,
+  filterLoading: false,
   error: null,
   searchTerm: '',
   selectedCategory: 'All',
@@ -154,8 +126,7 @@ export const fetchTopics = createAsyncThunk(
   'learning/fetchTopics',
   async (userId: string, { rejectWithValue }) => {
     try {
-      
-      const response = await fetch(`https://finlearn.onrender.com/user/recommendedtopics?user_id=${userId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/recommendedtopics?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch topics');
@@ -169,12 +140,54 @@ export const fetchTopics = createAsyncThunk(
   }
 );
 
+// Fetch topics by category filter
+export const fetchTopicsByCategory = createAsyncThunk(
+  'learning/fetchTopicsByCategory',
+  async ({ userId, category }: { userId: string; category: string }, { rejectWithValue }) => {
+    try {
+      let url = `${process.env.NEXT_PUBLIC_BASE_URL}/user/recommendedtopics?user_id=${userId}`;
+      
+      // If category is 'All', fetch all topics
+      if (category === 'All') {
+        console.log('Fetching all topics with URL:', url);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch topics');
+        }
+        
+        const data = await response.json();
+        console.log('All topics API response:', data);
+        return { data, category: 'All' };
+      }
+      const categoryParam = category.toLowerCase();
+      url += `&category=${encodeURIComponent(categoryParam)}`;
+      
+      console.log('Fetching category topics with URL:', url);
+      console.log('Category parameter:', categoryParam);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch topics for category: ${category}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Category ${category} API response:`, data);
+      return { data, category };
+    } catch (error: any) {
+      console.error('Error in fetchTopicsByCategory:', error);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const fetchTopicDetail = createAsyncThunk(
   'learning/fetchTopicDetail',
   async ({ topicId, userId }: { topicId: string; userId: string }, { rejectWithValue }) => {
     try {
-      
-      const response = await fetch(`https://finlearn.onrender.com/article/topic/${topicId}?user_id=${userId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/article/topic/${topicId}?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch topic details');
@@ -206,7 +219,7 @@ export const fetchDailySummary = createAsyncThunk(
   'learning/fetchDailySummary',
   async (userId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://finlearn.onrender.com/summary?user_id=${userId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/summary?user_id=${userId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch daily summary');
@@ -220,7 +233,6 @@ export const fetchDailySummary = createAsyncThunk(
   }
 );
 
-
 const learningSlice = createSlice({
   name: 'learning',
   initialState,
@@ -228,12 +240,13 @@ const learningSlice = createSlice({
     setSearchTerm: (state, action: PayloadAction<string>) => {
       state.searchTerm = action.payload;
       state.currentPage = 1; 
-      applyFilters(state);
+      applySearchFilter(state);
     },
     setSelectedCategory: (state, action: PayloadAction<string>) => {
-      state.selectedCategory = action.payload;
-      state.currentPage = 1; 
-      applyFilters(state);
+      if (state.selectedCategory !== action.payload) {
+        state.selectedCategory = action.payload;
+        state.currentPage = 1;
+      }
     },
     setCurrentPage: (state, action: PayloadAction<number>) => {
       state.currentPage = action.payload;
@@ -258,25 +271,80 @@ const learningSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      
       .addCase(fetchTopics.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchTopics.fulfilled, (state, action: PayloadAction<TopicResponse>) => {
         state.loading = false;
-        
-        
         state.topics = action.payload.recommendations || {};
-        
-        
         state.categories = Object.keys(state.topics);
-        
-        
-        applyFilters(state);
+      
+        if (state.selectedCategory === 'All') {
+          applyFiltersForAllTopics(state);
+        }
       })
       .addCase(fetchTopics.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
+      })
+     
+      .addCase(fetchTopicsByCategory.pending, (state) => {
+        state.filterLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchTopicsByCategory.fulfilled, (state, action) => {
+        state.filterLoading = false;
+        const { data, category } = action.payload;
+        
+        console.log('Category API Response:', { data, category }); // Debug log
+        
+        if (category === 'All') {
+       
+          state.topics = data.recommendations || {};
+          state.categories = Object.keys(state.topics);
+          applyFiltersForAllTopics(state);
+        } else {
+         
+          if (data.recommendations && Object.keys(data.recommendations).length > 0) {
+          
+            state.topics = { ...state.topics, ...data.recommendations };
+         
+            const categoryKey = Object.keys(data.recommendations).find(
+              key => key.toLowerCase() === category.toLowerCase()
+            ) || category;
+            
+          
+            
+            if (data.recommendations[categoryKey] && Array.isArray(data.recommendations[categoryKey])) {
+              state.filteredTopics = data.recommendations[categoryKey];
+            } else {
+             
+              let allTopicsForCategory: TopicItem[] = [];
+              Object.values(data.recommendations).forEach(categoryTopics => {
+                if (Array.isArray(categoryTopics)) {
+                  allTopicsForCategory = [...allTopicsForCategory, ...categoryTopics];
+                }
+              });
+              state.filteredTopics = allTopicsForCategory;
+            }
+          } else {
+           
+            state.filteredTopics = [];
+          }
+          
+          if (state.searchTerm.trim() !== '') {
+            applySearchFilter(state);
+          }
+          
+         
+          updatePagination(state);
+        }
+        
+        
+      })
+      .addCase(fetchTopicsByCategory.rejected, (state, action) => {
+        state.filterLoading = false;
         state.error = action.payload as string;
       })
       
@@ -294,7 +362,6 @@ const learningSlice = createSlice({
         state.error = action.payload as string;
       })
       
-    
       .addCase(fetchUserTopicsStatus.fulfilled, (state, action) => {
         const { bookmarkedTopics, readTopics } = action.payload as { 
           bookmarkedTopics: string[]; 
@@ -303,7 +370,6 @@ const learningSlice = createSlice({
         state.bookmarkedTopics = bookmarkedTopics;
         state.readTopics = readTopics;
       })
-      
       
       .addCase(fetchDailySummary.pending, (state) => {
         state.dailySummaryLoading = true;
@@ -322,34 +388,46 @@ const learningSlice = createSlice({
 });
 
 
-function applyFilters(state: LearningState) {
+function applyFiltersForAllTopics(state: LearningState) {
   let filtered: TopicItem[] = [];
-  
-  if (state.selectedCategory !== 'All') {
-   
-    filtered = state.topics[state.selectedCategory] || [];
-  } else {
-    
-    Object.values(state.topics).forEach(categoryTopics => {
+  Object.entries(state.topics).forEach(([categoryName, categoryTopics]) => {
+    console.log(`Processing category ${categoryName}:`, categoryTopics); 
+    if (Array.isArray(categoryTopics)) {
       filtered = [...filtered, ...categoryTopics];
-    });
-  }
+    }
+  });
   
-  if (state.searchTerm.trim() !== '') {
-    const searchTerm = state.searchTerm.toLowerCase();
-    filtered = filtered.filter(topic => 
-      topic.title.toLowerCase().includes(searchTerm) || 
-      topic.description.toLowerCase().includes(searchTerm)
-    );
-  }
   
   state.filteredTopics = filtered;
   
-  state.totalPages = Math.ceil(filtered.length / state.itemsPerPage);
+  if (state.searchTerm.trim() !== '') {
+    applySearchFilter(state);
+  }
+  
+  updatePagination(state);
+}
+
+function applySearchFilter(state: LearningState) {
+  if (state.searchTerm.trim() === '') {
+    return;
+  }
+  
+  const searchTerm = state.searchTerm.toLowerCase();
+  state.filteredTopics = state.filteredTopics.filter(topic => 
+    topic.title.toLowerCase().includes(searchTerm) || 
+    topic.description.toLowerCase().includes(searchTerm)
+  );
+  
+  updatePagination(state);
+}
+
+function updatePagination(state: LearningState) {
+  state.totalPages = Math.ceil(state.filteredTopics.length / state.itemsPerPage);
   if (state.currentPage > state.totalPages && state.totalPages > 0) {
     state.currentPage = state.totalPages;
   }
 }
+
 export const { 
   setSearchTerm, 
   setSelectedCategory, 

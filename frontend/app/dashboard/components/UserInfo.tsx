@@ -5,17 +5,16 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Flame, TrendingUp, Calendar } from "lucide-react"
+import { TrendingUp, Trophy, Calendar } from "lucide-react"
 
 export function UserInfo() {
   return (
     <Card className="bg-black border-blue-900/50 w-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg text-white">Your Progress</CardTitle>
+        <CardTitle className="text-lg text-white">Learning Progress</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 px-2 sm:px-4">
-          {/* Days Visited Section */}
           <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-yellow-500" />
@@ -35,12 +34,10 @@ export function UserInfo() {
             </div>
             <span className="text-xs text-gray-400">Keep Participating in Quizzes to earn more XP!</span>
           </div>
-
-          {/* Quizzes Participated Section */}
           <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
-              <Flame className="h-4 w-4 text-orange-500" />
-              <span className="text-sm font-medium text-gray-200">No. Quizzez you participated</span>
+              <Trophy className="h-4 w-4 text-orange-500" />
+              <span className="text-sm font-medium text-gray-200">No. Quizzes you participated</span>
             </div>
             <motion.div
               className="flex items-baseline gap-2 flex-wrap min-w-0"
@@ -54,11 +51,9 @@ export function UserInfo() {
             >
               <span className="text-2xl font-bold text-white">1,250</span>
             </motion.div>
-            <Progress value={65} className="h-2 bg-blue-500" />
+            <Progress value={65} className="h-2 bg-blue-900" />
             <span className="text-xs text-gray-400">650 XP until next level</span>
           </div>
-
-          {/* Concepts Learned Section */}
           <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
               <BookIcon className="h-4 w-4 text-blue-500" />
@@ -68,7 +63,7 @@ export function UserInfo() {
               <span className="text-2xl font-bold text-white">42</span>
               <span className="text-sm text-gray-400">of 100</span>
             </div>
-            <Progress value={42} className="h-2 bg-blue-500" />
+            <Progress value={42} className="h-2 bg-blue-900" />
             <span className="text-xs text-gray-400">58 more to master basics</span>
           </div>
         </div>
