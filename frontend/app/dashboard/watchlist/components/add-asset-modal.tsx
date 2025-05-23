@@ -47,7 +47,6 @@ export default function AddAssetModal() {
     const [isSearching, setIsSearching] = useState(false)
     const [addingAssetId, setAddingAssetId] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
-
     const { user } = useAppSelector((state) => state.auth)
 
     useEffect(() => {
@@ -59,6 +58,8 @@ export default function AddAssetModal() {
                     if (!Array.isArray(results)) throw new Error("Invalid response format.")
                     setAssets(results)
                     setError(null)
+
+                    
                 } catch (err: any) {
                     console.error("Error fetching assets:", err)
                     setError("Failed to fetch assets. Please try again.")
@@ -91,7 +92,9 @@ export default function AddAssetModal() {
             if (!result || result.length === 0) {
                 toast.error("Asset could not be added. Please try again.")
             } else {
-                toast.success(`Asset ${asset.symbol} added to watchlist!`)
+                toast.success(`Asset ${asset.symbol} added to watchlist!`);
+
+                window.location.reload();
             }
         } catch (err) {
             console.error("Add error:", err)
@@ -167,7 +170,7 @@ export default function AddAssetModal() {
                                     <div className="flex items-center">
                                         <div className="text-right mr-4">
                                             <div className="text-white font-semibold">
-                                                ${asset.current_price ?? "N/A"}
+                                                {asset.current_price ? `$${asset.current_price}` : `--`}
                                             </div>
                                             {typeof asset.change_percent === "number" && (
                                                 <div

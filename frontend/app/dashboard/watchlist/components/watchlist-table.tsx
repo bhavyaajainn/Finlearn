@@ -14,47 +14,56 @@ import { Button } from "@/components/ui/button";
 import { Eye, Trash2 } from "lucide-react";
 import { useAppSelector } from "@/app/store/hooks"; import { toast } from "sonner";
 
+export interface Asset {
+  added_on: string; // ISO date string
+  asset_type: "stock" | "crypto"; // or use string if dynamic
+  currency: string;
+  current_price: number;
+  exchange: string;
+  industry: string;
+  market_cap: number;
+  name: string;
+  notes: string;
+  price_change: number;
+  price_change_percent: number;
+  sector: string;
+  symbol: string;
+}
+
 export default function WatchlistTable() {
   const router = useRouter();
-  const [watchlist, setWatchlist] = useState([]);
+  const [watchlist, setWatchlist] = useState<Asset[]>([]);
   const { user } = useAppSelector((state) => state.auth);
-
   const API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist?user_id=${user?.uid}&include_similar=false`;
 
   useEffect(() => {
     const fetchWatchlist = async () => {
       if (!user?.uid) return;
-
+  
       try {
         const res = await fetch(API_URL, {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
         });
-
-        if (!res.ok) {
-          throw new Error(`Error ${res.status}: ${res.statusText}`);
-        }
-
+  
+        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+  
         const data = await res.json();
-        if (!Array.isArray(data.watchlist)) {
-          throw new Error("Malformed response: 'watchlist' is not an array");
-        }
-
+        if (!Array.isArray(data.watchlist)) throw new Error("Malformed response");
         setWatchlist(data.watchlist);
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error fetching watchlist:", error);
         toast("Failed to fetch watchlist");
       }
     };
-
+  
     fetchWatchlist();
   }, [user?.uid]);
 
   const handleRowClick = (name: string, asset: string) => {
     router.push(`/dashboard/watchlist/${name}/${asset}`);
   };
+  
   const removeFromWatchlist = async (e: React.MouseEvent, id: string, asset_type: string) => {
     e.stopPropagation();
     const DELETE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/remove?user_id=${user?.uid}&symbol=${id}&asset_type=${asset_type}`;

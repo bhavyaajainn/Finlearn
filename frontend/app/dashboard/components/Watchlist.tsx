@@ -141,7 +141,7 @@ const Watchlist = () => {
               </div>
               <div className="text-right flex-shrink-0 ml-4">
                 <div className="font-medium text-base text-white">
-                  {formatPrice(item.current_price, item.currency)}
+                  {/* {formatPrice(item.current_price, item.currency)} */}
                 </div>
                 <div
                   className={`text-sm flex items-center justify-end ${
@@ -156,7 +156,7 @@ const Watchlist = () => {
                   {Math.abs(item.price_change_percent).toFixed(2)}%
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {formatMarketCap(item.market_cap, item.currency)}
+                  {/* {formatMarketCap(item.market_cap, item.currency)} */}
                 </div>
               </div>
             </motion.div>
