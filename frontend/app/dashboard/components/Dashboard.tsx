@@ -116,7 +116,6 @@ export function Dashboard() {
                     </div>
                     <div className="flex gap-1">
                       {Array.from({ length: 7 }).map((_, i) => {
-                        // Calculate which days to highlight based on current streak
                         const daysToHighlight = Math.min(streak?.current_streak || 0, 7);
                         return (
                           <div 
@@ -172,76 +171,24 @@ export function Dashboard() {
             </Card>
           </motion.div>
           <motion.div variants={item}>
-            <Card className="bg-black border-blue-900/50 w-full">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg text-white flex items-center">
-                  <Zap className="text-yellow-400 mr-2 h-5 w-5" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
-                  {[
-                    {
-                      icon: BookOpen,
-                      label: "Continue Learning",
-                      href: "/dashboard/learning",
-                      color: "from-blue-500/20 to-cyan-500/20",
-                      iconColor: "text-blue-400"
-                    },
-                    {
-                      icon: TrendingUp,
-                      label: "View Watchlist", 
-                      href: "/dashboard/watchlist",
-                      color: "from-green-500/20 to-emerald-500/20",
-                      iconColor: "text-green-400"
-                    },
-                    {
-                      icon: Target,
-                      label: "Update Profile",
-                      href: "/dashboard/profile",
-                      color: "from-purple-500/20 to-pink-500/20",
-                      iconColor: "text-purple-400"
-                    }
-                  ].map((action, index) => (
-                    <Link key={index} href={action.href}>
-                      <motion.div
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`bg-gradient-to-br ${action.color} rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer group h-full`}
-                      >
-                        <div className="text-center">
-                          <div className="mb-2 flex justify-center">
-                            <action.icon className={`h-6 w-6 ${action.iconColor} group-hover:scale-110 transition-transform duration-300`} />
-                          </div>
-                          <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                            {action.label}
-                          </span>
-                        </div>
-                      </motion.div>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-          <motion.div variants={item}>
             <MotivationCard 
               quote={essentials?.quote} 
               loading={loading.essentials}
               error={error.essentials}
             />
           </motion.div>
-          <motion.div variants={item}>
-            <GlossaryCard 
-              glossaryTerms={essentials?.glossary_term || []}
-              loading={loading.essentials}
-              error={error.essentials}
-            />
-          </motion.div>
-          <motion.div variants={item}>
-            <Watchlist />
-          </motion.div>
+          <div className="flex flex-col lg:flex-row gap-6">
+            <motion.div variants={item} className="flex-1">
+              <GlossaryCard 
+                glossaryTerms={essentials?.glossary_term || []}
+                loading={loading.essentials}
+                error={error.essentials}
+              />
+            </motion.div>
+            <motion.div variants={item} className="flex-1">
+              <Watchlist />
+            </motion.div>
+          </div>
         </motion.div>
       </div>
     </>

@@ -6,7 +6,11 @@ import { motion } from "framer-motion"
 import { useAppSelector } from '@/app/store/hooks'
 import { useRouter } from 'next/navigation'
 
-const Watchlist = () => {
+interface WatchlistProps {
+  hideViewFullButton?: boolean;
+}
+
+const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
   const router = useRouter();
   const { 
     watchlist, 
@@ -41,7 +45,18 @@ const Watchlist = () => {
     return (
       <Card className="bg-black border-blue-900/50 text-white">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white">Your Watchlist</CardTitle>
+          <CardTitle className="text-white flex items-center justify-between">
+            Your Watchlist
+            {!hideViewFullButton && (
+              <Button 
+                variant="ghost" 
+                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20 text-sm h-8 px-3"
+                onClick={handleViewFullWatchlist}
+              >
+                View Full Watchlist
+              </Button>
+            )}
+          </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -68,9 +83,20 @@ const Watchlist = () => {
     return (
       <Card className="bg-black border-red-900/50 text-white">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-red-400" />
-            Your Watchlist
+          <CardTitle className="text-white flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+              Your Watchlist
+            </div>
+            {!hideViewFullButton && (
+              <Button 
+                variant="ghost" 
+                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20 text-sm h-8 px-3"
+                onClick={handleViewFullWatchlist}
+              >
+                View Full Watchlist
+              </Button>
+            )}
           </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
@@ -80,15 +106,6 @@ const Watchlist = () => {
             <span>{error}</span>
           </div>
         </CardContent>
-        <CardFooter className="pt-0 pb-4 px-4">
-          <Button 
-            variant="ghost" 
-            className="w-full mt-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20"
-            onClick={handleViewFullWatchlist}
-          >
-            View Full Watchlist
-          </Button>
-        </CardFooter>
       </Card>
     );
   }
@@ -97,7 +114,18 @@ const Watchlist = () => {
     return (
       <Card className="bg-black border-blue-900/50 text-white">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white">Your Watchlist</CardTitle>
+          <CardTitle className="text-white flex items-center justify-between">
+            Your Watchlist
+            {!hideViewFullButton && (
+              <Button 
+                variant="ghost" 
+                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20 text-sm h-8 px-3"
+                onClick={handleViewFullWatchlist}
+              >
+                View Full Watchlist
+              </Button>
+            )}
+          </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
         <CardContent className="p-4">
@@ -118,7 +146,18 @@ const Watchlist = () => {
   return (
     <Card className="bg-black border-blue-900/50 text-white">
       <CardHeader className="pb-2">
-        <CardTitle className="text-white">Your Watchlist</CardTitle>
+        <CardTitle className="text-white flex items-center justify-between">
+          Your Watchlist
+          {!hideViewFullButton && (
+            <Button 
+              variant="ghost" 
+              className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20 text-sm h-8 px-3"
+              onClick={handleViewFullWatchlist}
+            >
+              View Full Watchlist
+            </Button>
+          )}
+        </CardTitle>
         <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -163,15 +202,6 @@ const Watchlist = () => {
           ))}
         </div>
       </CardContent>
-      <CardFooter className="pt-0 pb-4 px-4">
-        <Button 
-          variant="ghost" 
-          className="w-full mt-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20"
-          onClick={handleViewFullWatchlist}
-        >
-          View Full Watchlist
-        </Button>
-      </CardFooter>
     </Card>
   )
 }
