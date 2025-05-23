@@ -42,10 +42,28 @@ interface DashboardEssentials {
   timestamp: string;
 }
 
+// Interface for streak API response
+interface StreakData {
+  current_streak: number;
+  user_id: string;
+  last_active: string;
+  updated_at: string;
+  total_articles: number;
+  longest_streak: number;
+}
+
+interface StreakResponse {
+  user_id: string;
+  streak: StreakData;
+  fetched_at: string;
+}
+
 export function Dashboard() {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState<boolean>(false);
   const [dashboardEssentials, setDashboardEssentials] = useState<DashboardEssentials | null>(null);
+  const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [streakLoading, setStreakLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
   const dispatch = useAppDispatch();
@@ -74,6 +92,38 @@ export function Dashboard() {
     };
 
     fetchDashboardEssentials();
+  }, [user?.uid]);
+
+  // Fetch streak data
+  useEffect(() => {
+    const fetchStreakData = async () => {
+      if (!user?.uid) return;
+      
+      setStreakLoading(true);
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/user/streak?user_id=${user.uid}&refresh=true`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch streak data');
+        }
+        const data: StreakResponse = await response.json();
+        setStreakData(data.streak);
+      } catch (err) {
+        console.error('Error fetching streak data:', err);
+        // Set default values if API fails
+        setStreakData({
+          current_streak: 0,
+          longest_streak: 0,
+          total_articles: 0,
+          user_id: user?.uid || '',
+          last_active: '',
+          updated_at: ''
+        });
+      } finally {
+        setStreakLoading(false);
+      }
+    };
+
+    fetchStreakData();
   }, [user?.uid]);
 
   // Check if we need to show the preferences dialog
@@ -108,6 +158,9 @@ export function Dashboard() {
     show: { opacity: 1, y: 0 },
   }
 
+  // Calculate progress for concepts learned (assuming 100 total concepts as baseline)
+  const conceptsProgress = streakData ? Math.min((streakData.total_articles / 100) * 100, 100) : 0;
+
   return (
     <>
       <UserPreferencesDialog
@@ -132,18 +185,32 @@ export function Dashboard() {
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <Award className="h-4 w-4 text-yellow-500" />
-                      <span className="text-sm font-medium text-gray-200">Days Streak</span>
+                      <span className="text-sm font-medium text-gray-200">Current Streak</span>
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-white">21</span>
-                      <Badge variant="outline" className="bg-green-950/50 text-green-400 border-green-800">
-                        🔥 On Fire
-                      </Badge>
+                      <span className="text-2xl font-bold text-white">
+                        {streakLoading ? "..." : streakData?.current_streak || 0}
+                      </span>
+                      <span className="text-sm text-gray-400">days</span>
+                      {!streakLoading && streakData && streakData.current_streak > 0 && (
+                        <Badge variant="outline" className="bg-green-950/50 text-green-400 border-green-800 ml-2">
+                          🔥 On Fire
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex gap-1">
-                      {Array.from({ length: 7 }).map((_, i) => (
-                        <div key={i} className={`h-1.5 w-full rounded-full ${i < 5 ? "bg-blue-500" : "bg-blue-900"}`} />
-                      ))}
+                      {Array.from({ length: 7 }).map((_, i) => {
+                        // Calculate which days to highlight based on current streak
+                        const daysToHighlight = Math.min(streakData?.current_streak || 0, 7);
+                        return (
+                          <div 
+                            key={i} 
+                            className={`h-1.5 w-full rounded-full ${
+                              i < daysToHighlight ? "bg-blue-500" : "bg-blue-900"
+                            }`} 
+                          />
+                        );
+                      })}
                     </div>
                     <span className="text-xs text-gray-400">This week's activity</span>
                   </div>
@@ -151,13 +218,21 @@ export function Dashboard() {
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <Trophy className="h-4 w-4 text-amber-500" />
-                      <span className="text-sm font-medium text-gray-200">XP Earned</span>
+                      <span className="text-sm font-medium text-gray-200">Longest Streak</span>
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-white">1,250</span>
+                      <span className="text-2xl font-bold text-white">
+                        {streakLoading ? "..." : streakData?.longest_streak || 0}
+                      </span>
+                      <span className="text-sm text-gray-400">days</span>
                     </div>
-                    <Progress value={65} className="h-2 bg-blue-900" />
-                    <span className="text-xs text-gray-400">650 XP until next level</span>
+                    <div className="mt-2 text-xs text-gray-400">
+                      {streakLoading ? "Loading..." : 
+                        streakData && streakData.longest_streak > streakData.current_streak ? 
+                        "Keep going to beat your record!" : 
+                        "You're at your best streak!"
+                      }
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
@@ -166,11 +241,15 @@ export function Dashboard() {
                       <span className="text-sm font-medium text-gray-200">Concepts Learned</span>
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-white">42</span>
+                      <span className="text-2xl font-bold text-white">
+                        {streakLoading ? "..." : streakData?.total_articles || 0}
+                      </span>
                       <span className="text-sm text-gray-400">of 100</span>
                     </div>
-                    <Progress value={42} className="h-2 bg-blue-900" />
-                    <span className="text-xs text-gray-400">58 more to master basics</span>
+                    <Progress value={conceptsProgress} className="h-2 bg-blue-900" />
+                    <span className="text-xs text-gray-400">
+                      {100 - (streakData?.total_articles || 0)} more to master basics
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -187,7 +266,7 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
                   {[
                     {
                       icon: BookOpen,
@@ -215,7 +294,7 @@ export function Dashboard() {
                       <motion.div
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        className={`bg-gradient-to-br ${action.color} rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer group`}
+                        className={`bg-gradient-to-br ${action.color} rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer group h-full`}
                       >
                         <div className="text-center">
                           <div className="mb-2 flex justify-center">

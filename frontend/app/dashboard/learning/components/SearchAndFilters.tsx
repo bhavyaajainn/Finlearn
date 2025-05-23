@@ -60,9 +60,7 @@ export default function SearchAndFilters({
                 : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
             } ${filterLoading && selectedCategory === 'All' ? 'pointer-events-none' : ''}`}
           >
-            {filterLoading && selectedCategory === 'All' && (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            )}
+
             All
           </button>
           
