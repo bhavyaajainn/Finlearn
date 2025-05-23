@@ -1,4 +1,5 @@
-"use server";
+"use client";
+
 // Utility for validating inputs
 function isInvalidString(input: string | undefined | null): boolean {
     return !input || input.trim().length === 0;
