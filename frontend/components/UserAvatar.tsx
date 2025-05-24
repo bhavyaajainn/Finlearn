@@ -29,7 +29,6 @@ import {
 import { useRouter } from "next/navigation";
 import { AiOutlineGoogle } from "react-icons/ai";
 
-
 type TabType = "signin" | "signup";
 
 interface UserAvatarProps {
@@ -37,7 +36,6 @@ interface UserAvatarProps {
 }
 
 export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
-  
   const dispatch = useAppDispatch();
   const { user, loading, error, verificationEmailSent } = useAppSelector(
     (state) => state.auth
@@ -54,7 +52,6 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
   const [resendingEmail, setResendingEmail] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
 
-  
   const [passwordValid, setPasswordValid] = useState({
     length: false,
     hasUppercase: false,
@@ -63,14 +60,12 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     hasSpecial: false,
   });
 
-  
   useEffect(() => {
     if (externalTrigger) {
       setIsModalOpen(true);
     }
   }, [externalTrigger]);
 
-  
   useEffect(() => {
     if (signupPassword) {
       setPasswordValid({
@@ -93,11 +88,10 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     }
   }, [signupPassword]);
 
-  
   useEffect(() => {
     dispatch(checkAuthState());
   }, [dispatch]);
- 
+
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
     if (!isModalOpen) {
@@ -105,14 +99,13 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
       setResendSuccess(false);
     }
   };
- 
+
   const switchTab = (tab: TabType) => {
     setActiveTab(tab);
     dispatch(clearVerificationStatus());
     setResendSuccess(false);
   };
 
-  
   const toggleSigninPasswordVisibility = (e: React.MouseEvent) => {
     e.preventDefault();
     setShowSigninPassword(!showSigninPassword);
@@ -123,7 +116,6 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     setShowSignupPassword(!showSignupPassword);
   };
 
-  
   useEffect(() => {
     if (!isModalOpen) {
       setSigninEmail("");
@@ -135,7 +127,6 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     }
   }, [isModalOpen]);
 
-  
   useEffect(() => {
     if (activeTab === "signin") {
       setSignupEmail("");
@@ -147,7 +138,6 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
       setShowSigninPassword(false);
     }
 
-    
     if (activeTab === "signup") {
       setPasswordValid({
         length: false,
@@ -159,7 +149,6 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     }
   }, [activeTab]);
 
-  
   const handleResendVerificationEmail = async () => {
     setResendingEmail(true);
     try {
@@ -172,7 +161,18 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     }
   };
 
-  
+  const handleSuccessfulAuth = () => {
+    setIsModalOpen(false);
+    
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    
+    setTimeout(() => {
+      router.push("/animation");
+    }, 100);
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -180,8 +180,7 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
         signInWithEmail({ email: signinEmail, password: signinPassword })
       ).unwrap();
 
-      setIsModalOpen(false);
-      router.push("/dashboard"); 
+      handleSuccessfulAuth();
     } catch (err) {
       console.error("Sign-in failed:", err);
     }
@@ -190,7 +189,6 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    
     const allRequirementsMet = Object.values(passwordValid).every(
       (value) => value === true
     );
@@ -211,8 +209,8 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
   const handleGoogleSignIn = async () => {
     try {
       await dispatch(signInWithGoogle()).unwrap();
-      setIsModalOpen(false);
-      router.push("/dashboard"); 
+      
+      handleSuccessfulAuth();
     } catch (err) {
       console.error("Google sign-in failed:", err);
     }
@@ -221,19 +219,24 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
   const handleSignOut = async () => {
     try {
       await dispatch(signOut()).unwrap();
-      router.push("/"); 
+      
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      
+      setTimeout(() => {
+        router.push("/");
+      }, 100);
     } catch (err) {
       console.error("Sign-out failed:", err);
     }
   };
 
-  
   const getPasswordStrength = () => {
     const criteria = Object.values(passwordValid);
     return criteria.filter(Boolean).length;
   };
 
-  
   const renderPasswordStrengthIndicator = () => {
     const strength = getPasswordStrength();
     const strengthLabels = ["Very weak", "Weak", "Medium", "Good", "Strong"];
@@ -261,10 +264,8 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     );
   };
 
-  
   const renderEmailVerificationMessage = () => {
     return (
-
       <div className="mb-4 p-3 bg-amber-400/10 border border-amber-400/20 rounded-md text-amber-400 text-sm">
         <div className="flex items-start mb-2">
           <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
@@ -310,7 +311,6 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     );
   };
 
-  
   if (loading) {
     return (
       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800">

@@ -104,7 +104,7 @@ const MotivationCard: React.FC<MotivationCardProps> = ({ quote, loading = false,
           <blockquote className="border-l-4 border-blue-600 pl-4 italic text-base text-gray-200 mb-3 leading-relaxed">
             "{cleanQuoteText}"
           </blockquote>
-          <p className="text-gray-400 text-sm font-medium">— {displayQuote.author}</p>
+          <p className="text-gray-400 text-sm font-medium">— {displayQuote.author || 'Anonymous'}</p>
         </CardContent>
       </Card>
     </motion.div>

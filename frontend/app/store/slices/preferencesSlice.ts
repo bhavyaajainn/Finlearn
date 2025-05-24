@@ -1,32 +1,32 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { toast } from 'sonner';
 
-// Define the interface for user preferences
+
 export interface UserPreferences {
   expertise_level: string;
   categories: string[];
 }
 
-// Define the state interface
+
 interface PreferencesState {
   preferences: UserPreferences | null;
   loading: boolean;
   error: string | null;
 }
 
-// Initial state
+
 const initialState: PreferencesState = {
   preferences: null,
   loading: false,
   error: null,
 };
 
-// Async thunk for fetching user preferences
+
 export const fetchUserPreferences = createAsyncThunk(
   'preferences/fetchUserPreferences',
   async (userId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://finlearn.onrender.com/selectedcategories?user_id=${userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -46,12 +46,12 @@ export const fetchUserPreferences = createAsyncThunk(
   }
 );
 
-// Async thunk for saving user preferences
+
 export const saveUserPreferences = createAsyncThunk(
   'preferences/saveUserPreferences',
   async ({ userId, data }: { userId: string; data: UserPreferences }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://finlearn.onrender.com/selectedcategories?user_id=${userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${userId}`, {
         method: 'POST',
         body: JSON.stringify(data),
         headers: {
@@ -72,12 +72,12 @@ export const saveUserPreferences = createAsyncThunk(
   }
 );
 
-// Async thunk for updating user preferences
+
 export const updateUserPreferences = createAsyncThunk(
   'preferences/updateUserPreferences',
   async ({ userId, data }: { userId: string; data: UserPreferences }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://finlearn.onrender.com/selectedcategories?user_id=${userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${userId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
         headers: {
@@ -98,7 +98,7 @@ export const updateUserPreferences = createAsyncThunk(
   }
 );
 
-// Create the preferences slice
+
 const preferencesSlice = createSlice({
   name: 'preferences',
   initialState,
@@ -109,7 +109,7 @@ const preferencesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch user preferences cases
+      
       .addCase(fetchUserPreferences.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -122,7 +122,7 @@ const preferencesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Save user preferences cases
+      
       .addCase(saveUserPreferences.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -135,7 +135,7 @@ const preferencesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Update user preferences cases
+      
       .addCase(updateUserPreferences.pending, (state) => {
         state.loading = true;
         state.error = null;

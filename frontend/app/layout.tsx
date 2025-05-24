@@ -9,7 +9,6 @@ import { checkAuthState } from "@/app/store/slices/authSlice";
 import ErrorBoundary from "./ErrorBoundary";
 import { Toaster } from "@/components/ui/sonner";
 
-
 const geistSans = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600"],

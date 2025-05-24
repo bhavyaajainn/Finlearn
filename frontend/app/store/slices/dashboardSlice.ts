@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+
 export interface GlossaryTerm {
   term: string;
   definition: string;  
@@ -33,6 +34,41 @@ export interface StreakResponse {
   fetched_at: string;
 }
 
+export interface TrendingNewsItem {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  url: string | null;
+  published_at: string;
+  topics: string[];
+}
+
+export interface TrendingNewsResponse {
+  user_id: string;
+  trending_news: TrendingNewsItem[];
+  timestamp: string;
+}
+
+export interface TooltipWord {
+  word: string;
+  tooltip: string;
+}
+
+export interface NewsDetailResponse {
+  user_id: string;
+  news_id: string;
+  expertise_level: string;
+  article: {
+    title: string;
+    content: string;
+    tooltip_words: TooltipWord[];
+    references: string[];
+    reading_time_minutes: number;
+  };
+  timestamp: string;
+}
+
 export interface WatchlistItem {
   asset_type: string;
   symbol: string;
@@ -58,15 +94,21 @@ interface DashboardState {
   essentials: DashboardEssentials | null;
   streak: StreakData | null;
   watchlist: WatchlistItem[];
+  trendingNews: TrendingNewsItem[];
+  newsDetail: NewsDetailResponse | null;
   loading: {
     essentials: boolean;
     streak: boolean;
     watchlist: boolean;
+    trendingNews: boolean;
+    newsDetail: boolean;
   };
   error: {
     essentials: string | null;
     streak: string | null;
     watchlist: string | null;
+    trendingNews: string | null;
+    newsDetail: string | null;
   };
 }
 
@@ -74,15 +116,21 @@ const initialState: DashboardState = {
   essentials: null,
   streak: null,
   watchlist: [],
+  trendingNews: [],
+  newsDetail: null,
   loading: {
     essentials: false,
     streak: false,
     watchlist: false,
+    trendingNews: false,
+    newsDetail: false,
   },
   error: {
     essentials: null,
     streak: null,
     watchlist: null,
+    trendingNews: null,
+    newsDetail: null,
   },
 };
 
@@ -122,6 +170,42 @@ export const fetchStreakData = createAsyncThunk(
   }
 );
 
+export const fetchTrendingNews = createAsyncThunk(
+  'dashboard/fetchTrendingNews',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/home/news?user_id=${userId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch trending news');
+      }
+      
+      const data: TrendingNewsResponse = await response.json();
+      return data.trending_news;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchNewsDetail = createAsyncThunk(
+  'dashboard/fetchNewsDetail',
+  async ({ newsId, userId, refresh = false }: { newsId: string; userId: string; refresh?: boolean }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/news/${newsId}?user_id=${userId}&refresh=${refresh}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch news detail');
+      }
+      
+      const data = await response.json();
+      return data as NewsDetailResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const fetchWatchlist = createAsyncThunk(
   'dashboard/fetchWatchlist',
   async ({ userId, limit = 5 }: { userId: string; limit?: number }, { rejectWithValue }) => {
@@ -148,10 +232,14 @@ const dashboardSlice = createSlice({
       state.essentials = null;
       state.streak = null;
       state.watchlist = [];
+      state.trendingNews = [];
+      state.newsDetail = null;
       state.error = {
         essentials: null,
         streak: null,
         watchlist: null,
+        trendingNews: null,
+        newsDetail: null,
       };
     },
     updateStreakData: (state, action: PayloadAction<Partial<StreakData>>) => {
@@ -159,10 +247,13 @@ const dashboardSlice = createSlice({
         state.streak = { ...state.streak, ...action.payload };
       }
     },
+    clearNewsDetail: (state) => {
+      state.newsDetail = null;
+      state.error.newsDetail = null;
+    },
   },
   extraReducers: (builder) => {
     builder
-     
       .addCase(fetchDashboardEssentials.pending, (state) => {
         state.loading.essentials = true;
         state.error.essentials = null;
@@ -176,7 +267,6 @@ const dashboardSlice = createSlice({
         state.error.essentials = action.payload as string;
       })
       
-     
       .addCase(fetchStreakData.pending, (state) => {
         state.loading.streak = true;
         state.error.streak = null;
@@ -188,7 +278,6 @@ const dashboardSlice = createSlice({
       .addCase(fetchStreakData.rejected, (state, action) => {
         state.loading.streak = false;
         state.error.streak = action.payload as string;
-       
         state.streak = {
           current_streak: 0,
           longest_streak: 0,
@@ -199,7 +288,32 @@ const dashboardSlice = createSlice({
         };
       })
       
-    
+      .addCase(fetchTrendingNews.pending, (state) => {
+        state.loading.trendingNews = true;
+        state.error.trendingNews = null;
+      })
+      .addCase(fetchTrendingNews.fulfilled, (state, action) => {
+        state.loading.trendingNews = false;
+        state.trendingNews = action.payload;
+      })
+      .addCase(fetchTrendingNews.rejected, (state, action) => {
+        state.loading.trendingNews = false;
+        state.error.trendingNews = action.payload as string;
+      })
+      
+      .addCase(fetchNewsDetail.pending, (state) => {
+        state.loading.newsDetail = true;
+        state.error.newsDetail = null;
+      })
+      .addCase(fetchNewsDetail.fulfilled, (state, action) => {
+        state.loading.newsDetail = false;
+        state.newsDetail = action.payload;
+      })
+      .addCase(fetchNewsDetail.rejected, (state, action) => {
+        state.loading.newsDetail = false;
+        state.error.newsDetail = action.payload as string;
+      })
+      
       .addCase(fetchWatchlist.pending, (state) => {
         state.loading.watchlist = true;
         state.error.watchlist = null;
@@ -215,5 +329,5 @@ const dashboardSlice = createSlice({
   },
 });
 
-export const { clearDashboardData, updateStreakData } = dashboardSlice.actions;
+export const { clearDashboardData, updateStreakData, clearNewsDetail } = dashboardSlice.actions;
 export default dashboardSlice.reducer;

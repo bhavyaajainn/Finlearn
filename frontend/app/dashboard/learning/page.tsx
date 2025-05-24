@@ -54,7 +54,7 @@ const LearningHub = () => {
   const [showQuiz, setShowQuiz] = useState<boolean>(false);
   const [topicDetailLoading, setTopicDetailLoading] = useState(false);
   const [topicDetailError, setTopicDetailError] = useState<string | null>(null);
-  const lastCategoryRef = useRef<string>('');
+  const pendingCategoryRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef<boolean>(true);
   
   useEffect(() => {
@@ -67,7 +67,7 @@ const LearningHub = () => {
 
   useEffect(() => {
     return () => {
-      lastCategoryRef.current = '';
+      pendingCategoryRef.current = null;
       isInitialLoadRef.current = true;
     };
   }, []);
@@ -77,26 +77,44 @@ const LearningHub = () => {
   };
   
   const handleCategoryChange = useCallback(async (category: string) => {
-    if (!user?.uid) return;
-    if (filterLoading || selectedCategory === category || lastCategoryRef.current === category) {
+    if (!user?.uid) {
+
       return;
     }
-    lastCategoryRef.current = category;
+    
+    
+    if (filterLoading && pendingCategoryRef.current === category) {
+      return;
+    }
+    
+    
+    if (selectedCategory === category && !filterLoading) {
+      return;
+    }
+    
+    pendingCategoryRef.current = category;
+    
+    
     dispatch(setSelectedCategory(category));
+    
     try {
+      
       await dispatch(fetchTopicsByCategory({ 
         userId: user.uid, 
         category: category 
       })).unwrap();
+      
     } catch (error) {
-      console.error('Error fetching topics for category:', error);
-      lastCategoryRef.current = '';
+      console.error('Error fetching topics for category:', category, error);
+    } finally {
+      pendingCategoryRef.current = null;
     }
   }, [user?.uid, filterLoading, selectedCategory, dispatch]);
   
   const handlePageChange = (page: number) => {
     dispatch(setCurrentPage(page));
   };
+
   const handleArticleSelect = async (topic: TopicItem) => {
     setSelectedTopicItem(topic);
     setTopicDetailLoading(true);
@@ -147,16 +165,19 @@ const LearningHub = () => {
     const endIndex = startIndex + itemsPerPage;
     return filteredTopics.slice(startIndex, endIndex);
   };
+
   const capitalizedCategories = categories.map(category => 
     category.split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ')
   );
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-white mb-2">Learning Hub</h1>
         <p className="text-gray-400 mb-8">Your personalized financial knowledge center</p>
+        
         {!selectedTopicItem && (
           <SearchAndFilters 
             searchTerm={searchTerm}
@@ -167,6 +188,7 @@ const LearningHub = () => {
             onDailySummaryOpen={handleDailySummaryOpen}
           />
         )}
+        
         <div className="grid grid-cols-1 gap-6">
           {loading && !selectedTopicItem && (
             <div className="flex justify-center items-center p-12">
@@ -174,12 +196,14 @@ const LearningHub = () => {
               <span className="ml-4 text-gray-400">Loading topics...</span>
             </div>
           )}
+          
           {filterLoading && !selectedTopicItem && (
             <div className="flex justify-center items-center p-12">
               <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
               <span className="ml-4 text-gray-400">Filtering topics...</span>
             </div>
           )}
+          
           {error && !selectedTopicItem && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 text-center">
               <h3 className="text-xl font-semibold text-red-400 mb-2">Error Loading Content</h3>
@@ -192,6 +216,7 @@ const LearningHub = () => {
               </button>
             </div>
           )}
+          
           {!selectedTopicItem && !loading && !filterLoading && !error && (
             <>
               {filteredTopics && filteredTopics.length > 0 ? (
@@ -221,29 +246,15 @@ const LearningHub = () => {
                   />
                 </>
               ) : (
-                <>
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
-                    <h4 className="text-yellow-400 font-semibold mb-2">Debug Info:</h4>
-                    <pre className="text-xs text-gray-300">
-                      {JSON.stringify({
-                        selectedCategory,
-                        categoriesAvailable: categories,
-                        totalTopicsInState: Object.keys(topics).length,
-                        filteredTopicsCount: filteredTopics.length,
-                        searchTerm: searchTerm
-                      }, null, 2)}
-                    </pre>
-                  </div>
-                  
-                  <NoResults 
-                    searchTerm={searchTerm}
-                    selectedCategory={selectedCategory}
-                    onReset={handleResetFilters}
-                  />
-                </>
+                <NoResults 
+                  searchTerm={searchTerm}
+                  selectedCategory={selectedCategory}
+                  onReset={handleResetFilters}
+                />
               )}
             </>
           )}
+          
           {selectedTopicItem && (
             <ArticleView 
               topic={selectedTopicItem}
@@ -256,6 +267,7 @@ const LearningHub = () => {
           )}
         </div>
       </div>
+      
       <ConceptModal 
         concept={showConcept} 
         onClose={() => setShowConcept(null)} 

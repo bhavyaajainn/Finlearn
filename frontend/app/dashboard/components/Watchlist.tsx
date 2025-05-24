@@ -1,12 +1,16 @@
 import React from 'react'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription,CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowDown, ArrowUp, AlertCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
 import { motion } from "framer-motion"
 import { useAppSelector } from '@/app/store/hooks'
 import { useRouter } from 'next/navigation'
 
-const Watchlist = () => {
+interface WatchlistProps {
+  hideViewFullButton?: boolean;
+}
+
+const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
   const router = useRouter();
   const { 
     watchlist, 
@@ -34,17 +38,44 @@ const Watchlist = () => {
   };
 
   const handleViewFullWatchlist = () => {
-    router.push('/dashboard/watchlist');
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    
+    setTimeout(() => {
+      router.push('/dashboard/watchlist');
+    }, 100);
+  };
+
+  const handleAssetClick = (symbol: string, assetType: string) => {
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    
+    setTimeout(() => {
+      router.push(`/dashboard/watchlist/${symbol}/${assetType}`);
+    }, 100);
   };
 
   if (loading) {
     return (
-      <Card className="bg-black border-blue-900/50 text-white">
+      <Card className="bg-black border-blue-900/50 text-white h-full flex flex-col">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white">Your Watchlist</CardTitle>
+          <CardTitle className="text-white flex items-center justify-between">
+            Your Watchlist
+            {!hideViewFullButton && (
+              <Button 
+                variant="ghost" 
+                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20 text-sm h-8 px-3"
+                onClick={handleViewFullWatchlist}
+              >
+                View Full Watchlist
+              </Button>
+            )}
+          </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="flex-1">
           <div className="space-y-3 p-4">
             {[1, 2, 3].map((index) => (
               <div key={index} className="animate-pulse flex items-center justify-between py-3 border-b border-zinc-800 last:border-0">
@@ -66,41 +97,54 @@ const Watchlist = () => {
 
   if (error) {
     return (
-      <Card className="bg-black border-red-900/50 text-white">
+      <Card className="bg-black border-red-900/50 text-white h-full flex flex-col">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-red-400" />
-            Your Watchlist
+          <CardTitle className="text-white flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+              Your Watchlist
+            </div>
+            {!hideViewFullButton && (
+              <Button 
+                variant="ghost" 
+                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20 text-sm h-8 px-3"
+                onClick={handleViewFullWatchlist}
+              >
+                View Full Watchlist
+              </Button>
+            )}
           </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
-        <CardContent className="p-4">
+        <CardContent className="p-4 flex-1">
           <div className="flex items-center gap-2 text-red-400 text-sm">
             <AlertCircle className="h-4 w-4" />
             <span>{error}</span>
           </div>
         </CardContent>
-        <CardFooter className="pt-0 pb-4 px-4">
-          <Button 
-            variant="ghost" 
-            className="w-full mt-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20"
-            onClick={handleViewFullWatchlist}
-          >
-            View Full Watchlist
-          </Button>
-        </CardFooter>
       </Card>
     );
   }
 
   if (watchlist.length === 0) {
     return (
-      <Card className="bg-black border-blue-900/50 text-white">
+      <Card className="bg-black border-blue-900/50 text-white h-full flex flex-col">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white">Your Watchlist</CardTitle>
+          <CardTitle className="text-white flex items-center justify-between">
+            Your Watchlist
+            {!hideViewFullButton && (
+              <Button 
+                variant="ghost" 
+                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20 text-sm h-8 px-3"
+                onClick={handleViewFullWatchlist}
+              >
+                View Full Watchlist
+              </Button>
+            )}
+          </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
-        <CardContent className="p-4">
+        <CardContent className="p-4 flex-1 flex items-center justify-center">
           <div className="text-center py-8">
             <p className="text-gray-400 mb-4">No assets in your watchlist yet.</p>
             <Button 
@@ -116,13 +160,24 @@ const Watchlist = () => {
   }
     
   return (
-    <Card className="bg-black border-blue-900/50 text-white">
+    <Card className="bg-black border-blue-900/50 text-white h-full flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle className="text-white">Your Watchlist</CardTitle>
+        <CardTitle className="text-white flex items-center justify-between">
+          Your Watchlist
+          {!hideViewFullButton && (
+            <Button 
+              variant="ghost" 
+              className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20 text-sm h-8 px-3"
+              onClick={handleViewFullWatchlist}
+            >
+              View Full Watchlist
+            </Button>
+          )}
+        </CardTitle>
         <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
       </CardHeader>
-      <CardContent className="p-0">
-        <div>
+      <CardContent className="p-0 flex-1 overflow-hidden">
+        <div className="overflow-y-auto h-full">
           {watchlist.map((item, i) => (
             <motion.div 
               key={`${item.symbol}-${item.exchange}`}
@@ -130,7 +185,7 @@ const Watchlist = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              onClick={() => router.push(`/dashboard/watchlist/${item.symbol}/${item.asset_type}`)}
+              onClick={() => handleAssetClick(item.symbol, item.asset_type)}
             >
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-base text-white truncate">{item.symbol}</div>
@@ -163,15 +218,6 @@ const Watchlist = () => {
           ))}
         </div>
       </CardContent>
-      <CardFooter className="pt-0 pb-4 px-4">
-        <Button 
-          variant="ghost" 
-          className="w-full mt-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 transition-all duration-200 border border-transparent hover:border-blue-500/20"
-          onClick={handleViewFullWatchlist}
-        >
-          View Full Watchlist
-        </Button>
-      </CardFooter>
     </Card>
   )
 }
