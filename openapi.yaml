@@ -392,11 +392,7 @@ paths:
       tags:
       - learning
       summary: Get User Summary
-      description: "Get a summary of a user's reading activity.\n\nArgs:\n    user_id:\
-        \ User identifier\n    period: Time period for the summary (day, week, month,\
-        \ custom)\n    start_date: Custom start date (format: YYYY-MM-DD)\n    end_date:\
-        \ Custom end date (format: YYYY-MM-DD)\n    \nReturns:\n    Summary of user's\
-        \ reading activity for the specified period"
+      description: Get a summary of user's reading activity with optimized performance.
       operationId: get_user_summary_summary_get
       parameters:
       - name: user_id
@@ -428,6 +424,13 @@ paths:
           - type: string
           - type: 'null'
           title: End Date
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
       responses:
         '200':
           description: Successful Response
@@ -1094,5 +1097,5 @@ components:
       - type
       title: ValidationError
 servers:
-- url: https://finlearn.onrender.com
+- url: https://finlearn-217321872324.asia-south1.run.app
   description: Production server
