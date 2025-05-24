@@ -8,7 +8,6 @@ import { useEffect } from "react";
 import { checkAuthState } from "@/app/store/slices/authSlice"; 
 import ErrorBoundary from "./ErrorBoundary";
 import { Toaster } from "@/components/ui/sonner";
-import { AnimationProvider } from "./AnimationContext";
 
 const geistSans = Poppins({
   subsets: ["latin"],
@@ -34,13 +33,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.className} antialiased`}>
         <Provider store={store}>
-          <AnimationProvider>
-            <AuthInitializer />
-            <ErrorBoundary>
-              {children}
-              <Toaster/>
-            </ErrorBoundary>
-          </AnimationProvider>
+          <AuthInitializer />
+          <ErrorBoundary>
+            {children}
+            <Toaster/>
+          </ErrorBoundary>
         </Provider>
       </body>
     </html>

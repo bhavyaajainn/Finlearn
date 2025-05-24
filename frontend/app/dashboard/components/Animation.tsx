@@ -112,7 +112,7 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
   }[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [animationComplete, setAnimationComplete] = useState(false);
-  const [audioPlayed, setAudioPlayed] = useState(false);
+  const [audioInitialized, setAudioInitialized] = useState(false);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -129,59 +129,40 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
   }, []);
 
   useEffect(() => {
-    // Play audio with user interaction detection
-    const playImpactSound = async () => {
+    // Initialize and play audio immediately
+    const initializeAudio = () => {
       try {
-        console.log('🔊 Attempting to play audio...');
+        console.log('🔊 Initializing audio immediately...');
         
-        // Create audio element
         const audio = new Audio('/sounds/cinematic.mp3');
         audio.volume = 0.3;
         audio.preload = 'auto';
         
-        // Try to play immediately
+        // Try to play immediately without user interaction
         const playPromise = audio.play();
         
         if (playPromise !== undefined) {
           playPromise
             .then(() => {
-              console.log('🎵 Audio played successfully!');
-              setAudioPlayed(true);
+              console.log('🎵 Audio started successfully!');
+              setAudioInitialized(true);
             })
             .catch(error => {
-              if (error.name === 'NotAllowedError') {
-                console.log('🔇 Audio autoplay blocked by browser policy');
-                // Try to play on first user interaction
-                const handleFirstInteraction = () => {
-                  audio.play()
-                    .then(() => {
-                      console.log('🎵 Audio played after user interaction!');
-                      setAudioPlayed(true);
-                    })
-                    .catch(e => console.log('🔇 Audio still failed after interaction:', e.name));
-                  
-                  // Remove listeners after first attempt
-                  document.removeEventListener('click', handleFirstInteraction);
-                  document.removeEventListener('keydown', handleFirstInteraction);
-                  document.removeEventListener('touchstart', handleFirstInteraction);
-                };
-                
-                // Add listeners for user interaction
-                document.addEventListener('click', handleFirstInteraction, { once: true });
-                document.addEventListener('keydown', handleFirstInteraction, { once: true });
-                document.addEventListener('touchstart', handleFirstInteraction, { once: true });
-              } else {
-                console.log('🔇 Audio failed for other reason:', error.name);
-              }
+              console.log('🔇 Audio autoplay blocked:', error.name);
+              // Silently handle - no need for user interaction prompts
+              setAudioInitialized(true);
             });
+        } else {
+          setAudioInitialized(true);
         }
       } catch (error) {
-        console.log('🔇 Audio creation failed:', error);
+        console.log('🔇 Audio initialization failed:', error);
+        setAudioInitialized(true);
       }
     };
 
-    // Small delay to ensure component is mounted
-    const audioTimeout = setTimeout(playImpactSound, 200);
+    // Start audio immediately when component mounts
+    initializeAudio();
 
     // Animation completion timer
     const animationTimer = setTimeout(() => {
@@ -193,7 +174,6 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
     }, 6000);
 
     return () => {
-      clearTimeout(audioTimeout);
       clearTimeout(animationTimer);
     };
   }, [onAnimationComplete]);
@@ -282,13 +262,6 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* Audio status indicator (for debugging) */}
-      {!audioPlayed && (
-        <div className="fixed top-4 right-4 z-20 text-xs text-gray-500">
-          🔇 Click anywhere to enable audio
-        </div>
-      )}
-      
       {symbols.map((symbol) => (
         <FloatingSymbol
           key={symbol.id}
