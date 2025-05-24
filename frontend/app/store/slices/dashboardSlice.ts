@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+
 export interface GlossaryTerm {
   term: string;
   definition: string;  
@@ -33,6 +34,22 @@ export interface StreakResponse {
   fetched_at: string;
 }
 
+export interface TrendingNewsItem {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  url: string | null;
+  published_at: string;
+  topics: string[];
+}
+
+export interface TrendingNewsResponse {
+  user_id: string;
+  trending_news: TrendingNewsItem[];
+  timestamp: string;
+}
+
 export interface WatchlistItem {
   asset_type: string;
   symbol: string;
@@ -58,15 +75,18 @@ interface DashboardState {
   essentials: DashboardEssentials | null;
   streak: StreakData | null;
   watchlist: WatchlistItem[];
+  trendingNews: TrendingNewsItem[];
   loading: {
     essentials: boolean;
     streak: boolean;
     watchlist: boolean;
+    trendingNews: boolean;
   };
   error: {
     essentials: string | null;
     streak: string | null;
     watchlist: string | null;
+    trendingNews: string | null;
   };
 }
 
@@ -74,15 +94,18 @@ const initialState: DashboardState = {
   essentials: null,
   streak: null,
   watchlist: [],
+  trendingNews: [],
   loading: {
     essentials: false,
     streak: false,
     watchlist: false,
+    trendingNews: false,
   },
   error: {
     essentials: null,
     streak: null,
     watchlist: null,
+    trendingNews: null,
   },
 };
 
@@ -122,6 +145,24 @@ export const fetchStreakData = createAsyncThunk(
   }
 );
 
+export const fetchTrendingNews = createAsyncThunk(
+  'dashboard/fetchTrendingNews',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/home/news?user_id=${userId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch trending news');
+      }
+      
+      const data: TrendingNewsResponse = await response.json();
+      return data.trending_news;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const fetchWatchlist = createAsyncThunk(
   'dashboard/fetchWatchlist',
   async ({ userId, limit = 5 }: { userId: string; limit?: number }, { rejectWithValue }) => {
@@ -148,10 +189,12 @@ const dashboardSlice = createSlice({
       state.essentials = null;
       state.streak = null;
       state.watchlist = [];
+      state.trendingNews = [];
       state.error = {
         essentials: null,
         streak: null,
         watchlist: null,
+        trendingNews: null,
       };
     },
     updateStreakData: (state, action: PayloadAction<Partial<StreakData>>) => {
@@ -162,7 +205,6 @@ const dashboardSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-     
       .addCase(fetchDashboardEssentials.pending, (state) => {
         state.loading.essentials = true;
         state.error.essentials = null;
@@ -176,7 +218,6 @@ const dashboardSlice = createSlice({
         state.error.essentials = action.payload as string;
       })
       
-     
       .addCase(fetchStreakData.pending, (state) => {
         state.loading.streak = true;
         state.error.streak = null;
@@ -188,7 +229,6 @@ const dashboardSlice = createSlice({
       .addCase(fetchStreakData.rejected, (state, action) => {
         state.loading.streak = false;
         state.error.streak = action.payload as string;
-       
         state.streak = {
           current_streak: 0,
           longest_streak: 0,
@@ -199,7 +239,19 @@ const dashboardSlice = createSlice({
         };
       })
       
-    
+      .addCase(fetchTrendingNews.pending, (state) => {
+        state.loading.trendingNews = true;
+        state.error.trendingNews = null;
+      })
+      .addCase(fetchTrendingNews.fulfilled, (state, action) => {
+        state.loading.trendingNews = false;
+        state.trendingNews = action.payload;
+      })
+      .addCase(fetchTrendingNews.rejected, (state, action) => {
+        state.loading.trendingNews = false;
+        state.error.trendingNews = action.payload as string;
+      })
+      
       .addCase(fetchWatchlist.pending, (state) => {
         state.loading.watchlist = true;
         state.error.watchlist = null;

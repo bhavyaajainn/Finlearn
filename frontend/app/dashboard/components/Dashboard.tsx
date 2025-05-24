@@ -7,9 +7,11 @@ import { fetchUserPreferences } from "@/app/store/slices/preferencesSlice"
 import { 
   fetchDashboardEssentials, 
   fetchStreakData, 
-  fetchWatchlist 
+  fetchWatchlist,
+  fetchTrendingNews
 } from "@/app/store/slices/dashboardSlice"
 import UserPreferencesDialog from "./UserPreferencesDialog"
+import { TrendingNewsSection } from "./TrendingNewsCard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -35,6 +37,7 @@ export function Dashboard() {
   const { 
     essentials, 
     streak, 
+    trendingNews,
     loading, 
     error 
   } = useAppSelector((state) => state.dashboard);
@@ -44,6 +47,7 @@ export function Dashboard() {
       dispatch(fetchDashboardEssentials(user.uid));
       dispatch(fetchStreakData({ userId: user.uid, refresh: true }));
       dispatch(fetchWatchlist({ userId: user.uid, limit: 5 }));
+      dispatch(fetchTrendingNews(user.uid));
     }
   }, [user?.uid, dispatch]);
 
@@ -88,6 +92,14 @@ export function Dashboard() {
     
       <div className="max-w-full px-2 py-4">
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+          <motion.div variants={item}>
+            <TrendingNewsSection 
+              newsItems={trendingNews}
+              loading={loading.trendingNews}
+              error={error.trendingNews}
+            />
+          </motion.div>
+          
           <motion.div variants={item}>
             <Card className="bg-black border-blue-900/50 w-full">
               <CardHeader className="pb-2">
@@ -170,6 +182,7 @@ export function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
+          
           <motion.div variants={item}>
             <MotivationCard 
               quote={essentials?.quote} 
@@ -177,6 +190,7 @@ export function Dashboard() {
               error={error.essentials}
             />
           </motion.div>
+          
           <div className="flex flex-col lg:flex-row gap-6">
             <motion.div variants={item} className="flex-1">
               <GlossaryCard 
