@@ -319,20 +319,27 @@ def get_cached_trending_news(
     if not force_refresh:
         # Try to get from Firebase
         news_items = get_firebase_trending_news(expertise_level)
+        if news_items:
+            logger.info(f"Cache hit: Using cached trending news for {expertise_level}")
     
     if not news_items or force_refresh:
+        logger.info(f"Cache miss or refresh requested: Fetching fresh news for {expertise_level}")
         # Get fresh data from Perplexity
-        raw_news = fetch_trending_finance_news(
-            expertise_level=expertise_level,
-            user_interests=interests,
-            limit=3
-        )
-        
-        # Store in Firebase
-        store_trending_news(raw_news, expertise_level)
-        
-        # Return fresh data
-        return raw_news
+        try:
+            raw_news = fetch_trending_finance_news(
+                expertise_level=expertise_level,
+                user_interests=interests,
+                limit=3
+            )
+            
+            # Store in Firebase (with fixed document ID)
+            store_trending_news(raw_news, expertise_level)
+            
+            # Return fresh data
+            return raw_news
+        except Exception as e:
+            logger.error(f"Error fetching trending news: {e}")
+            return []
     
     # Return cached data
     return news_items
