@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI
 import uvicorn
 import os
@@ -30,7 +31,7 @@ def custom_openapi():
     
     # Customize server URLs if needed
     openapi_schema["servers"] = [
-        {"url": "https://finlearn.onrender.com", "description": "Production server"}
+        {"url": "https://finlearn-217321872324.asia-south1.run.app", "description": "Production server"}
     ]
     
     # Save schema to YAML file
