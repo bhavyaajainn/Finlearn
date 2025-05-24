@@ -9,7 +9,7 @@ from fastapi import APIRouter, Query, Depends, HTTPException
 from typing import List, Dict, Any, Optional
 import logging
 
-from app.services.firebase.cache import cache_research_article, get_cached_research  # Add standard Python logging instead
+from app.services.firebase.cache import cache_research_article, get_asset_comparison_cache, get_asset_current_price, get_cached_research, store_asset_comparison_cache  # Add standard Python logging instead
 
 # Create a logger instance for this module
 logger = logging.getLogger(__name__)
@@ -486,13 +486,35 @@ async def get_related_content(
     symbol: str,
     user_id: str = Query(...),
     asset_type: AssetType = Query(...),
-    include_comparison: bool = Query(True)
+    include_comparison: bool = Query(True),
+    refresh: bool = Query(False)  # Add refresh parameter to force new data
 ) -> Dict[str, Any]:
     """Get similar assets, news, and recommendations with expertise-based comparison."""
     try:
-        # First get user expertise level for comparisons
+        # First get user expertise level for cache key
         expertise_level = await asyncio.to_thread(get_user_expertise_level, user_id)
         
+        # Check cache first (unless refresh is requested)
+        if not refresh:
+            cache_key = f"related_{symbol}_{asset_type.value}_{expertise_level}"
+            cached_data = await asyncio.to_thread(get_asset_comparison_cache, cache_key)
+            
+            if cached_data:
+                # Get just the current price for real-time data
+                current_price_info = await asyncio.to_thread(
+                    get_asset_current_price, symbol, asset_type
+                )
+                
+                # Update the cached data with fresh price
+                if current_price_info and "asset_info" in cached_data:
+                    cached_data["asset_info"]["current_price"] = current_price_info.get("current_price")
+                    cached_data["asset_info"]["price_change_percent"] = current_price_info.get("price_change_percent")
+                
+                # Add cache metadata
+                cached_data["from_cache"] = True
+                return cached_data
+        
+        # If cache miss or refresh requested, get all data
         # Run all related content tasks in parallel
         tasks = [
             asyncio.to_thread(get_asset_info, symbol, asset_type),
@@ -515,7 +537,8 @@ async def get_related_content(
         #         expertise_level
         #     )
         
-        return {
+        # Prepare response data
+        response_data = {
             "asset_info": {
                 "symbol": symbol,
                 "name": asset_info.get("name", symbol),
@@ -525,8 +548,23 @@ async def get_related_content(
             },
             "similar_assets": similar_assets,
             "recent_news": recent_news,
-            "expertise_level": expertise_level
+            "expertise_level": expertise_level,
+            "from_cache": False
         }
+        
+        # Store in cache (in background)
+        cache_key = f"related_{symbol}_{asset_type.value}_{expertise_level}"
+        asyncio.create_task(
+            asyncio.to_thread(
+                store_asset_comparison_cache, 
+                cache_key, 
+                response_data,
+                60 * 60 * 24 * 7  # 7 days TTL
+            )
+        )
+        
+        return response_data
+        
     except Exception as e:
         logger.error(f"Error fetching related content: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to get related content: {str(e)}")

@@ -781,13 +781,14 @@ def get_similar_stocks(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
                     }
                 }
             },
-            "required": ["symbol", "name", "current_price", "similarity_reason", "comparison_points"]
+            "required": ["symbol", "name",  "similarity_reason", "comparison_points"]
         }
     }
     
     try:
         # Use schema-based API call for structured output
         results = call_perplexity_api_with_schema(prompt, similar_stocks_schema)
+        logger.info(f"Perplexity API returned {len(results) if results else 0} similar stocks")
         
         # Ensure we have the correct number of results
         return results[:limit]
