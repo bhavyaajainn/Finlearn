@@ -179,3 +179,54 @@ NEWS_ARTICLE_SCHEMA = {
     },
     "required": ["title", "content", "tooltip_words", "references"]
 }
+
+INTERACTIVE_ASSET_ANALYSIS_SCHEMA = {
+    "type": "object",
+    "required": ["title", "summary", "sections", "conclusion", "recommendation", "references"],
+    "properties": {
+        "title": {"type": "string", "description": "The title of the research analysis"},
+        "summary": {"type": "string", "description": "Executive summary of the analysis"},
+        "sections": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["title", "content"],
+                "properties": {
+                    "title": {"type": "string", "description": "Section title"},
+                    "content": {"type": "string", "description": "Section content in markdown format"}
+                }
+            },
+            "description": "Main content sections of the analysis"
+        },
+        "watchlist_relevance": {"type": "string", "description": "How this asset relates to the user's existing watchlist"},
+        "conclusion": {"type": "string", "description": "Conclusion of the analysis"},
+        "recommendation": {
+            "type": "object",
+            "required": ["action", "reasoning", "risk_level", "time_horizon"],
+            "properties": {
+                "action": {"type": "string", "enum": ["buy", "sell", "hold", "watch"], "description": "Recommended action"},
+                "reasoning": {"type": "string", "description": "Reasoning behind the recommendation"},
+                "risk_level": {"type": "string", "enum": ["low", "medium", "high"], "description": "Risk level assessment"},
+                "time_horizon": {"type": "string", "enum": ["short-term", "medium-term", "long-term"], "description": "Investment time horizon"}
+            },
+            "description": "Investment recommendation"
+        },
+        "references": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Citations and references used in the analysis"
+        },
+        "tooltip_words": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["word", "tooltip"],
+                "properties": {
+                    "word": {"type": "string", "description": "Financial term to explain"},
+                    "tooltip": {"type": "string", "description": "Explanation of the term"}
+                }
+            },
+            "description": "Financial terms with explanations"
+        }
+    }
+}

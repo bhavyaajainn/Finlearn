@@ -223,7 +223,6 @@ Remember to include {expertise_level}-appropriate tooltips throughout ALL sectio
 
 
 
-
 def get_comprehensive_research_prompt(
     symbol: str,
     asset_type: str,
@@ -235,7 +234,7 @@ def get_comprehensive_research_prompt(
     watchlist_items: List[Dict[str, Any]] = None,
     related_topics: List[Dict[str, Any]] = None
 ) -> str:
-    """Create a prompt for comprehensive research that correlates with user's reading history."""
+    """Create a prompt for comprehensive research with structured output format."""
     # Format asset info
     info_text = "\n".join([f"- {k}: {v}" for k, v in asset_info.items() 
                           if v is not None and k not in ["last_updated", "currency"]])
@@ -270,112 +269,13 @@ def get_comprehensive_research_prompt(
         if watchlist_symbols:
             watchlist_text = f"\nUser's Watchlist:\n"
             watchlist_text += ", ".join(watchlist_symbols)
-            
-            # Check if any watchlist items are related to this asset
-            related_items = []
-            if asset_type == "stock" and asset_info.get("sector"):
-                sector = asset_info.get("sector")
-                for item in watchlist_items:
-                    if item.get("sector") == sector and item.get('symbol') != symbol:
-                        related_items.append(item.get('symbol'))
-            
-            if related_items:
-                watchlist_text += f"\nRelated watchlist items in same sector: {', '.join(related_items)}"
     
-    # Format related topics from reading history
-    topics_text = ""
-    if related_topics:
-        topics_text = "\nRelated Topics From User's Reading History:\n"
-        for topic in related_topics:
-            topics_text += f"- {topic.get('title')} (Category: {topic.get('category')})\n"
-            topics_text += f"  Correlation: {topic.get('correlation_type')}, Strength: {topic.get('correlation_strength')}\n"
+    # Get expertise-specific instructions
+    expertise_instructions = _get_expertise_instructions(expertise_level, symbol, asset_type)
     
-    # Base instruction based on expertise level
-    if expertise_level.lower() == "beginner":
-        base_instruction = f"""
-Write a comprehensive research article about {symbol} ({asset_type}) for a BEGINNER investor.
-
-Your article should:
-1. Use simple, clear language with ALL financial terms explained
-2. Break down complex concepts into easily digestible explanations
-3. Focus on the fundamental story rather than technical details
-4. Emphasize basic investment concepts relevant to this asset
-5. Provide clear visual analogies where helpful
-
-IMPORTANT FORMATTING: Whenever you use a financial term or concept that beginners might not know, embed a tooltip using this exact format:
-"[concept name]{{tooltip:Simple definition in 1-2 sentences}}"
-
-Examples:
-- "The company's [P/E ratio]{{tooltip:Price-to-Earnings ratio shows how expensive a stock is compared to its profits. Lower numbers generally suggest better value.}} is currently 15."
-- "Apple benefits from a strong [ecosystem]{{tooltip:A connected family of products and services that work well together, making customers more likely to stay with the company.}}."
-
-Include at least 15-20 tooltips for various beginner-level financial concepts throughout the article.
-"""
-    elif expertise_level.lower() == "intermediate":
-        base_instruction = f"""
-Write a detailed research article about {symbol} ({asset_type}) for an INTERMEDIATE investor with some financial knowledge.
-
-Your article should:
-1. Use moderate financial terminology with explanations for more complex concepts
-2. Provide deeper analysis of financial metrics and industry positioning
-3. Include some sector-specific insights and competitive analysis
-4. Discuss both fundamental and some basic technical factors
-5. Balance simplicity with substantive analysis
-
-IMPORTANT FORMATTING: For financial terms or concepts that intermediate investors might not fully grasp, embed a tooltip using this exact format:
-"[concept name]{{tooltip:Clear definition with context}}"
-
-Examples:
-- "The company's [operating margin]{{tooltip:The percentage of revenue remaining after covering operating costs, indicating efficiency in core business operations.}} has improved by 3% year-over-year."
-- "Investors should watch for potential [channel stuffing]{{tooltip:When a company inflates sales figures by forcing excess inventory through distribution channels, often a red flag for accounting issues.}} in quarterly reports."
-
-Include 10-15 tooltips for intermediate-level financial concepts throughout the article.
-"""
-    else:  # advanced
-        base_instruction = f"""
-Write an in-depth, sophisticated research article about {symbol} ({asset_type}) for an ADVANCED investor with extensive financial knowledge.
-
-Your article should:
-1. Use technical financial terminology appropriate for experienced investors
-2. Provide nuanced analysis of complex financial metrics and valuation models
-3. Include detailed industry analysis, competitive positioning, and macroeconomic factors
-4. Incorporate advanced technical analysis where relevant
-5. Offer sophisticated insights that would interest professional investors
-
-IMPORTANT FORMATTING: For specialized, niche, or especially complex financial concepts, embed a tooltip using this exact format:
-"[concept name]{{tooltip:Precise definition with technical context}}"
-
-Examples:
-- "The [Altman Z-Score]{{tooltip:A predictive formula for bankruptcy risk that combines five financial ratios, with scores below 1.8 indicating potential distress.}} suggests minimal financial distress risk."
-- "Technical traders should note the recent [bull flag consolidation]{{tooltip:A chart pattern showing a period of consolidation after a strong uptrend, typically resolving with continuation of the prior trend.}} on the daily timeframe."
-
-Include 5-10 tooltips only for the most advanced or specialized concepts in the article.
-"""
-
-    # Enhanced personalization instructions
-    personalization = f"""
-PERSONALIZATION INSTRUCTIONS:
-
-1. User Interests: Focus on aspects related to {interests_text}.
-
-2. Recent News: {"Incorporate analysis of the recent news provided and how it affects the investment thesis." if recent_news else "Focus on long-term fundamentals rather than very recent events."}
-
-3. Watchlist Context: {"Discuss how this asset relates to or complements the user's existing watchlist, particularly any in the same sector." if watchlist_items else "Consider this may be one of the first assets the user is researching in depth."}
-
-4. KNOWLEDGE CORRELATION: This is extremely important - the user has previously read about topics related to this asset. For each related topic below, create explicit connections in your analysis:
-{topics_text if related_topics else "No directly related topics found in user's reading history."}
-
-When referencing these related topics, use phrases like:
-- "Building on what you've learned about [topic]..."
-- "Connecting to the concept of [topic] that you've explored..."
-- "As you may recall from your reading on [topic]..."
-
-5. Interactive Style: Make the analysis feel interactive by asking rhetorical questions and addressing the user directly throughout the article.
-"""
-
-    # Full prompt with formatting instructions
+    # Build the final prompt
     prompt = f"""
-{base_instruction}
+{expertise_instructions}
 
 Asset Information:
 {info_text}
@@ -383,9 +283,12 @@ Asset Information:
 {similar_text if similar_assets else ""}
 {news_text if recent_news else ""}
 {watchlist_text if watchlist_items else ""}
-{topics_text if related_topics else ""}
 
-{personalization}
+PERSONALIZATION INSTRUCTIONS:
+1. User Interests: Focus on aspects related to {interests_text}.
+2. Recent News: {"Incorporate analysis of the recent news provided and how it affects the investment thesis." if recent_news else "Focus on long-term fundamentals rather than very recent events."}
+3. Watchlist Context: {"Discuss how this asset relates to or complements the user's existing watchlist." if watchlist_items else "Consider this may be one of the first assets the user is researching in depth."}
+4. Interactive Style: Make the analysis feel personalized by addressing the user directly throughout the article.
 
 Structure your research article with these sections:
 1. Title - Engaging title for the research article
@@ -395,37 +298,99 @@ Structure your research article with these sections:
 5. Financial Analysis - Key metrics, growth trends, and financial health
 6. Risk Assessment - Major risks and challenges facing the asset
 7. Recent News Analysis - Analysis of recent news and their impact
-8. Knowledge Connections - Explicit connections to topics the user has previously read about
+8. Comparison - How it compares to similar assets (if provided)
 9. Watchlist Integration - How this fits with user's existing portfolio
-10. Comparison - How it compares to similar assets (if provided)
-11. Conclusion - Bringing together the key insights
-12. Investment Recommendation - Clear buy/hold/sell guidance with reasoning
+10. Conclusion - Bringing together the key insights
+11. Investment Recommendation - Clear buy/hold/sell guidance with reasoning
 
 Format your ENTIRE response as a valid JSON object with these fields:
 {{
   "title": "Engaging research title",
   "summary": "2-3 sentence executive summary",
-  "introduction": "Introductory paragraph with overview and thesis",
   "sections": [
     {{
       "title": "Section title",
       "content": "Detailed section content with embedded tooltips as specified"
-    }},
-    ...more sections...
+    }}
   ],
-  "knowledge_connections": "Section explicitly connecting this research to topics the user has previously read about",
   "watchlist_relevance": "How this asset relates to the user's existing watchlist",
-  "comparison": "Comparison with similar assets with embedded tooltips",
   "conclusion": "Concluding analysis with key takeaways",
   "recommendation": {{
-    "rating": "Buy/Hold/Sell rating",
+    "action": "buy/sell/hold/watch",
     "reasoning": "Explanation for the recommendation",
-    "risk_level": "Low/Medium/High risk assessment",
-    "time_horizon": "Short/Medium/Long-term investment timeframe"
-  }}
+    "risk_level": "low/medium/high",
+    "time_horizon": "short-term/medium-term/long-term"
+  }},
+  "references": [
+    "Citation 1: Source name, date, URL or other identifying information",
+    "Citation 2: Source name, date, URL or other identifying information"
+  ],
+  "tooltip_words": [
+    {{
+      "word": "Term 1", 
+      "tooltip": "Explanation for term 1"
+    }}
+  ]
 }}
 
-Remember to include {expertise_level}-appropriate tooltips throughout ALL sections using the exact format specified. Tailor the content depth and terminology to a {expertise_level} investor's knowledge level.
+Include {expertise_level}-appropriate tooltips throughout ALL sections. Make sure to list ALL sources used as references in the dedicated array.
 """
     
     return prompt
+
+def _get_expertise_instructions(expertise_level: str, symbol: str, asset_type: str) -> str:
+    """Get expertise-specific instructions for the prompt."""
+    if expertise_level.lower() == "beginner":
+        return f"""
+Write a comprehensive research article about {symbol} ({asset_type}) for a BEGINNER investor.
+
+Your article should:
+1. Use simple, clear language
+2. Break down complex concepts into easily digestible explanations
+3. Focus on the fundamental story rather than technical details
+4. Emphasize basic investment concepts relevant to this asset
+5. Provide clear visual analogies where helpful
+
+IMPORTANT: Instead of embedding tooltips in the content, simply write the article normally.
+Separately identify 15-20 financial terms or concepts that beginners might not know.
+These will be returned in a separate "tooltip_words" array in your response.
+
+For example, your article might mention "P/E ratio" and "market cap" normally in the text,
+and then you'll include these terms with explanations in the tooltip_words array.
+"""
+    elif expertise_level.lower() == "intermediate":
+        return f"""
+Write a detailed research article about {symbol} ({asset_type}) for an INTERMEDIATE investor with some financial knowledge.
+
+Your article should:
+1. Use moderate financial terminology
+2. Provide deeper analysis of financial metrics and industry positioning
+3. Include some sector-specific insights and competitive analysis
+4. Discuss both fundamental and some basic technical factors
+5. Balance simplicity with substantive analysis
+
+IMPORTANT: Instead of embedding tooltips in the content, simply write the article normally.
+Separately identify 10-15 financial terms or concepts that intermediate investors might not fully grasp.
+These will be returned in a separate "tooltip_words" array in your response.
+
+For example, your article might mention "operating margin" and "EBITDA" normally in the text,
+and then you'll include these terms with explanations in the tooltip_words array.
+"""
+    else:  # advanced
+        return f"""
+Write an in-depth, sophisticated research article about {symbol} ({asset_type}) for an ADVANCED investor with extensive financial knowledge.
+
+Your article should:
+1. Use technical financial terminology appropriate for experienced investors
+2. Provide nuanced analysis of complex financial metrics and valuation models
+3. Include detailed industry analysis, competitive positioning, and macroeconomic factors
+4. Incorporate advanced technical analysis where relevant
+5. Offer sophisticated insights that would interest professional investors
+
+IMPORTANT: Instead of embedding tooltips in the content, simply write the article normally.
+Separately identify 5-10 specialized, niche, or especially complex financial concepts.
+These will be returned in a separate "tooltip_words" array in your response.
+
+For example, your article might mention "Altman Z-Score" and "bull flag consolidation" normally in the text,
+and then you'll include these terms with explanations in the tooltip_words array.
+"""

@@ -136,120 +136,8 @@ def get_cached_finance_quote(cache_key: str = None, force_refresh: bool = False)
     return cache_entry["data"]
 
 
-def get_cached_trending_news(
-    expertise_level: str, 
-    interests: List[str] = None,
-    force_refresh: bool = False
-) -> List[NewsItem]:
-    """Get trending news with time-based caching."""
-    # Create a cache key that includes user interests
-    cache_key = f"{expertise_level}:{'-'.join(sorted(interests)) if interests else 'none'}"
-    now = datetime.now()
-    cache_entry = _cache["trending_news"].get(cache_key)
-    
-    # Check if we need to refresh (24-hour TTL for news)
-    needs_refresh = (
-        cache_entry is None or 
-        force_refresh or 
-        (cache_entry["timestamp"] and (now - cache_entry["timestamp"]).total_seconds() > 86400)  # 24 hours
-    )
-    
-    if needs_refresh:
-        # Get fresh data from Perplexity
-        raw_news = fetch_trending_finance_news(
-            expertise_level=expertise_level,
-            user_interests=interests,
-            limit=3
-        )
-
-        if not isinstance(raw_news, list):
-            logger.warning(f"Expected list but got {type(raw_news)}, converting to list")
-            raw_news = [raw_news] if raw_news else []
-        
-        # Process news items
-        news_items = []
-        if isinstance(raw_news, list):
-            for item in raw_news:
-                try:
-                    item_id = item.get("id")
-                    if not item_id:  # Only generate a new ID if none exists
-                        item_id = str(uuid.uuid4())
-                        
-                    news_item = NewsItem(
-                        id=item_id,
-                        title=str(item.get("title", "Missing Title")),
-                        summary=str(item.get("summary", "No summary available")),
-                        source=str(item.get("source", "Unknown Source")),
-                        url=item.get("url"),
-                        published_at=item.get("published_at"),
-                        topics=item.get("topics", []) if isinstance(item.get("topics"), list) else []
-                    )
-                    news_items.append(news_item)
-                except Exception as e:
-                    logger.error(f"Error processing news item: {e}")
-        
-        # Update cache
-        _cache["trending_news"][cache_key] = {
-            "data": news_items,
-            "timestamp": now
-        }
-        return news_items
-    
-    # Return cached data
-    return cache_entry["data"]
-
-
 # Add to your cache initialization
 _cache["news_articles"] = {}
-
-# def get_cached_news_article(news_id: str, expertise_level: str, force_refresh: bool = False) -> Dict[str, Any]:
-#     """Get cached news article with separate tooltips list.
-    
-#     Args:
-#         news_id: ID of the news item to generate an article about
-#         expertise_level: User's expertise level
-#         force_refresh: Whether to force refresh the cache
-        
-#     Returns:
-#         Article with tooltips and references
-#     """
-#     cache_key = f"{news_id}:{expertise_level}"
-#     now = datetime.now()
-#     cache_entry = _cache["news_articles"].get(cache_key)
-    
-#     # Check if we need to refresh
-#     needs_refresh = (
-#         cache_entry is None or 
-#         force_refresh or 
-#         (cache_entry["timestamp"] and (now - cache_entry["timestamp"]).total_seconds() > 86400)  # 72 hours
-#     )
-    
-#     if needs_refresh:
-#         # First, get the specific news item details
-#         news_item = get_news_item_by_id(news_id)
-        
-#         if not news_item:
-#             # If news item not found, use a generic fallback
-#             logger.warning(f"Generating generic article for unknown news ID: {news_id}")
-#             news_item = {
-#                 "title": "Recent Financial Development",
-#                 "summary": "Recent developments in financial markets and their implications.",
-#                 "source": "Financial Times"
-#             }
-        
-#         # Generate fresh article using the news item details
-#         article = generate_news_article(news_id, news_item, expertise_level)
-        
-#         # Update cache
-#         _cache["news_articles"][cache_key] = {
-#             "data": article,
-#             "timestamp": now
-#         }
-#         return article
-    
-#     # Return cached article
-#     return cache_entry["data"]
-
 
 async def get_cached_glossary_term_async(
     expertise_level: str, 
@@ -282,31 +170,6 @@ async def get_cached_trending_news_async(
         None,
         partial(get_cached_trending_news, expertise_level, interests, force_refresh)
     )
-
-# def get_news_item_by_id(news_id: str) -> Optional[Dict[str, Any]]:
-#     """Get a specific news item by its ID from cache."""
-#     # Search through all cached news entries
-#     for interests_key, cache_entry in _cache["trending_news"].items():
-#         if not cache_entry or not isinstance(cache_entry["data"], list):
-#             continue
-            
-#         # Look for matching news ID in this cache entry
-#         for news_item in cache_entry["data"]:
-#             # Convert Pydantic model to dictionary if needed
-#             if not isinstance(news_item, dict):
-#                 news_dict = news_item.dict() if hasattr(news_item, "dict") else vars(news_item)
-#             else:
-#                 news_dict = news_item
-                
-#             if str(news_dict.get("id", "")) == news_id:
-#                 return news_dict
-                
-#     # Not found in cache
-#     logger.warning(f"News item with ID {news_id} not found in cache")
-#     return None
-
-
-
 
 def get_cached_trending_news(
     expertise_level: str,
