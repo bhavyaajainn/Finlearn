@@ -111,6 +111,7 @@ const Animation = ({ onAnimationComplete }: FintechUIProps) => {
     size: number; 
   }[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [audioLoaded, setAudioLoaded] = useState(false);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -127,22 +128,66 @@ const Animation = ({ onAnimationComplete }: FintechUIProps) => {
   }, []);
 
   useEffect(() => {
-    
-    const initializeAudio = () => {
+    const initializeAudio = async () => {
       try {
-       
-        const audio = new Audio('/sounds/cinematic.mp3');
-        audio.volume = 0.1; 
+        const audio = new Audio();
+        audio.volume = 0.1;
         audio.preload = 'auto';
+        const audioSources = [
+          '/sounds/cinematic.mp3'
+        ];
+        
+        let audioLoaded = false;
+        
+        for (const source of audioSources) {
+          try {
+            audio.src = source;
+            await new Promise((resolve, reject) => {
+              audio.addEventListener('canplaythrough', () => {
+                resolve(true);
+                audioLoaded = true;
+              }, { once: true });
+              
+              audio.addEventListener('error', reject, { once: true });
+          
+              setTimeout(() => reject(new Error('Audio load timeout')), 2000);
+            });
+        
+            break;
+          } catch (error) {
+            console.warn(`Failed to load audio from ${source}:`, error);
+            continue;
+          }
+        }
+        
+        if (audioLoaded) {
+        
+          try {
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+              await playPromise;
+              
+            }
+          } catch (playError) {
+            console.warn('Audio autoplay prevented by browser:', playError);
+            
+          }
+          
+          setAudioLoaded(true);
+        } else {
+          console.warn('No audio format could be loaded');
+        }
+        
       } catch (error) {
-        console.error('Audio initialization failed:', error);
+        console.warn('Audio initialization failed:', error);
       }
     };
 
-    
+  
     initializeAudio();
-
     
+   
     const animationTimer = setTimeout(() => {
       if (onAnimationComplete) {
         onAnimationComplete();
