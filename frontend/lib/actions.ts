@@ -15,6 +15,8 @@ export async function searchAssets(searchTerm: string, activeFilter: string) {
     }
 
     try {
+        console.log(searchTerm,activeFilter)
+
         const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/search`, {
             method: "POST",
             headers: {
