@@ -1,5 +1,5 @@
 import React from 'react'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription,CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowDown, ArrowUp, AlertCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
 import { motion } from "framer-motion"
@@ -38,20 +38,20 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
   };
 
   const handleViewFullWatchlist = () => {
-    // Scroll to top before navigation
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Small delay to ensure scroll completes
+    
     setTimeout(() => {
       router.push('/dashboard/watchlist');
     }, 100);
   };
 
   const handleAssetClick = (symbol: string, assetType: string) => {
-    // Scroll to top before navigation
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Small delay to ensure scroll completes
+    
     setTimeout(() => {
       router.push(`/dashboard/watchlist/${symbol}/${assetType}`);
     }, 100);

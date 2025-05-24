@@ -3,12 +3,7 @@
 import { motion } from "framer-motion"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useAppSelector, useAppDispatch } from "@/app/store/hooks"
-import { fetchUserPreferences } from "@/app/store/slices/preferencesSlice"
 import { 
-  fetchDashboardEssentials, 
-  fetchStreakData, 
-  fetchWatchlist,
-  fetchTrendingNews,
   fetchNewsDetail,
   clearNewsDetail,
   TrendingNewsItem
@@ -45,18 +40,13 @@ export function Dashboard() {
     streak, 
     trendingNews,
     newsDetail,
-    watchlist,
     loading, 
     error 
   } = useAppSelector((state) => state.dashboard);
 
   useEffect(() => {
-    console.log('Dashboard - preferencesChecked:', preferencesChecked)
-    console.log('Dashboard - preferences:', preferences)
-    
     if (preferencesChecked && user?.uid && preferences) {
       if (!preferences?.expertise_level || !preferences?.categories?.length) {
-        console.log('Showing preferences dialog')
         setShowPreferencesDialog(true);
       }
     }

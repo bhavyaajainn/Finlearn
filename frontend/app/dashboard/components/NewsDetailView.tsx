@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { X, Clock, AlertCircle, Info, ExternalLink, Calendar, User, Tag } from 'lucide-react';
+import { X, AlertCircle, Info, ExternalLink, Calendar, User, Tag } from 'lucide-react';
 import { NewsDetailResponse, TooltipWord, TrendingNewsItem } from '@/app/store/slices/dashboardSlice';
 import { Badge } from '@/components/ui/badge';
 

@@ -164,10 +164,10 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
   const handleSuccessfulAuth = () => {
     setIsModalOpen(false);
     
-    // Scroll to top before navigation
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Small delay to ensure scroll completes
+    
     setTimeout(() => {
       router.push("/animation");
     }, 100);
@@ -220,10 +220,10 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     try {
       await dispatch(signOut()).unwrap();
       
-      // Scroll to top before navigation
+      
       window.scrollTo({ top: 0, behavior: 'smooth' });
       
-      // Small delay to ensure scroll completes
+      
       setTimeout(() => {
         router.push("/");
       }, 100);

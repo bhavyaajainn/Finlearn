@@ -59,7 +59,6 @@ const LearningHub = () => {
   
   useEffect(() => {
     if (user?.uid && Object.keys(topics).length === 0 && !loading && isInitialLoadRef.current) {
-      console.log('🚀 Initial load - fetching all topics');
       isInitialLoadRef.current = false;
       dispatch(fetchTopics(user.uid));
       dispatch(fetchUserTopicsStatus(user.uid));
@@ -79,38 +78,34 @@ const LearningHub = () => {
   
   const handleCategoryChange = useCallback(async (category: string) => {
     if (!user?.uid) {
-      console.log('❌ No user ID available');
+
       return;
     }
     
-    // Prevent duplicate requests
+    
     if (filterLoading && pendingCategoryRef.current === category) {
-      console.log('⏳ Request already in progress for category:', category);
       return;
     }
     
-    // If same category is already selected, don't make API call
+    
     if (selectedCategory === category && !filterLoading) {
-      console.log('✅ Category already selected:', category);
       return;
     }
     
-    console.log('🔄 Changing category to:', category);
     pendingCategoryRef.current = category;
     
-    // Update Redux state immediately
+    
     dispatch(setSelectedCategory(category));
     
     try {
-      // Make API call
+      
       await dispatch(fetchTopicsByCategory({ 
         userId: user.uid, 
         category: category 
       })).unwrap();
       
-      console.log('✅ Successfully fetched topics for category:', category);
     } catch (error) {
-      console.error('❌ Error fetching topics for category:', category, error);
+      console.error('Error fetching topics for category:', category, error);
     } finally {
       pendingCategoryRef.current = null;
     }

@@ -35,26 +35,21 @@ export default function DashboardLayout({
   const [isPreloading, setIsPreloading] = useState(false)
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
-  const router = useRouter()
   const pathname = usePathname()
 
-  // Scroll to top when pathname changes (navigation occurs)
+  
   useEffect(() => {
-    console.log('📍 Dashboard layout - pathname changed to:', pathname)
-    
-    // Scroll to top immediately when dashboard pages are accessed
     window.scrollTo(0, 0)
-    
-    // Also add smooth scroll as backup
+  
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }, 50)
   }, [pathname])
 
-  // Preload dashboard data when user is available
+  
   useEffect(() => {
     if (user?.uid && !dataPreloaded && !isPreloading) {
-      console.log('🚀 Starting to preload dashboard data...')
+
       setIsPreloading(true)
       
       const preloadDashboardData = async () => {
@@ -68,16 +63,8 @@ export default function DashboardLayout({
           ]
           
           const results = await Promise.allSettled(promises)
-          console.log('✅ Dashboard data preloaded successfully')
           
-          // Check preferences from the last promise result
           const preferencesResult = results[4]
-          if (preferencesResult.status === 'fulfilled') {
-            const preferences = preferencesResult.value.payload
-            if (!preferences?.expertise_level || !preferences?.categories?.length) {
-              console.log('⚙️ Preferences missing, will show dialog')
-            }
-          }
           
           setDataPreloaded(true)
           setPreferencesChecked(true)
@@ -94,7 +81,7 @@ export default function DashboardLayout({
     }
   }, [user?.uid, dataPreloaded, isPreloading, dispatch])
 
-  // Show loading screen while data is preloading
+  
   if (!dataPreloaded) {
     return (
       <ProtectedRoute>

@@ -102,7 +102,7 @@ interface FintechUIProps {
   onAnimationComplete?: () => void;
 }
 
-const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
+const Animation = ({ onAnimationComplete }: FintechUIProps) => {
   const [symbols, setSymbols] = useState<{ 
     id: number; 
     Icon: React.ComponentType<{ size: number }>; 
@@ -111,8 +111,6 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
     size: number; 
   }[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [animationComplete, setAnimationComplete] = useState(false);
-  const [audioInitialized, setAudioInitialized] = useState(false);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -129,45 +127,23 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
   }, []);
 
   useEffect(() => {
-    // Initialize and play audio immediately with reduced volume
+    
     const initializeAudio = () => {
       try {
-        console.log('🔊 Initializing audio immediately...');
-        
+       
         const audio = new Audio('/sounds/cinematic.mp3');
-        audio.volume = 0.1; // Reduced from 0.3 to 0.1 (much quieter)
+        audio.volume = 0.1; 
         audio.preload = 'auto';
-        
-        // Try to play immediately without user interaction
-        const playPromise = audio.play();
-        
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log('🎵 Audio started successfully at low volume!');
-              setAudioInitialized(true);
-            })
-            .catch(error => {
-              console.log('🔇 Audio autoplay blocked:', error.name);
-              // Silently handle - no need for user interaction prompts
-              setAudioInitialized(true);
-            });
-        } else {
-          setAudioInitialized(true);
-        }
       } catch (error) {
-        console.log('🔇 Audio initialization failed:', error);
-        setAudioInitialized(true);
+        console.error('Audio initialization failed:', error);
       }
     };
 
-    // Start audio immediately when component mounts
+    
     initializeAudio();
 
-    // Animation completion timer
+    
     const animationTimer = setTimeout(() => {
-      console.log('🎬 Animation timer completed');
-      setAnimationComplete(true);
       if (onAnimationComplete) {
         onAnimationComplete();
       }
@@ -338,4 +314,4 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
   );
 };
 
-export default FintechUI;
+export default Animation;

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ExternalLink, Clock, TrendingUp, AlertCircle } from "lucide-react"
+import { ExternalLink, TrendingUp, AlertCircle } from "lucide-react"
 
 interface TrendingNewsItem {
   id: string;
@@ -21,20 +21,6 @@ interface TrendingNewsCardProps {
 }
 
 export function TrendingNewsCard({ newsItem, onClick }: TrendingNewsCardProps) {
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays === 1) return "1 day ago";
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    
-    return date.toLocaleDateString();
-  };
 
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();

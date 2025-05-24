@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAppDispatch } from '@/app/store/hooks'
 import { signOut } from '@/app/store/slices/authSlice'
@@ -32,10 +31,9 @@ export default function DashboardNavbar() {
   }
 
   const handleNavigation = (path: string) => {
-    // Scroll to top before navigation
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Small delay to ensure scroll completes, then navigate
+    window.scrollTo({ top: 0, behavior: 'smooth' });   
+    
     setTimeout(() => {
       router.push(path);
     }, 100);
@@ -60,8 +58,6 @@ export default function DashboardNavbar() {
               FinLearn <span className="text-blue-400">AI</span>
             </button>
           </div>
-
-          {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
             <button
               onClick={() => handleNavigation('/dashboard')}
@@ -81,8 +77,6 @@ export default function DashboardNavbar() {
             >
               Learning Hub
             </button>
-
-            {/* Avatar with Dropdown */}
             <div className="relative">
               <button
                 onClick={toggleDropdown}
@@ -93,8 +87,6 @@ export default function DashboardNavbar() {
                 </div>
                 <ChevronDown size={16} className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
               </button>
-
-              {/* Dropdown Menu */}
               {showDropdown && (
                 <div className="absolute right-0 mt-2 w-48 py-1 bg-zinc-900 border border-zinc-800 rounded-md shadow-lg z-50">
                   <button
@@ -126,8 +118,6 @@ export default function DashboardNavbar() {
               )}
             </div>
           </div>
-
-          {/* Mobile Menu Button */}
           <div className="md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -138,8 +128,6 @@ export default function DashboardNavbar() {
           </div>
         </div>
       </div>
-
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-zinc-900 border-b border-zinc-800 px-4 py-4">
           <div className="flex flex-col space-y-4">

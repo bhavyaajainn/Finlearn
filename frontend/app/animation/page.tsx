@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppSelector, useAppDispatch } from '@/app/store/hooks';
-import FintechUI from '@/app/dashboard/components/Animation';
+import Animation from '@/app/dashboard/components/Animation';
 import { 
   fetchDashboardEssentials, 
   fetchStreakData, 
@@ -17,18 +17,14 @@ export default function AnimationPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-
-  // Redirect to home if not authenticated
   useEffect(() => {
     if (!user) {
       router.push('/');
     }
   }, [user, router]);
-
-  // Preload all dashboard data during animation
+ 
   useEffect(() => {
     if (user?.uid) {
-      console.log('🚀 Starting to preload all dashboard data during animation...');
       const preloadAllData = async () => {
         try {
           const promises = [
@@ -41,9 +37,8 @@ export default function AnimationPage() {
           ];
           
           await Promise.allSettled(promises);
-          console.log('✅ All dashboard data preloaded successfully during animation');
         } catch (error) {
-          console.error('❌ Error preloading data during animation:', error);
+          console.error('Error preloading data during animation:', error);
         }
       };
 
@@ -52,14 +47,13 @@ export default function AnimationPage() {
   }, [user?.uid, dispatch]);
 
   const handleAnimationComplete = () => {
-
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setTimeout(() => {
       router.push('/dashboard');
     }, 100);
   };
 
-  // Show loading if no user
+  
   if (!user) {
     return (
       <div className="w-full h-screen bg-black flex items-center justify-center">
@@ -73,7 +67,7 @@ export default function AnimationPage() {
 
   return (
     <div className="w-full h-screen bg-black">
-      <FintechUI onAnimationComplete={handleAnimationComplete} />
+      <Animation onAnimationComplete={handleAnimationComplete} />
     </div>
   );
 }

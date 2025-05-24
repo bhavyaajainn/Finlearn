@@ -23,19 +23,13 @@ export default function SearchAndFilters({
   const { filterLoading } = useAppSelector(state => state.learning);
 
   const handleCategoryClick = (category: string) => {
-    console.log('🎯 Category button clicked:', category, 'current:', selectedCategory);
-    
     if (filterLoading) {
-      console.log('⏳ Filter loading in progress, ignoring click');
       return;
     }
     
     if (selectedCategory === category) {
-      console.log('✅ Same category already selected, ignoring');
       return;
     }
-    
-    console.log('🔄 Calling onCategoryChange for:', category);
     onCategoryChange(category);
   };
 
