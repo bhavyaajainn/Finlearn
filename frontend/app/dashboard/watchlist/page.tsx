@@ -55,7 +55,7 @@ export default function WatchlistPage() {
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
-  const [activeAssetType, setActiveAssetType] = useState<string>("cryptocurrency");
+  const [activeAssetType, setActiveAssetType] = useState<string>("crypto");
   const [searchResults, setSearchResults] = useState<AssetData[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isSearching, setIsSearching] = useState(false);
@@ -91,10 +91,10 @@ export default function WatchlistPage() {
     try {
 
       const data = await fetchWatchlist(API_BASE_URL || `${process.env.NEXT_PUBLIC_BASE_URL}`, user.uid);
-      
-      if(data.length === 0){
+
+      if (data.length === 0) {
         setWatchlist([]);
-      }else{
+      } else {
         setWatchlist(data);
       }
 
@@ -105,26 +105,37 @@ export default function WatchlistPage() {
 
   const handleAddAsset = async (asset: AssetData) => {
     if (!user?.uid) {
-      toast("Authentication required");
+      toast.error("Authentication required");
       return;
     }
 
     setAddingAssetId(asset.symbol);
     try {
       const type = asset.asset_type === "cryptocurrency" ? "crypto" : asset.asset_type;
-      const result = await addToWatchlist(
+
+      const newAsset = {
+        symbol: asset.symbol,
+        name: asset.name || asset.symbol,
+        asset_type: type,
+        current_price: asset.current_price || 0,
+        price_change_percent: asset.change_percent || 0
+      };
+
+      setWatchlist(prev => [...prev, newAsset]);
+
+      await addToWatchlist(
         asset.symbol,
         type,
         asset.description || asset.name || "",
         user.uid
       );
 
-      if (result?.length) {
-        await fetchUserWatchlist();
-      }
+      await fetchUserWatchlist();
+
     } catch (error) {
+      setWatchlist(prev => prev.filter(a => a.symbol !== asset.symbol));
       console.error("Addition error:", error);
-      toast("Failed to add asset");
+      toast.error("Failed to add asset");
     } finally {
       setAddingAssetId(null);
     }
@@ -198,9 +209,9 @@ export default function WatchlistPage() {
                   <SelectTrigger className="bg-gray-800 border-gray-700">
                     <SelectValue placeholder="Asset Type" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-700">
+                  <SelectContent className="bg-gray-900 border-gray-700 text-white cursor-pointer">
                     <SelectItem value="stock">Stocks</SelectItem>
-                    <SelectItem value="cryptocurrency">Crypto</SelectItem>
+                    <SelectItem value="crypto">Crypto</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -277,7 +288,7 @@ export default function WatchlistPage() {
                     <div className="text-sm text-gray-400">{asset.symbol}</div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div>{formatCurrency(asset.current_price)}</div>
+                    <div>{isNaN(asset.current_price) ? '--' : formatCurrency(asset.current_price)}</div>
                     <div className={cn(
                       "flex items-center justify-end",
                       asset.price_change_percent >= 0 ? "text-green-500" : "text-red-500"
@@ -287,7 +298,7 @@ export default function WatchlistPage() {
                       ) : (
                         <TrendingDown className="h-4 w-4 mr-1" />
                       )}
-                      {Math.abs(asset.price_change_percent).toFixed(2)}%
+                      {isNaN(Math.abs(asset.price_change_percent).toFixed(2)) ? "--" : Math.abs(asset.price_change_percent).toFixed(2)}%
                     </div>
                   </TableCell>
                   <TableCell className="text-right capitalize">
@@ -298,7 +309,7 @@ export default function WatchlistPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-blue-400 hover:bg-blue-950/50"
+                        className="text-blue-400 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigateToAssetDetails(asset.symbol, asset.asset_type);
@@ -309,7 +320,7 @@ export default function WatchlistPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-red-400 hover:bg-red-950/50"
+                        className="text-red-400 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveAsset(asset.symbol, asset.asset_type);
