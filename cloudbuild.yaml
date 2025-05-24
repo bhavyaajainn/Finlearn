@@ -1,0 +1,36 @@
+steps:
+  # Step 1: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/finlearn', '.']
+
+  # Step 2: Push the Docker image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/finlearn']
+
+  # Step 3: Deploy the image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'finlearn'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/finlearn'
+      - '--region'
+      - 'asia-south1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'PERPLEXITY_API_KEY=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,FIREBASE_CREDENTIALS_PATH=/app/service_acount.json'
+      - '--service-account'
+      - '217321872324-compute@developer.gserviceaccount.com'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _PERPLEXITY_API_KEY: "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"
+  _SERVICE_ACCOUNT_EMAIL: "217321872324-compute@developer.gserviceaccount.com"
+
+timeout: '900s'
