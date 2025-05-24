@@ -186,13 +186,14 @@ export const updatePreferences = async (userid: string, expertiseLevel: string, 
 };
 
 export const fetchWatchlist = async (API_BASE_URL: string, userId: string) => {
-    if (userId) return;
 
     try {
         const response = await fetch(
             `${API_BASE_URL}/watchlist?user_id=${userId}&include_similar=false`
         );
         const data = await response.json();
+
+        console.log("fetch watchlist",data);
 
         return data.watchlist;
 
@@ -201,3 +202,4 @@ export const fetchWatchlist = async (API_BASE_URL: string, userId: string) => {
         toast.error("Failed to fetch watchlist");
     }
 };
+

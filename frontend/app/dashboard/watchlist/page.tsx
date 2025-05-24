@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/app/store/hooks";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { searchAssets, addToWatchlist, fetchWatchlist } from "@/lib/actions";
 import { useTransition } from "react";
 import {
@@ -62,16 +62,6 @@ export default function WatchlistPage() {
   const [addingAssetId, setAddingAssetId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUserWatchlist = async () => {
-    if (!user) return toast("No user found.");
-    try {
-      const data = await fetchWatchlist(API_BASE_URL || "", user.uid);
-      setWatchlist(data);
-    } catch (err: any) {
-      toast.error(err.message || "Error fetching preferences.");
-    }
-  };
-
 
   useEffect(() => {
     fetchUserWatchlist();
@@ -96,9 +86,26 @@ export default function WatchlistPage() {
     }
   }, [debouncedSearchTerm, activeAssetType, isDialogOpen]);
 
+  const fetchUserWatchlist = async () => {
+    if (!user) return toast("No user found.");
+    try {
+
+      const data = await fetchWatchlist(API_BASE_URL || `${process.env.NEXT_PUBLIC_BASE_URL}`, user.uid);
+      
+      if(data.length === 0){
+        setWatchlist([]);
+      }else{
+        setWatchlist(data);
+      }
+
+    } catch (err: any) {
+      toast.error(err.message || "Error fetching preferences.");
+    }
+  };
+
   const handleAddAsset = async (asset: AssetData) => {
     if (!user?.uid) {
-      toast.error("Authentication required");
+      toast("Authentication required");
       return;
     }
 
@@ -113,12 +120,11 @@ export default function WatchlistPage() {
       );
 
       if (result?.length) {
-        toast.success(`${asset.symbol} added successfully`);
-        await fetchWatchlist();
+        await fetchUserWatchlist();
       }
     } catch (error) {
       console.error("Addition error:", error);
-      toast.error("Failed to add asset");
+      toast("Failed to add asset");
     } finally {
       setAddingAssetId(null);
     }
@@ -145,15 +151,6 @@ export default function WatchlistPage() {
 
   const navigateToAssetDetails = (symbol: string, assetType: string) => {
     router.push(`/dashboard/watchlist/${symbol}/${assetType}`);
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
   };
 
   const filteredWatchlist = watchlist.filter(asset =>
