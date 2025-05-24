@@ -219,6 +219,145 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /watchlist/asset/{symbol}:
+    get:
+      tags:
+      - watchlist
+      summary: Get Basic Asset Data
+      description: Get basic asset information quickly without analysis.
+      operationId: get_basic_asset_data_watchlist_asset__symbol__get
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: asset_type
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/AssetType'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Basic Asset Data Watchlist Asset  Symbol  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /watchlist/analysis/{symbol}:
+    get:
+      tags:
+      - watchlist
+      summary: Get Asset Analysis
+      description: Get comprehensive research analysis for an asset.
+      operationId: get_asset_analysis_watchlist_analysis__symbol__get
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: asset_type
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/AssetType'
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Asset Analysis Watchlist Analysis  Symbol  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /watchlist/related/{symbol}:
+    get:
+      tags:
+      - watchlist
+      summary: Get Related Content
+      description: Get similar assets, news, and recommendations with expertise-based
+        comparison.
+      operationId: get_related_content_watchlist_related__symbol__get
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      - name: asset_type
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/AssetType'
+      - name: include_comparison
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+          title: Include Comparison
+      - name: refresh
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Refresh
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                title: Response Get Related Content Watchlist Related  Symbol  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /user/recommendedtopics:
     get:
       tags:
@@ -656,39 +795,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /dashboard/home:
-    get:
-      tags:
-      - dashboard
-      summary: Get Dashboard Content
-      operationId: get_dashboard_content_dashboard_home_get
-      parameters:
-      - name: user_id
-        in: query
-        required: true
-        schema:
-          type: string
-          title: User Id
-      - name: refresh
-        in: query
-        required: false
-        schema:
-          type: boolean
-          default: false
-          title: Refresh
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DashboardResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /dashboard/home/essential:
     get:
       tags:
@@ -916,38 +1022,6 @@ components:
       - timestamp
       title: DashboardNewsResponse
       description: Dashboard news response.
-    DashboardResponse:
-      properties:
-        user_id:
-          type: string
-          title: User Id
-        expertise_level:
-          $ref: '#/components/schemas/ExpertiseLevel'
-        glossary_term:
-          items:
-            $ref: '#/components/schemas/GlossaryTerm'
-          type: array
-          title: Glossary Term
-        quote:
-          $ref: '#/components/schemas/Quote'
-        trending_news:
-          items:
-            $ref: '#/components/schemas/NewsItem'
-          type: array
-          title: Trending News
-        timestamp:
-          type: string
-          format: date-time
-          title: Timestamp
-      type: object
-      required:
-      - user_id
-      - expertise_level
-      - glossary_term
-      - quote
-      - trending_news
-      - timestamp
-      title: DashboardResponse
     ExpertiseLevel:
       type: string
       enum:

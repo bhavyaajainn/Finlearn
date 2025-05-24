@@ -733,58 +733,259 @@ def search_assets_with_perplexity(query: str, asset_type: Optional[str] = None, 
 
 
 def get_similar_stocks(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
-    """Get similar stocks based on business model, sector, and competition."""
-    prompt = get_similar_stocks_prompt(symbol, limit)
+    """Get similar stocks with standardized schema structure.
+    
+    Args:
+        symbol: Stock ticker symbol
+        limit: Maximum number of similar stocks to return
+        
+    Returns:
+        List of similar stocks with standardized data structure
+    """
+    prompt = f"""Find {limit} stocks that are most similar to {symbol} based on:
+    - Business model and products/services
+    - Market capitalization and industry position
+    - Customer base and target markets
+    - Revenue model and growth profile
+    
+    For each similar stock, provide:
+    1. Symbol (ticker)
+    2. Company name
+    3. Current price (approximate)
+    4. Brief explanation of why it's similar to {symbol}
+    5. Key comparison points (at least 2 specific metrics where they're comparable)
+    
+    Focus on the most relevant competitors or companies with similar business models.
+    """
+    
+    # Define the schema for structured output
+    similar_stocks_schema = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "symbol": {"type": "string"},
+                "name": {"type": "string"},
+                "current_price": {"type": "number"},
+                "similarity_reason": {"type": "string"},
+                "comparison_points": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "metric": {"type": "string"},
+                            "description": {"type": "string"},
+                            "comparison": {"type": "string"}
+                        },
+                        "required": ["metric", "description", "comparison"]
+                    }
+                }
+            },
+            "required": ["symbol", "name",  "similarity_reason", "comparison_points"]
+        }
+    }
     
     try:
-        response = call_perplexity_api(prompt)
-        if "```json" in response:
-            json_start = response.find("```json") + 7
-            json_end = response.find("```", json_start)
-            json_str = response[json_start:json_end].strip()
-            results = json.loads(json_str)
-        else:
-            # Try to parse the entire response
-            try:
-                results = json.loads(response)
-            except:
-                # If parsing fails, return empty list
-                logger.error(f"Failed to parse JSON response from Perplexity: {response}")
-                return []
+        # Use schema-based API call for structured output
+        results = call_perplexity_api_with_schema(prompt, similar_stocks_schema)
+        logger.info(f"Perplexity API returned {len(results) if results else 0} similar stocks")
         
+        # Ensure we have the correct number of results
         return results[:limit]
-        # ...
     except Exception as e:
-        print(f"Error finding similar stocks: {e}")
+        logger.error(f"Error finding similar stocks for {symbol}: {e}")
         return []
 
 
 def get_similar_crypto(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
-    """Get similar cryptocurrencies based on technology and use case."""
-    prompt = get_similar_crypto_prompt(symbol, limit)
+    """Get similar cryptocurrencies with standardized schema structure.
+    
+    Args:
+        symbol: Cryptocurrency symbol
+        limit: Maximum number of similar cryptocurrencies to return
+        
+    Returns:
+        List of similar cryptocurrencies with standardized data structure
+    """
+    prompt = f"""Find {limit} cryptocurrencies that are most similar to {symbol} based on:
+    - Technology and blockchain architecture
+    - Use case and market purpose
+    - Market capitalization range
+    - Development activity and community
+    
+    For each similar cryptocurrency, provide:
+    1. Symbol (ticker)
+    2. Full name
+    3. Current price (approximate)
+    4. Brief explanation of why it's similar to {symbol}
+    5. Key comparison points (at least 2 specific technical or market characteristics)
+    
+    Focus on cryptocurrencies with the most relevant technical similarities or competing use cases.
+    """
+    
+    # Define the schema for structured output (same structure as stocks for consistency)
+    similar_crypto_schema = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "symbol": {"type": "string"},
+                "name": {"type": "string"},
+                "current_price": {"type": "number"},
+                "similarity_reason": {"type": "string"},
+                "comparison_points": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "metric": {"type": "string"},
+                            "description": {"type": "string"},
+                            "comparison": {"type": "string"}
+                        },
+                        "required": ["metric", "description", "comparison"]
+                    }
+                }
+            },
+            "required": ["symbol", "name", "current_price", "similarity_reason", "comparison_points"]
+        }
+    }
     
     try:
-        response = call_perplexity_api(prompt)
-        if "```json" in response:
-            json_start = response.find("```json") + 7
-            json_end = response.find("```", json_start)
-            json_str = response[json_start:json_end].strip()
-            results = json.loads(json_str)
-        else:
-            # Try to parse the entire response
-            try:
-                results = json.loads(response)
-            except:
-                # If parsing fails, return empty list
-                logger.error(f"Failed to parse JSON response from Perplexity: {response}")
-                return []
+        # Use schema-based API call for structured output
+        results = call_perplexity_api_with_schema(prompt, similar_crypto_schema)
         
+        # Ensure we have the correct number of results
         return results[:limit]
     except Exception as e:
-        print(f"Error finding similar cryptocurrencies: {e}")
+        logger.error(f"Error finding similar cryptocurrencies for {symbol}: {e}")
         return []
 
 
+def generate_asset_comparison(
+    main_asset: Dict[str, Any],
+    similar_assets: List[Dict[str, Any]],
+    expertise_level: str
+) -> Dict[str, Any]:
+    """Generate detailed comparison between main asset and similar assets.
+    
+    Args:
+        main_asset: Information about the main asset
+        similar_assets: List of similar assets to compare with
+        expertise_level: User's expertise level
+        
+    Returns:
+        Structured comparison analysis with metrics tailored to expertise level
+    """
+    # Extract key information for the prompt
+    symbol = main_asset.get("symbol", "")
+    asset_type = main_asset.get("asset_type", "")
+    name = main_asset.get("name", symbol)
+    
+    # Format similar assets for the prompt
+    similar_assets_str = []
+    for asset in similar_assets:
+        similar_assets_str.append(
+            f"- {asset.get('symbol')}: {asset.get('name')}, price: {asset.get('current_price')}"
+        )
+    similar_assets_formatted = "\n".join(similar_assets_str)
+    
+    prompt = f"""Create a detailed comparison analysis between {symbol} ({name}) and these similar {asset_type}s:
+
+{similar_assets_formatted}
+
+This analysis is for a {expertise_level} level investor, so adjust the depth and terminology accordingly.
+
+For each comparison:
+1. Identify key metrics that are most important for comparing these {asset_type}s
+2. Explain how {symbol} compares to each similar {asset_type} on these metrics
+3. Highlight advantages and disadvantages of {symbol} vs. the alternatives
+4. Provide specific data points where available (e.g., P/E ratios, market cap, etc.)
+
+For {expertise_level} level:
+- {"Focus on basic metrics and simple explanations" if expertise_level == "BEGINNER" else ""}
+- {"Include intermediate concepts and some technical analysis" if expertise_level == "INTERMEDIATE" else ""}
+- {"Provide advanced metrics and detailed technical comparison" if expertise_level == "ADVANCED" else ""}
+
+Ensure the comparison helps the investor understand the relative position of {symbol} among similar {asset_type}s.
+"""
+    
+    # Define the schema for the comparison response
+    comparison_schema = {
+        "type": "object",
+        "properties": {
+            "main_asset_symbol": {"type": "string"},
+            "main_asset_name": {"type": "string"},
+            "overview": {"type": "string"},
+            "key_metrics": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "metric_name": {"type": "string"},
+                        "description": {"type": "string"},
+                        "importance": {"type": "string"}
+                    },
+                    "required": ["metric_name", "description", "importance"]
+                }
+            },
+            "comparisons": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "compared_asset_symbol": {"type": "string"},
+                        "compared_asset_name": {"type": "string"},
+                        "overall_assessment": {"type": "string"},
+                        "metrics_comparison": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "metric": {"type": "string"},
+                                    "main_asset_value": {"type": "string"},
+                                    "compared_asset_value": {"type": "string"},
+                                    "advantage": {"type": "string"},
+                                    "analysis": {"type": "string"}
+                                },
+                                "required": ["metric", "analysis", "advantage"]
+                            }
+                        }
+                    },
+                    "required": ["compared_asset_symbol", "compared_asset_name", "overall_assessment", "metrics_comparison"]
+                }
+            },
+            "summary": {"type": "string"},
+            "expertise_level": {"type": "string"}
+        },
+        "required": ["main_asset_symbol", "main_asset_name", "overview", "key_metrics", "comparisons", "summary", "expertise_level"]
+    }
+    
+    try:
+        # Use schema-based API call for structured output
+        comparison = call_perplexity_api_with_schema(prompt, comparison_schema)
+        
+        # Add additional metadata
+        comparison["generated_at"] = datetime.now().isoformat()
+        comparison["asset_type"] = asset_type
+        
+        return comparison
+    except Exception as e:
+        logger.error(f"Error generating asset comparison for {symbol}: {e}")
+        # Return basic fallback structure
+        return {
+            "main_asset_symbol": symbol,
+            "main_asset_name": name,
+            "overview": f"Comparison analysis for {symbol} with similar {asset_type}s.",
+            "key_metrics": [
+                {"metric_name": "Price", "description": "Current trading price", "importance": "High"}
+            ],
+            "comparisons": [],
+            "summary": f"Unable to generate detailed comparison due to an error: {str(e)}",
+            "expertise_level": expertise_level,
+            "generated_at": datetime.now().isoformat(),
+            "asset_type": asset_type,
+            "error": str(e)
+        }
 
 ## analysis
 from app.services.ai.prompts.asset_prompts import get_narrative_research_prompt
@@ -938,74 +1139,32 @@ def get_interactive_asset_analysis(
     )
     
     try:
-        response = call_perplexity_api(prompt)
-        # Parse the response as a JSON object with article sections
-        try:
-            # Try to extract JSON from markdown code blocks
-            if "```json" in response:
-                json_start = response.find("```json") + 7
-                json_end = response.find("```", json_start)
-                json_str = response[json_start:json_end].strip()
-                research = json.loads(json_str)
-            else:
-                # Try parsing the entire response as JSON
-                research = json.loads(response)
-                
-            # Make sure all expected sections are present
-            required_sections = [
-                "title", "summary", "sections", 
-                "connections", "conclusion", "recommendation"
-            ]
-            
-            for section in required_sections:
-                if section not in research:
-                    research[section] = f"Missing {section} section"
-                    
-            return research
-            
-        except Exception as e:
-            logger.error(f"Error parsing interactive research JSON: {e}")
-            # If JSON parsing fails, structure the raw text
-            sections = response.split("\n\n## ")
-            
-            if len(sections) > 1:
-                # Try to extract greeting and title
-                greeting_section = sections[0]
-                title = greeting_section.split("\n")[0].replace("# ", "")
-                greeting = greeting_section.replace("# " + title, "").strip()
-                    
-                # Structure the remaining content
-                article_sections = []
-                for section in sections[1:]:
-                    if section.strip():
-                        parts = section.split("\n", 1)
-                        if len(parts) > 1:
-                            section_title = parts[0].strip()
-                            section_content = parts[1].strip()
-                            article_sections.append({
-                                "title": section_title,
-                                "content": section_content
-                            })
-                
-                return {
-                    "title": title,
-                    "sections": article_sections,
-                    "format": "text"
-                }
-            
-            # If we can't parse sections, return the raw text
-            return {
-                "title": f"Research Analysis: {symbol}",
-                "content": response,
-                "format": "raw_text"
-            }
+        # Use schema-based approach for structured response
+        from app.services.ai.schemas import INTERACTIVE_ASSET_ANALYSIS_SCHEMA
+        
+        # Get structured response using the schema
+        research = call_perplexity_api_with_schema(prompt, INTERACTIVE_ASSET_ANALYSIS_SCHEMA)
+        
+        # Add metadata and format info
+        research["asset_symbol"] = symbol
+        research["asset_type"] = asset_type
+        research["expertise_level"] = expertise_level
+        research["generated_at"] = datetime.now().isoformat()
+        research["format"] = "structured"
+        
+        return research
         
     except Exception as e:
         logger.error(f"Error generating interactive analysis: {e}")
         return {
             "error": str(e),
             "title": f"Unable to generate analysis for {symbol}",
-            "content": f"We apologize, but we encountered an error while preparing your personalized research: {str(e)}"
+            "content": f"We apologize, but we encountered an error while preparing your personalized research: {str(e)}",
+            "asset_symbol": symbol,
+            "asset_type": asset_type,
+            "expertise_level": expertise_level,
+            "generated_at": datetime.now().isoformat(),
+            "format": "error"
         }
 
 

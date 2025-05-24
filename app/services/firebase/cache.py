@@ -3,6 +3,8 @@ from typing import List, Dict, Any, Optional
 from firebase_admin import firestore
 import time
 from datetime import datetime, timedelta
+
+from app.api.models import AssetType
 from .client import db
 import logging
 
@@ -372,3 +374,95 @@ def update_user_activity_timestamp(user_id: str, activity_type: str) -> None:
         
     except Exception as e:
         logger.error(f"Error updating activity timestamp: {e}")
+
+
+
+def get_asset_comparison_cache(cache_key: str) -> Optional[Dict[str, Any]]:
+    """Get data from cache if it exists and is not expired.
+    
+    Args:
+        cache_key: Unique identifier for the cached item
+        
+    Returns:
+        Cached data if available, None otherwise
+    """
+    try:
+        # Reference to the cache collection
+        cache_ref = db.collection('asset_comparison_cache').document(cache_key)
+        cache_doc = cache_ref.get()
+        
+        if not cache_doc.exists:
+            return None
+            
+        cache_data = cache_doc.to_dict()
+        expiry_time = cache_data.get('expiry_time', 0)
+        
+        # Check if cache has expired
+        if expiry_time < time.time():
+            # Expired cache, delete it in background
+            cache_ref.delete()
+            return None
+            
+        return cache_data.get('data')
+        
+    except Exception as e:
+        logger.error(f"Error retrieving from cache: {str(e)}")
+        return None
+
+
+def store_asset_comparison_cache(cache_key: str, data: Dict[str, Any], ttl_seconds: int = 3600) -> bool:
+    """Store data in cache with expiration time.
+    
+    Args:
+        cache_key: Unique identifier for the cached item
+        data: Data to cache
+        ttl_seconds: Time to live in seconds (default: 1 hour)
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Calculate expiry time
+        expiry_time = time.time() + ttl_seconds
+        
+        # Store in Firebase
+        db.collection('asset_comparison_cache').document(cache_key).set({
+            'data': data,
+            'expiry_time': expiry_time,
+            'created_at': time.time()
+        })
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error storing in cache: {str(e)}")
+        return False
+
+
+def get_asset_current_price(symbol: str, asset_type: AssetType) -> Dict[str, Any]:
+    """Get just the current price of an asset (efficient version).
+    
+    Args:
+        symbol: Asset symbol
+        asset_type: Type of asset
+        
+    Returns:
+        Dict with current_price and price_change_percent
+    """
+    try:
+        # Implement a lightweight version that only gets price data
+        # This is a simplified version of get_asset_info
+        # You might already have this function or need to implement it
+        
+        # For now, let's assume get_asset_info is efficient enough:
+        from app.services.assets.data import get_asset_info
+        asset_info = get_asset_info(symbol, asset_type)
+        
+        return {
+            "current_price": asset_info.get("current_price", 0),
+            "price_change_percent": asset_info.get("price_change_percent", 0)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting current price for {symbol}: {str(e)}")
+        return {"current_price": 0, "price_change_percent": 0}

@@ -200,10 +200,20 @@ def get_similar_assets(symbol: str, asset_type: AssetType, limit: int = 3) -> Li
     Returns:
         List of similar assets with reasons
     """
+    logger.info(f"Getting similar assets for {symbol}, type: {asset_type}, value: {asset_type.value if hasattr(asset_type, 'value') else asset_type}")
+    
     if asset_type == AssetType.stock:
-        return get_similar_stocks(symbol, limit)
+        logger.info(f"Fetching similar stocks for {symbol}")
+        result = get_similar_stocks(symbol, limit)
+        logger.info(f"Similar stocks result length: {len(result)}")
+        return result
     elif asset_type == AssetType.crypto:
-        return get_similar_crypto(symbol, limit)
+        logger.info(f"Fetching similar crypto for {symbol}")
+        result = get_similar_crypto(symbol, limit)
+        logger.info(f"Similar crypto result length: {len(result)}")
+        return result
+    
+    logger.warning(f"Asset type {asset_type} not recognized for similar assets")
     return []
 
 

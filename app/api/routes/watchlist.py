@@ -9,19 +9,16 @@ from fastapi import APIRouter, Query, Depends, HTTPException
 from typing import List, Dict, Any, Optional
 import logging
 
-from app.services.firebase.cache import cache_research_article, get_cached_research  # Add standard Python logging instead
+from app.services.firebase.cache import cache_research_article, get_asset_comparison_cache, get_asset_current_price, get_cached_research, store_asset_comparison_cache  # Add standard Python logging instead
 
 # Create a logger instance for this module
 logger = logging.getLogger(__name__)
 
 
-from app.services.assets.data import fast_search_assets, get_asset_info, get_asset_info_async, get_similar_assets, get_similar_assets_async, search_assets
+from app.services.assets.data import fast_search_assets, get_asset_info, get_asset_info_async, get_similar_assets, get_similar_assets_async
 from app.services.firebase import add_to_watchlist, remove_from_watchlist
-# from app.services.assets import get_stock_info
-from app.services.ai.perplexity import fetch_asset_news, get_interactive_asset_analysis
-from app.services.ai import get_deep_research_on_stock
+from app.services.ai.perplexity import fetch_asset_news, generate_asset_comparison, get_interactive_asset_analysis
 from app.api.models import AssetType, AddAssetRequest, SearchRequest
-from app.services.ai.perplexity import search_assets_with_perplexity, get_similar_stocks, get_similar_crypto
 from app.services.firebase.watchlist import get_related_topics, get_user_expertise_level, get_user_interests, get_user_watchlists, log_asset_research
 
 router = APIRouter()
@@ -383,3 +380,191 @@ async def get_deep_research_analysis(
         logger.error(f"Error generating research analysis: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Research generation failed: {str(e)}")
 
+
+@router.get("/asset/{symbol}")
+async def get_basic_asset_data(
+    symbol: str,
+    user_id: str = Query(...),
+    asset_type: AssetType = Query(...)
+) -> Dict[str, Any]:
+    """Get basic asset information quickly without analysis."""
+    try:
+        # Fast data retrieval for immediate display
+        tasks = [
+            asyncio.to_thread(get_asset_info, symbol, asset_type),
+            asyncio.to_thread(get_user_expertise_level, user_id),
+        ]
+        results = await asyncio.gather(*tasks)
+        
+        asset_info = results[0]
+        expertise_level = results[1]
+        
+        return {
+            "symbol": symbol,
+            "name": asset_info.get("name", symbol),
+            "asset_type": asset_type,
+            "current_price": asset_info.get("current_price"),
+            "price_change_percent": asset_info.get("price_change_percent"),
+            "expertise_level": expertise_level,
+            "loading_status": {
+                "asset_loaded": True,
+                "analysis_loaded": False,
+                "related_loaded": False
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error fetching basic asset data: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to get asset data: {str(e)}")
+
+
+@router.get("/analysis/{symbol}")
+async def get_asset_analysis(
+    symbol: str,
+    user_id: str = Query(...),
+    asset_type: AssetType = Query(...),
+    refresh: bool = Query(False)
+) -> Dict[str, Any]:
+    """Get comprehensive research analysis for an asset."""
+    try:
+        expertise_level = get_user_expertise_level(user_id)
+        
+        # Check cache first
+        if not refresh:
+            cached_research = get_cached_research(symbol, asset_type.value, expertise_level)
+            if cached_research:
+                return {
+                    "research_article": cached_research,
+                    "from_cache": True,
+                    "cache_age": "< 24 hours"
+                }
+        
+        # Gather required data
+        tasks = [
+            asyncio.to_thread(get_user_interests, user_id),
+            asyncio.to_thread(get_asset_info, symbol, asset_type),
+            asyncio.to_thread(get_user_watchlists, user_id),
+        ]
+        
+        results = await asyncio.gather(*tasks)
+        interests = results[0]
+        asset_info = results[1]
+        watchlist_items = results[2]
+        
+        # Generate analysis (the time-consuming part)
+        research = get_interactive_asset_analysis(
+            symbol=symbol,
+            asset_type=asset_type,
+            expertise_level=expertise_level,
+            asset_info=asset_info,
+            user_interests=interests,
+            watchlist_items=watchlist_items,
+            # No similar assets or news here
+            similar_assets=[],
+            recent_news=[],
+            related_topics=[]
+        )
+        
+        # Cache and log in background
+        asyncio.create_task(
+            asyncio.to_thread(cache_research_article, symbol, asset_type.value, expertise_level, research)
+        )
+        asyncio.create_task(
+            asyncio.to_thread(log_asset_research, user_id, symbol, asset_type.value)
+        )
+        
+        return {
+            "research_article": research,
+            "from_cache": False
+        }
+    except Exception as e:
+        logger.error(f"Error generating analysis: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Analysis generation failed: {str(e)}")
+    
+
+@router.get("/related/{symbol}")
+async def get_related_content(
+    symbol: str,
+    user_id: str = Query(...),
+    asset_type: AssetType = Query(...),
+    include_comparison: bool = Query(True),
+    refresh: bool = Query(False)  # Add refresh parameter to force new data
+) -> Dict[str, Any]:
+    """Get similar assets, news, and recommendations with expertise-based comparison."""
+    try:
+        # First get user expertise level for cache key
+        expertise_level = await asyncio.to_thread(get_user_expertise_level, user_id)
+        
+        # Check cache first (unless refresh is requested)
+        if not refresh:
+            cache_key = f"related_{symbol}_{asset_type.value}_{expertise_level}"
+            cached_data = await asyncio.to_thread(get_asset_comparison_cache, cache_key)
+            
+            if cached_data:
+                # Get just the current price for real-time data
+                current_price_info = await asyncio.to_thread(
+                    get_asset_current_price, symbol, asset_type
+                )
+                
+                # Update the cached data with fresh price
+                if current_price_info and "asset_info" in cached_data:
+                    cached_data["asset_info"]["current_price"] = current_price_info.get("current_price")
+                    cached_data["asset_info"]["price_change_percent"] = current_price_info.get("price_change_percent")
+                
+                # Add cache metadata
+                cached_data["from_cache"] = True
+                return cached_data
+        
+        # If cache miss or refresh requested, get all data
+        # Run all related content tasks in parallel
+        tasks = [
+            asyncio.to_thread(get_asset_info, symbol, asset_type),
+            asyncio.to_thread(get_similar_assets, symbol, asset_type, 3),
+            asyncio.to_thread(fetch_asset_news, symbol, asset_type.value),
+        ]
+        
+        results = await asyncio.gather(*tasks)
+        asset_info = results[0]
+        similar_assets = results[1]
+        recent_news = results[2]
+        
+        # # Generate comparison analysis if requested and similar assets exist
+        # comparison_analysis = None
+        # if include_comparison and similar_assets:
+        #     comparison_analysis = await asyncio.to_thread(
+        #         generate_asset_comparison,
+        #         asset_info,
+        #         similar_assets,
+        #         expertise_level
+        #     )
+        
+        # Prepare response data
+        response_data = {
+            "asset_info": {
+                "symbol": symbol,
+                "name": asset_info.get("name", symbol),
+                "asset_type": asset_type.value,
+                "current_price": asset_info.get("current_price"),
+                "price_change_percent": asset_info.get("price_change_percent")
+            },
+            "similar_assets": similar_assets,
+            "recent_news": recent_news,
+            "expertise_level": expertise_level,
+            "from_cache": False
+        }
+        
+        # Store in cache (in background)
+        cache_key = f"related_{symbol}_{asset_type.value}_{expertise_level}"
+        asyncio.create_task(
+            asyncio.to_thread(
+                store_asset_comparison_cache, 
+                cache_key, 
+                response_data,
+                60 * 60 * 24 * 7  # 7 days TTL
+            )
+        )
+        
+        return response_data
+        
+    except Exception as e:
+        logger.error(f"Error fetching related content: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to get related content: {str(e)}")
