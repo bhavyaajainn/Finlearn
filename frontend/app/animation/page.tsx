@@ -2,11 +2,20 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppSelector } from '@/app/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/app/store/hooks';
 import FintechUI from '@/app/dashboard/components/Animation';
+import { 
+  fetchDashboardEssentials, 
+  fetchStreakData, 
+  fetchWatchlist,
+  fetchTrendingNews
+} from '@/app/store/slices/dashboardSlice';
+import { fetchUserPreferences } from '@/app/store/slices/preferencesSlice';
+import { fetchTopics } from '@/app/store/slices/learningSlice';
 
 export default function AnimationPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
 
   // Redirect to home if not authenticated
@@ -15,6 +24,32 @@ export default function AnimationPage() {
       router.push('/');
     }
   }, [user, router]);
+
+  // Preload all dashboard data during animation
+  useEffect(() => {
+    if (user?.uid) {
+      console.log('🚀 Starting to preload all dashboard data during animation...');
+      const preloadAllData = async () => {
+        try {
+          const promises = [
+            dispatch(fetchDashboardEssentials(user.uid)),
+            dispatch(fetchStreakData({ userId: user.uid, refresh: false })),
+            dispatch(fetchWatchlist({ userId: user.uid, limit: 5 })),
+            dispatch(fetchTrendingNews(user.uid)),
+            dispatch(fetchUserPreferences(user.uid)),
+            dispatch(fetchTopics(user.uid)) // Added recommended topics API call
+          ];
+          
+          await Promise.allSettled(promises);
+          console.log('✅ All dashboard data preloaded successfully during animation');
+        } catch (error) {
+          console.error('❌ Error preloading data during animation:', error);
+        }
+      };
+
+      preloadAllData();
+    }
+  }, [user?.uid, dispatch]);
 
   const handleAnimationComplete = () => {
     console.log('🎬 Animation completed, redirecting to dashboard...');

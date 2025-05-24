@@ -129,13 +129,13 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
   }, []);
 
   useEffect(() => {
-    // Initialize and play audio immediately
+    // Initialize and play audio immediately with reduced volume
     const initializeAudio = () => {
       try {
         console.log('🔊 Initializing audio immediately...');
         
         const audio = new Audio('/sounds/cinematic.mp3');
-        audio.volume = 0.3;
+        audio.volume = 0.1; // Reduced from 0.3 to 0.1 (much quieter)
         audio.preload = 'auto';
         
         // Try to play immediately without user interaction
@@ -144,7 +144,7 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
         if (playPromise !== undefined) {
           playPromise
             .then(() => {
-              console.log('🎵 Audio started successfully!');
+              console.log('🎵 Audio started successfully at low volume!');
               setAudioInitialized(true);
             })
             .catch(error => {
@@ -297,7 +297,9 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
           >
             <TypingAnimation text="FinLearn" delay={0.5} />
             <span className="mx-4"></span>
-            <TypingAnimation text="AI" delay={2.5} />
+            <span className="text-blue-400">
+              <TypingAnimation text="AI" delay={2.5} />
+            </span>
           </motion.h1>
           
           <motion.div

@@ -31,17 +31,16 @@ export default function DashboardLayout({
 }) {
   const [preferencesChecked, setPreferencesChecked] = useState(false)
   const [dataPreloaded, setDataPreloaded] = useState(false)
+  const [isPreloading, setIsPreloading] = useState(false)
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
 
-  console.log('=== DASHBOARD LAYOUT - SIMPLE VERSION ===')
-  console.log('👤 user exists:', !!user)
-  console.log('📊 dataPreloaded:', dataPreloaded)
-
   // Preload dashboard data when user is available
   useEffect(() => {
-    if (user?.uid && !dataPreloaded) {
+    if (user?.uid && !dataPreloaded && !isPreloading) {
       console.log('🚀 Starting to preload dashboard data...')
+      setIsPreloading(true)
+      
       const preloadDashboardData = async () => {
         try {
           const promises = [
@@ -52,52 +51,47 @@ export default function DashboardLayout({
             dispatch(fetchUserPreferences(user.uid))
           ]
           
-          await Promise.allSettled(promises)
+          const results = await Promise.allSettled(promises)
           console.log('✅ Dashboard data preloaded successfully')
-          setDataPreloaded(true)
           
-          // Check preferences after data is loaded
-          const preferencesResult = await dispatch(fetchUserPreferences(user.uid)).unwrap()
-          console.log('⚙️ Preferences result:', preferencesResult)
-          
-          if (!preferencesResult?.expertise_level || !preferencesResult?.categories?.length) {
-            console.log('⚙️ Preferences missing, will show dialog')
-            setTimeout(() => {
-              setPreferencesChecked(true)
-            }, 500)
-          } else {
-            console.log('✅ Preferences exist, setting checked to true')
-            setPreferencesChecked(true)
+          // Check preferences from the last promise result
+          const preferencesResult = results[4]
+          if (preferencesResult.status === 'fulfilled') {
+            const preferences = preferencesResult.value.payload
+            if (!preferences?.expertise_level || !preferences?.categories?.length) {
+              console.log('⚙️ Preferences missing, will show dialog')
+            }
           }
+          
+          setDataPreloaded(true)
+          setPreferencesChecked(true)
         } catch (error) {
           console.error('❌ Error preloading dashboard data:', error)
           setDataPreloaded(true)
-          setTimeout(() => {
-            setPreferencesChecked(true)
-          }, 500)
+          setPreferencesChecked(true)
+        } finally {
+          setIsPreloading(false)
         }
       }
 
       preloadDashboardData()
     }
-  }, [user?.uid, dataPreloaded, dispatch])
+  }, [user?.uid, dataPreloaded, isPreloading, dispatch])
 
   // Show loading screen while data is preloading
   if (!dataPreloaded) {
-    console.log('📊 Showing loading screen while data preloads...')
     return (
       <ProtectedRoute>
         <div className="w-full h-screen bg-black flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin h-12 w-12 border-4 border-blue-400 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-white text-lg">Loading Dashboard...</p>
+            <p className="text-white text-lg">Loading...</p>
           </div>
         </div>
       </ProtectedRoute>
     )
   }
 
-  console.log('🏠 RENDERING MAIN DASHBOARD LAYOUT...')
   return (
     <ProtectedRoute>
       <PreferencesContext.Provider value={{ preferencesChecked, setPreferencesChecked }}>
