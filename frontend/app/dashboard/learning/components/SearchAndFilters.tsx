@@ -23,8 +23,19 @@ export default function SearchAndFilters({
   const { filterLoading } = useAppSelector(state => state.learning);
 
   const handleCategoryClick = (category: string) => {
-    if (filterLoading || selectedCategory === category) return;
+    console.log('🎯 Category button clicked:', category, 'current:', selectedCategory);
     
+    if (filterLoading) {
+      console.log('⏳ Filter loading in progress, ignoring click');
+      return;
+    }
+    
+    if (selectedCategory === category) {
+      console.log('✅ Same category already selected, ignoring');
+      return;
+    }
+    
+    console.log('🔄 Calling onCategoryChange for:', category);
     onCategoryChange(category);
   };
 
@@ -55,7 +66,6 @@ export default function SearchAndFilters({
                 : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
             } ${filterLoading && selectedCategory === 'All' ? 'pointer-events-none' : ''}`}
           >
-
             All
           </button>
           {categories.map((category) => (
@@ -63,7 +73,7 @@ export default function SearchAndFilters({
               key={category}
               onClick={() => handleCategoryClick(category)}
               disabled={filterLoading}
-              className={`px-4 py-2 rounded-full text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`px-4 py-2 rounded-full text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
                 selectedCategory === category 
                   ? 'bg-blue-600 text-white' 
                   : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'

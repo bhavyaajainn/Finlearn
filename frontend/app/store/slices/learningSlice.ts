@@ -100,7 +100,6 @@ interface LearningState {
   dailySummary: DailySummary | null;
   dailySummaryLoading: boolean;
   dailySummaryError: string | null;
-  lastFetchedCategory: string | null; // Add this to track last fetched category
 }
 
 const initialState: LearningState = {
@@ -121,16 +120,13 @@ const initialState: LearningState = {
   dailySummary: null,
   dailySummaryLoading: false,
   dailySummaryError: null,
-  lastFetchedCategory: null,
 };
-
-// Add meta to track if request was aborted
-let lastFetchController: AbortController | null = null;
 
 export const fetchTopics = createAsyncThunk(
   'learning/fetchTopics',
   async (userId: string, { rejectWithValue, signal }) => {
     try {
+      console.log('📡 Fetching all topics for user:', userId);
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/recommendedtopics?user_id=${userId}`, {
         signal
       });
@@ -140,11 +136,13 @@ export const fetchTopics = createAsyncThunk(
       }
       
       const data = await response.json();
+      console.log('✅ Received topics data:', data);
       return data;
     } catch (error: any) {
       if (error.name === 'AbortError') {
         return rejectWithValue('Request aborted');
       }
+      console.error('❌ Error fetching topics:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -152,22 +150,10 @@ export const fetchTopics = createAsyncThunk(
 
 export const fetchTopicsByCategory = createAsyncThunk(
   'learning/fetchTopicsByCategory',
-  async ({ userId, category }: { userId: string; category: string }, { rejectWithValue, signal, getState }) => {
-    const state = getState() as { learning: LearningState };
-    
-    // Prevent duplicate requests for the same category
-    if (state.learning.lastFetchedCategory === category && state.learning.filterLoading) {
-      return rejectWithValue('Request already in progress');
-    }
-
-    // Cancel previous request if exists
-    if (lastFetchController) {
-      lastFetchController.abort();
-    }
-    
-    lastFetchController = new AbortController();
-    
+  async ({ userId, category }: { userId: string; category: string }, { rejectWithValue, signal }) => {
     try {
+      console.log('📡 Fetching topics for category:', category, 'user:', userId);
+      
       let url = `${process.env.NEXT_PUBLIC_BASE_URL}/user/recommendedtopics?user_id=${userId}`;
       
       if (category !== 'All') {
@@ -175,20 +161,22 @@ export const fetchTopicsByCategory = createAsyncThunk(
         url += `&category=${encodeURIComponent(categoryParam)}`;
       }
       
-      const response = await fetch(url, {
-        signal: lastFetchController.signal
-      });
+      console.log('🔗 API URL:', url);
+      
+      const response = await fetch(url, { signal });
       
       if (!response.ok) {
         throw new Error(`Failed to fetch topics for category: ${category}`);
       }
       
       const data = await response.json();
+      console.log('✅ Received category data:', data);
       return { data, category };
     } catch (error: any) {
       if (error.name === 'AbortError') {
         return rejectWithValue('Request aborted');
       }
+      console.error('❌ Error fetching topics by category:', error);
       return rejectWithValue(error.message);
     }
   }
@@ -264,11 +252,9 @@ const learningSlice = createSlice({
       applySearchFilter(state);
     },
     setSelectedCategory: (state, action: PayloadAction<string>) => {
-      if (state.selectedCategory !== action.payload) {
-        state.selectedCategory = action.payload;
-        state.currentPage = 1;
-        state.lastFetchedCategory = null; // Reset to allow refetch
-      }
+      console.log('🔄 Redux: Setting selected category to:', action.payload);
+      state.selectedCategory = action.payload;
+      state.currentPage = 1;
     },
     setCurrentPage: (state, action: PayloadAction<number>) => {
       state.currentPage = action.payload;
@@ -294,10 +280,12 @@ const learningSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchTopics.pending, (state) => {
+        console.log('⏳ fetchTopics.pending');
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchTopics.fulfilled, (state, action: PayloadAction<TopicResponse>) => {
+        console.log('✅ fetchTopics.fulfilled');
         state.loading = false;
         state.topics = action.payload.recommendations || {};
         state.categories = Object.keys(state.topics);
@@ -307,26 +295,30 @@ const learningSlice = createSlice({
         }
       })
       .addCase(fetchTopics.rejected, (state, action) => {
+        console.log('❌ fetchTopics.rejected');
         state.loading = false;
         if (action.payload !== 'Request aborted') {
           state.error = action.payload as string;
         }
       })
      
-      .addCase(fetchTopicsByCategory.pending, (state, action) => {
+      .addCase(fetchTopicsByCategory.pending, (state) => {
+        console.log('⏳ fetchTopicsByCategory.pending');
         state.filterLoading = true;
         state.error = null;
-        state.lastFetchedCategory = action.meta.arg.category;
       })
       .addCase(fetchTopicsByCategory.fulfilled, (state, action) => {
+        console.log('✅ fetchTopicsByCategory.fulfilled');
         state.filterLoading = false;
         const { data, category } = action.payload;
         
         if (category === 'All') {
+          console.log('📂 Processing "All" category');
           state.topics = data.recommendations || {};
           state.categories = Object.keys(state.topics);
           applyFiltersForAllTopics(state);
         } else {
+          console.log('📂 Processing specific category:', category);
           if (data.recommendations && Object.keys(data.recommendations).length > 0) {
             state.topics = { ...state.topics, ...data.recommendations };
          
@@ -336,6 +328,7 @@ const learningSlice = createSlice({
             
             if (data.recommendations[categoryKey] && Array.isArray(data.recommendations[categoryKey])) {
               state.filteredTopics = data.recommendations[categoryKey];
+              console.log('✅ Set filtered topics from category key:', categoryKey, 'count:', state.filteredTopics.length);
             } else {
               let allTopicsForCategory: TopicItem[] = [];
               Object.values(data.recommendations).forEach(categoryTopics => {
@@ -344,8 +337,10 @@ const learningSlice = createSlice({
                 }
               });
               state.filteredTopics = allTopicsForCategory;
+              console.log('✅ Set filtered topics from all values, count:', state.filteredTopics.length);
             }
           } else {
+            console.log('⚠️ No recommendations found for category:', category);
             state.filteredTopics = [];
           }
           
@@ -357,8 +352,9 @@ const learningSlice = createSlice({
         }
       })
       .addCase(fetchTopicsByCategory.rejected, (state, action) => {
+        console.log('❌ fetchTopicsByCategory.rejected');
         state.filterLoading = false;
-        if (action.payload !== 'Request aborted' && action.payload !== 'Request already in progress') {
+        if (action.payload !== 'Request aborted') {
           state.error = action.payload as string;
         }
       })
@@ -406,6 +402,7 @@ const learningSlice = createSlice({
 });
 
 function applyFiltersForAllTopics(state: LearningState) {
+  console.log('🔍 Applying filters for all topics');
   let filtered: TopicItem[] = [];
   Object.entries(state.topics).forEach(([categoryName, categoryTopics]) => {
     if (Array.isArray(categoryTopics)) {
@@ -414,6 +411,7 @@ function applyFiltersForAllTopics(state: LearningState) {
   });
   
   state.filteredTopics = filtered;
+  console.log('✅ All topics filtered, count:', state.filteredTopics.length);
   
   if (state.searchTerm.trim() !== '') {
     applySearchFilter(state);
@@ -427,12 +425,14 @@ function applySearchFilter(state: LearningState) {
     return;
   }
   
+  console.log('🔍 Applying search filter:', state.searchTerm);
   const searchTerm = state.searchTerm.toLowerCase();
   state.filteredTopics = state.filteredTopics.filter(topic => 
     topic.title.toLowerCase().includes(searchTerm) || 
     topic.description.toLowerCase().includes(searchTerm)
   );
   
+  console.log('✅ Search filtered, count:', state.filteredTopics.length);
   updatePagination(state);
 }
 
@@ -441,6 +441,7 @@ function updatePagination(state: LearningState) {
   if (state.currentPage > state.totalPages && state.totalPages > 0) {
     state.currentPage = state.totalPages;
   }
+  console.log('📄 Pagination updated - totalPages:', state.totalPages, 'currentPage:', state.currentPage);
 }
 
 export const { 
