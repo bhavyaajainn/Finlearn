@@ -75,10 +75,6 @@ export default function ArticleCard({
 
         {/* Footer - Always at bottom */}
         <div className="flex items-center justify-between text-gray-400 text-sm mt-auto">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-blue-400" />
-            <span>{readTime} min read</span>
-          </div>
           <div className="flex items-center gap-1 text-blue-400 text-sm font-medium group">
             Start Reading 
             <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />

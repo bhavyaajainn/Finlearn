@@ -47,10 +47,10 @@ export function TrendingNewsCard({ newsItem, onClick }: TrendingNewsCardProps) {
   };
 
   const handleCardClick = () => {
-    if (newsItem.url) {
-      window.open(newsItem.url, '_blank', 'noopener noreferrer');
-    } else if (onClick) {
+    if (onClick) {
       onClick();
+    } else if (newsItem.url) {
+      window.open(newsItem.url, '_blank', 'noopener noreferrer');
     }
   };
 
@@ -64,7 +64,7 @@ export function TrendingNewsCard({ newsItem, onClick }: TrendingNewsCardProps) {
     >
       <Card 
         className={`bg-black border-zinc-800 h-full min-h-[240px] transition-all duration-300 hover:border-blue-500/50 hover:shadow-md hover:shadow-blue-500/10 ${
-          newsItem.url || onClick ? 'cursor-pointer' : ''
+          onClick || newsItem.url ? 'cursor-pointer' : ''
         } flex flex-col`}
         onClick={handleCardClick}
       >
@@ -97,10 +97,6 @@ export function TrendingNewsCard({ newsItem, onClick }: TrendingNewsCardProps) {
             <div className="flex items-center justify-between text-xs text-gray-500">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-gray-400">{newsItem.source}</span>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span>{formatTimeAgo(newsItem.published_at)}</span>
-                </div>
               </div>
               {newsItem.url && (
                 <ExternalLink className="h-3 w-3 text-blue-400" />
@@ -117,9 +113,10 @@ interface TrendingNewsSectionProps {
   newsItems: TrendingNewsItem[];
   loading?: boolean;
   error?: string | null;
+  onNewsClick?: (newsItem: TrendingNewsItem) => void;
 }
 
-export function TrendingNewsSection({ newsItems = [], loading = false, error = null }: TrendingNewsSectionProps) {
+export function TrendingNewsSection({ newsItems = [], loading = false, error = null, onNewsClick }: TrendingNewsSectionProps) {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -196,7 +193,11 @@ export function TrendingNewsSection({ newsItems = [], loading = false, error = n
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {newsItems.map((newsItem) => (
-          <TrendingNewsCard key={newsItem.id} newsItem={newsItem} />
+          <TrendingNewsCard 
+            key={newsItem.id} 
+            newsItem={newsItem} 
+            onClick={() => onNewsClick && onNewsClick(newsItem)}
+          />
         ))}
       </div>
     </div>

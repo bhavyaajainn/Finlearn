@@ -50,6 +50,25 @@ export interface TrendingNewsResponse {
   timestamp: string;
 }
 
+export interface TooltipWord {
+  word: string;
+  tooltip: string;
+}
+
+export interface NewsDetailResponse {
+  user_id: string;
+  news_id: string;
+  expertise_level: string;
+  article: {
+    title: string;
+    content: string;
+    tooltip_words: TooltipWord[];
+    references: string[];
+    reading_time_minutes: number;
+  };
+  timestamp: string;
+}
+
 export interface WatchlistItem {
   asset_type: string;
   symbol: string;
@@ -76,17 +95,20 @@ interface DashboardState {
   streak: StreakData | null;
   watchlist: WatchlistItem[];
   trendingNews: TrendingNewsItem[];
+  newsDetail: NewsDetailResponse | null;
   loading: {
     essentials: boolean;
     streak: boolean;
     watchlist: boolean;
     trendingNews: boolean;
+    newsDetail: boolean;
   };
   error: {
     essentials: string | null;
     streak: string | null;
     watchlist: string | null;
     trendingNews: string | null;
+    newsDetail: string | null;
   };
 }
 
@@ -95,17 +117,20 @@ const initialState: DashboardState = {
   streak: null,
   watchlist: [],
   trendingNews: [],
+  newsDetail: null,
   loading: {
     essentials: false,
     streak: false,
     watchlist: false,
     trendingNews: false,
+    newsDetail: false,
   },
   error: {
     essentials: null,
     streak: null,
     watchlist: null,
     trendingNews: null,
+    newsDetail: null,
   },
 };
 
@@ -163,6 +188,24 @@ export const fetchTrendingNews = createAsyncThunk(
   }
 );
 
+export const fetchNewsDetail = createAsyncThunk(
+  'dashboard/fetchNewsDetail',
+  async ({ newsId, userId, refresh = false }: { newsId: string; userId: string; refresh?: boolean }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/news/${newsId}?user_id=${userId}&refresh=${refresh}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch news detail');
+      }
+      
+      const data = await response.json();
+      return data as NewsDetailResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const fetchWatchlist = createAsyncThunk(
   'dashboard/fetchWatchlist',
   async ({ userId, limit = 5 }: { userId: string; limit?: number }, { rejectWithValue }) => {
@@ -190,17 +233,23 @@ const dashboardSlice = createSlice({
       state.streak = null;
       state.watchlist = [];
       state.trendingNews = [];
+      state.newsDetail = null;
       state.error = {
         essentials: null,
         streak: null,
         watchlist: null,
         trendingNews: null,
+        newsDetail: null,
       };
     },
     updateStreakData: (state, action: PayloadAction<Partial<StreakData>>) => {
       if (state.streak) {
         state.streak = { ...state.streak, ...action.payload };
       }
+    },
+    clearNewsDetail: (state) => {
+      state.newsDetail = null;
+      state.error.newsDetail = null;
     },
   },
   extraReducers: (builder) => {
@@ -252,6 +301,19 @@ const dashboardSlice = createSlice({
         state.error.trendingNews = action.payload as string;
       })
       
+      .addCase(fetchNewsDetail.pending, (state) => {
+        state.loading.newsDetail = true;
+        state.error.newsDetail = null;
+      })
+      .addCase(fetchNewsDetail.fulfilled, (state, action) => {
+        state.loading.newsDetail = false;
+        state.newsDetail = action.payload;
+      })
+      .addCase(fetchNewsDetail.rejected, (state, action) => {
+        state.loading.newsDetail = false;
+        state.error.newsDetail = action.payload as string;
+      })
+      
       .addCase(fetchWatchlist.pending, (state) => {
         state.loading.watchlist = true;
         state.error.watchlist = null;
@@ -267,5 +329,5 @@ const dashboardSlice = createSlice({
   },
 });
 
-export const { clearDashboardData, updateStreakData } = dashboardSlice.actions;
+export const { clearDashboardData, updateStreakData, clearNewsDetail } = dashboardSlice.actions;
 export default dashboardSlice.reducer;
