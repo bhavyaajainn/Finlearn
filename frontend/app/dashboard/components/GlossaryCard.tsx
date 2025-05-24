@@ -39,14 +39,14 @@ export function GlossaryCard({ glossaryTerms = [], loading = false, error = null
 
   if (loading) {
     return (
-      <Card className="bg-black border-blue-900/50 text-white">
+      <Card className="bg-black border-blue-900/50 text-white h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-blue-400" />
             Glossary of the Day
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 flex-1">
           {[1, 2, 3].map((index) => (
             <div key={index} className="animate-pulse rounded-lg border border-blue-900/50 bg-[#0c1021] p-4">
               <div className="h-4 bg-gray-700 rounded w-32 mb-2"></div>
@@ -61,14 +61,14 @@ export function GlossaryCard({ glossaryTerms = [], loading = false, error = null
 
   if (error) {
     return (
-      <Card className="bg-black border-red-900/50 text-white">
+      <Card className="bg-black border-red-900/50 text-white h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-red-400" />
             Glossary of the Day
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1">
           <div className="flex items-center gap-2 text-red-400 text-sm mb-4">
             <AlertCircle className="h-4 w-4" />
             <span>Unable to load glossary terms</span>
@@ -95,14 +95,14 @@ export function GlossaryCard({ glossaryTerms = [], loading = false, error = null
   }
 
   return (
-    <Card className="bg-black border-blue-900/50 text-white">
+    <Card className="bg-black border-blue-900/50 text-white h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-blue-400" />
           Glossary of the Day
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-1 overflow-hidden">
         {displayTerms.map((item, index) => (
           <motion.div
             key={item.term}

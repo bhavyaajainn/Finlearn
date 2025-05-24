@@ -43,7 +43,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
 
   if (loading) {
     return (
-      <Card className="bg-black border-blue-900/50 text-white">
+      <Card className="bg-black border-blue-900/50 text-white h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center justify-between">
             Your Watchlist
@@ -59,7 +59,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
           </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 flex-1">
           <div className="space-y-3 p-4">
             {[1, 2, 3].map((index) => (
               <div key={index} className="animate-pulse flex items-center justify-between py-3 border-b border-zinc-800 last:border-0">
@@ -81,7 +81,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
 
   if (error) {
     return (
-      <Card className="bg-black border-red-900/50 text-white">
+      <Card className="bg-black border-red-900/50 text-white h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -100,7 +100,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
           </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
-        <CardContent className="p-4">
+        <CardContent className="p-4 flex-1">
           <div className="flex items-center gap-2 text-red-400 text-sm">
             <AlertCircle className="h-4 w-4" />
             <span>{error}</span>
@@ -112,7 +112,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
 
   if (watchlist.length === 0) {
     return (
-      <Card className="bg-black border-blue-900/50 text-white">
+      <Card className="bg-black border-blue-900/50 text-white h-full flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center justify-between">
             Your Watchlist
@@ -128,7 +128,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
           </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
-        <CardContent className="p-4">
+        <CardContent className="p-4 flex-1 flex items-center justify-center">
           <div className="text-center py-8">
             <p className="text-gray-400 mb-4">No assets in your watchlist yet.</p>
             <Button 
@@ -144,7 +144,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
   }
     
   return (
-    <Card className="bg-black border-blue-900/50 text-white">
+    <Card className="bg-black border-blue-900/50 text-white h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-white flex items-center justify-between">
           Your Watchlist
@@ -160,8 +160,8 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
         </CardTitle>
         <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
       </CardHeader>
-      <CardContent className="p-0">
-        <div>
+      <CardContent className="p-0 flex-1 overflow-hidden">
+        <div className="overflow-y-auto h-full">
           {watchlist.map((item, i) => (
             <motion.div 
               key={`${item.symbol}-${item.exchange}`}
