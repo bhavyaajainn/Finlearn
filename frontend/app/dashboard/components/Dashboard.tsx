@@ -4,10 +4,10 @@ import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useAppSelector, useAppDispatch } from "@/app/store/hooks"
 import { fetchUserPreferences } from "@/app/store/slices/preferencesSlice"
-import { 
-  fetchDashboardEssentials, 
-  fetchStreakData, 
-  fetchWatchlist 
+import {
+  fetchDashboardEssentials,
+  fetchStreakData,
+  fetchWatchlist
 } from "@/app/store/slices/dashboardSlice"
 import UserPreferencesDialog from "./UserPreferencesDialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,8 +16,8 @@ import { Progress } from "@/components/ui/progress"
 import { GlossaryCard } from "./GlossaryCard"
 import MotivationCard from "./MotivationCard"
 import Watchlist from "./Watchlist"
-import { 
-  Award, 
+import {
+  Award,
   Trophy,
   BookOpen,
   BarChart3,
@@ -26,18 +26,19 @@ import {
   Zap
 } from "lucide-react"
 import Link from "next/link"
+import { container, item } from "../animations/animation"
 
 export function Dashboard() {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState<boolean>(false);
-  
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { 
-    essentials, 
-    streak, 
-    loading, 
-    error 
+  const {
+    essentials,
+    streak,
+    loading,
+    error
   } = useAppSelector((state) => state.dashboard);
+  const conceptsProgress = streak ? Math.min((streak.total_articles / 100) * 100, 100) : 0;
 
   useEffect(() => {
     if (user?.uid) {
@@ -62,30 +63,13 @@ export function Dashboard() {
     }
   }, [user, dispatch]);
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  }
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 },
-  }
-
-  const conceptsProgress = streak ? Math.min((streak.total_articles / 100) * 100, 100) : 0;
-
   return (
     <>
       <UserPreferencesDialog
         open={showPreferencesDialog}
         onOpenChange={setShowPreferencesDialog}
       />
-    
+
       <div className="max-w-full px-2 py-4">
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
           <motion.div variants={item}>
@@ -119,11 +103,10 @@ export function Dashboard() {
                         // Calculate which days to highlight based on current streak
                         const daysToHighlight = Math.min(streak?.current_streak || 0, 7);
                         return (
-                          <div 
-                            key={i} 
-                            className={`h-1.5 w-full rounded-full ${
-                              i < daysToHighlight ? "bg-blue-500" : "bg-blue-900"
-                            }`} 
+                          <div
+                            key={i}
+                            className={`h-1.5 w-full rounded-full ${i < daysToHighlight ? "bg-blue-500" : "bg-blue-900"
+                              }`}
                           />
                         );
                       })}
@@ -143,10 +126,10 @@ export function Dashboard() {
                       <span className="text-sm text-gray-400">days</span>
                     </div>
                     <div className="mt-2 text-xs text-gray-400">
-                      {loading.streak ? "Loading..." : 
-                        streak && streak.longest_streak > streak.current_streak ? 
-                        "Keep going to beat your record!" : 
-                        "You're at your best streak!"
+                      {loading.streak ? "Loading..." :
+                        streak && streak.longest_streak > streak.current_streak ?
+                          "Keep going to beat your record!" :
+                          "You're at your best streak!"
                       }
                     </div>
                   </div>
@@ -191,7 +174,7 @@ export function Dashboard() {
                     },
                     {
                       icon: TrendingUp,
-                      label: "View Watchlist", 
+                      label: "View Watchlist",
                       href: "/dashboard/watchlist",
                       color: "from-green-500/20 to-emerald-500/20",
                       iconColor: "text-green-400"
@@ -226,14 +209,14 @@ export function Dashboard() {
             </Card>
           </motion.div>
           <motion.div variants={item}>
-            <MotivationCard 
-              quote={essentials?.quote} 
+            <MotivationCard
+              quote={essentials?.quote}
               loading={loading.essentials}
               error={error.essentials}
             />
           </motion.div>
           <motion.div variants={item}>
-            <GlossaryCard 
+            <GlossaryCard
               glossaryTerms={essentials?.glossary_term || []}
               loading={loading.essentials}
               error={error.essentials}
