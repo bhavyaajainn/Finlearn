@@ -26,7 +26,7 @@ export const fetchUserPreferences = createAsyncThunk(
   'preferences/fetchUserPreferences',
   async (userId: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://finlearn.onrender.com/selectedcategories?user_id=${userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ export const saveUserPreferences = createAsyncThunk(
   'preferences/saveUserPreferences',
   async ({ userId, data }: { userId: string; data: UserPreferences }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://finlearn.onrender.com/selectedcategories?user_id=${userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${userId}`, {
         method: 'POST',
         body: JSON.stringify(data),
         headers: {
@@ -77,7 +77,7 @@ export const updateUserPreferences = createAsyncThunk(
   'preferences/updateUserPreferences',
   async ({ userId, data }: { userId: string; data: UserPreferences }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`https://finlearn.onrender.com/selectedcategories?user_id=${userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${userId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
         headers: {

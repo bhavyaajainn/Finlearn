@@ -140,7 +140,7 @@ export const fetchTopics = createAsyncThunk(
       if (error.name === 'AbortError') {
         return rejectWithValue('Request aborted');
       }
-      console.error('❌ Error fetching topics:', error);
+      console.error(' Error fetching topics:', error);
       return rejectWithValue(error.message);
     }
   }
