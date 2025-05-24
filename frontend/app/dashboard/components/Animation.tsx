@@ -98,7 +98,11 @@ const TypingAnimation = ({ text, delay = 0 }: { text: string; delay?: number }) 
   );
 };
 
-const FintechUI = () => {
+interface FintechUIProps {
+  onAnimationComplete?: () => void;
+}
+
+const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
   const [symbols, setSymbols] = useState<{ 
     id: number; 
     Icon: React.ComponentType<{ size: number }>; 
@@ -107,6 +111,8 @@ const FintechUI = () => {
     size: number; 
   }[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [animationComplete, setAnimationComplete] = useState(false);
+  const [audioPlayed, setAudioPlayed] = useState(false);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -121,6 +127,76 @@ const FintechUI = () => {
 
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
+
+  useEffect(() => {
+    // Play audio with user interaction detection
+    const playImpactSound = async () => {
+      try {
+        console.log('🔊 Attempting to play audio...');
+        
+        // Create audio element
+        const audio = new Audio('/sounds/cinematic.mp3');
+        audio.volume = 0.3;
+        audio.preload = 'auto';
+        
+        // Try to play immediately
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('🎵 Audio played successfully!');
+              setAudioPlayed(true);
+            })
+            .catch(error => {
+              if (error.name === 'NotAllowedError') {
+                console.log('🔇 Audio autoplay blocked by browser policy');
+                // Try to play on first user interaction
+                const handleFirstInteraction = () => {
+                  audio.play()
+                    .then(() => {
+                      console.log('🎵 Audio played after user interaction!');
+                      setAudioPlayed(true);
+                    })
+                    .catch(e => console.log('🔇 Audio still failed after interaction:', e.name));
+                  
+                  // Remove listeners after first attempt
+                  document.removeEventListener('click', handleFirstInteraction);
+                  document.removeEventListener('keydown', handleFirstInteraction);
+                  document.removeEventListener('touchstart', handleFirstInteraction);
+                };
+                
+                // Add listeners for user interaction
+                document.addEventListener('click', handleFirstInteraction, { once: true });
+                document.addEventListener('keydown', handleFirstInteraction, { once: true });
+                document.addEventListener('touchstart', handleFirstInteraction, { once: true });
+              } else {
+                console.log('🔇 Audio failed for other reason:', error.name);
+              }
+            });
+        }
+      } catch (error) {
+        console.log('🔇 Audio creation failed:', error);
+      }
+    };
+
+    // Small delay to ensure component is mounted
+    const audioTimeout = setTimeout(playImpactSound, 200);
+
+    // Animation completion timer
+    const animationTimer = setTimeout(() => {
+      console.log('🎬 Animation timer completed');
+      setAnimationComplete(true);
+      if (onAnimationComplete) {
+        onAnimationComplete();
+      }
+    }, 6000);
+
+    return () => {
+      clearTimeout(audioTimeout);
+      clearTimeout(animationTimer);
+    };
+  }, [onAnimationComplete]);
 
   const checkOverlap = (newPos: { x: number; y: number; } | undefined, existingPositions: any[], minDistance: number) => {
     if (!newPos) return true;
@@ -206,6 +282,13 @@ const FintechUI = () => {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Audio status indicator (for debugging) */}
+      {!audioPlayed && (
+        <div className="fixed top-4 right-4 z-20 text-xs text-gray-500">
+          🔇 Click anywhere to enable audio
+        </div>
+      )}
+      
       {symbols.map((symbol) => (
         <FloatingSymbol
           key={symbol.id}
@@ -239,7 +322,7 @@ const FintechUI = () => {
             }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <TypingAnimation text="FINLEARN" delay={0.5} />
+            <TypingAnimation text="FinLearn" delay={0.5} />
             <span className="mx-4"></span>
             <TypingAnimation text="AI" delay={2.5} />
           </motion.h1>

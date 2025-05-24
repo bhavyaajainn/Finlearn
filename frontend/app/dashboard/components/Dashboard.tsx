@@ -13,6 +13,7 @@ import {
   clearNewsDetail,
   TrendingNewsItem
 } from "@/app/store/slices/dashboardSlice"
+import { usePreferencesContext } from "../layout"
 import UserPreferencesDialog from "./UserPreferencesDialog"
 import { TrendingNewsSection } from "./TrendingNewsCard"
 import NewsDetailView from "./NewsDetailView"
@@ -34,10 +35,11 @@ export function Dashboard() {
   const [selectedNewsItem, setSelectedNewsItem] = useState<TrendingNewsItem | null>(null);
   const [newsDetailFetched, setNewsDetailFetched] = useState<string | null>(null);
   const fetchingRef = useRef<Set<string>>(new Set());
-  const initializedRef = useRef<boolean>(false);
   
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const { preferences } = useAppSelector((state) => state.preferences);
+  const { preferencesChecked } = usePreferencesContext();
   const { 
     essentials, 
     streak, 
@@ -49,80 +51,16 @@ export function Dashboard() {
   } = useAppSelector((state) => state.dashboard);
 
   useEffect(() => {
-    if (!user?.uid || initializedRef.current) return;
+    console.log('Dashboard - preferencesChecked:', preferencesChecked)
+    console.log('Dashboard - preferences:', preferences)
     
-    const fetchData = async () => {
-      const promises = [];
-      const userId = user.uid;
-      
-      if (!essentials && !fetchingRef.current.has('essentials') && !loading.essentials) {
-        fetchingRef.current.add('essentials');
-        promises.push(
-          dispatch(fetchDashboardEssentials(userId)).finally(() => {
-            fetchingRef.current.delete('essentials');
-          })
-        );
-      }
-      
-      if (!streak && !fetchingRef.current.has('streak') && !loading.streak) {
-        fetchingRef.current.add('streak');
-        promises.push(
-          dispatch(fetchStreakData({ userId, refresh: false })).finally(() => {
-            fetchingRef.current.delete('streak');
-          })
-        );
-      }
-      
-      if (watchlist.length === 0 && !fetchingRef.current.has('watchlist') && !loading.watchlist) {
-        fetchingRef.current.add('watchlist');
-        promises.push(
-          dispatch(fetchWatchlist({ userId, limit: 5 })).finally(() => {
-            fetchingRef.current.delete('watchlist');
-          })
-        );
-      }
-      
-      if (trendingNews.length === 0 && !fetchingRef.current.has('trendingNews') && !loading.trendingNews) {
-        fetchingRef.current.add('trendingNews');
-        promises.push(
-          dispatch(fetchTrendingNews(userId)).finally(() => {
-            fetchingRef.current.delete('trendingNews');
-          })
-        );
-      }
-      
-      if (promises.length > 0) {
-        try {
-          await Promise.allSettled(promises);
-        } catch (error) {
-          console.error('Error fetching dashboard data:', error);
-        }
-      }
-      
-      initializedRef.current = true;
-    };
-    
-    fetchData();
-  }, [user?.uid, dispatch, essentials, streak, watchlist.length, trendingNews.length, loading]);
-
-  useEffect(() => {
-    if (!user?.uid || fetchingRef.current.has('preferences')) return;
-    
-    fetchingRef.current.add('preferences');
-    dispatch(fetchUserPreferences(user.uid))
-      .unwrap()
-      .then((data) => {
-        if (!data?.expertise_level || !data?.categories?.length) {
-          setShowPreferencesDialog(true);
-        }
-      })
-      .catch(() => {
+    if (preferencesChecked && user?.uid && preferences) {
+      if (!preferences?.expertise_level || !preferences?.categories?.length) {
+        console.log('Showing preferences dialog')
         setShowPreferencesDialog(true);
-      })
-      .finally(() => {
-        fetchingRef.current.delete('preferences');
-      });
-  }, [user?.uid, dispatch]);
+      }
+    }
+  }, [preferencesChecked, user?.uid, preferences]);
 
   const handleNewsClick = useCallback(async (newsItem: TrendingNewsItem) => {
     if (!user?.uid || newsDetailFetched === newsItem.id || fetchingRef.current.has(`news-${newsItem.id}`)) return;
