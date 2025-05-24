@@ -37,7 +37,7 @@ export default function AnimationPage() {
             dispatch(fetchWatchlist({ userId: user.uid, limit: 5 })),
             dispatch(fetchTrendingNews(user.uid)),
             dispatch(fetchUserPreferences(user.uid)),
-            dispatch(fetchTopics(user.uid)) // Added recommended topics API call
+            dispatch(fetchTopics(user.uid))
           ];
           
           await Promise.allSettled(promises);
@@ -52,8 +52,11 @@ export default function AnimationPage() {
   }, [user?.uid, dispatch]);
 
   const handleAnimationComplete = () => {
-    console.log('🎬 Animation completed, redirecting to dashboard...');
-    router.push('/dashboard');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 100);
   };
 
   // Show loading if no user

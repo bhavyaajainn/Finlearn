@@ -161,6 +161,18 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     }
   };
 
+  const handleSuccessfulAuth = () => {
+    setIsModalOpen(false);
+    
+    // Scroll to top before navigation
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Small delay to ensure scroll completes
+    setTimeout(() => {
+      router.push("/animation");
+    }, 100);
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -168,9 +180,7 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
         signInWithEmail({ email: signinEmail, password: signinPassword })
       ).unwrap();
 
-      setIsModalOpen(false);
-      // Redirect to animation page after successful login
-      router.push("/animation");
+      handleSuccessfulAuth();
     } catch (err) {
       console.error("Sign-in failed:", err);
     }
@@ -200,9 +210,7 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
     try {
       await dispatch(signInWithGoogle()).unwrap();
       
-      setIsModalOpen(false);
-      // Redirect to animation page after successful Google login
-      router.push("/animation");
+      handleSuccessfulAuth();
     } catch (err) {
       console.error("Google sign-in failed:", err);
     }
@@ -211,7 +219,14 @@ export default function UserAvatar({ externalTrigger }: UserAvatarProps) {
   const handleSignOut = async () => {
     try {
       await dispatch(signOut()).unwrap();
-      router.push("/"); 
+      
+      // Scroll to top before navigation
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Small delay to ensure scroll completes
+      setTimeout(() => {
+        router.push("/");
+      }, 100);
     } catch (err) {
       console.error("Sign-out failed:", err);
     }

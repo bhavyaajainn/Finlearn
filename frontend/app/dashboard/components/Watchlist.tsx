@@ -38,7 +38,23 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
   };
 
   const handleViewFullWatchlist = () => {
-    router.push('/dashboard/watchlist');
+    // Scroll to top before navigation
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Small delay to ensure scroll completes
+    setTimeout(() => {
+      router.push('/dashboard/watchlist');
+    }, 100);
+  };
+
+  const handleAssetClick = (symbol: string, assetType: string) => {
+    // Scroll to top before navigation
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Small delay to ensure scroll completes
+    setTimeout(() => {
+      router.push(`/dashboard/watchlist/${symbol}/${assetType}`);
+    }, 100);
   };
 
   if (loading) {
@@ -59,7 +75,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
           </CardTitle>
           <CardDescription className="text-gray-400">Track your favorite assets</CardDescription>
         </CardHeader>
-        <CardContent className="p-0 flex-1">
+        <CardContent className="flex-1">
           <div className="space-y-3 p-4">
             {[1, 2, 3].map((index) => (
               <div key={index} className="animate-pulse flex items-center justify-between py-3 border-b border-zinc-800 last:border-0">
@@ -169,7 +185,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              onClick={() => router.push(`/dashboard/watchlist/${item.symbol}/${item.asset_type}`)}
+              onClick={() => handleAssetClick(item.symbol, item.asset_type)}
             >
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-base text-white truncate">{item.symbol}</div>

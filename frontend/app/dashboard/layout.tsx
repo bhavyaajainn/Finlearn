@@ -13,6 +13,7 @@ import {
   fetchTrendingNews
 } from "@/app/store/slices/dashboardSlice"
 import { fetchUserPreferences } from "@/app/store/slices/preferencesSlice"
+import { useRouter, usePathname } from "next/navigation"
 
 const PreferencesContext = createContext<{
   preferencesChecked: boolean;
@@ -34,6 +35,21 @@ export default function DashboardLayout({
   const [isPreloading, setIsPreloading] = useState(false)
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // Scroll to top when pathname changes (navigation occurs)
+  useEffect(() => {
+    console.log('📍 Dashboard layout - pathname changed to:', pathname)
+    
+    // Scroll to top immediately when dashboard pages are accessed
+    window.scrollTo(0, 0)
+    
+    // Also add smooth scroll as backup
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 50)
+  }, [pathname])
 
   // Preload dashboard data when user is available
   useEffect(() => {

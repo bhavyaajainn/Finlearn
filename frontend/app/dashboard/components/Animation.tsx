@@ -318,7 +318,7 @@ const FintechUI = ({ onAnimationComplete }: FintechUIProps) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 4.2 }}
             >
-              Your personal financial knowledge assistant
+              Your personalized finance knowledge platform
             </motion.p>
             <motion.p
               className="text-sm md:text-base text-blue-300 font-normal"
