@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { X, BookmarkCheck, Bookmark, Clock, AlertCircle, Info } from 'lucide-react';
+import { X, AlertCircle, Info } from 'lucide-react';
 import { TopicItem, TopicDetailResponse, RelatedConcept } from '@/app/store/slices/learningSlice';
 
 interface ArticleViewProps {
@@ -234,13 +234,6 @@ export default function ArticleView({
           <X className="h-5 w-5 mr-1" />
           Back to articles
         </button>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center text-gray-400 text-sm">
-            <Clock className="h-4 w-4 mr-1" />
-            {estimatedReadTime} min read
-          </div>
-        </div>
       </div>
 
       <div className="mb-3">

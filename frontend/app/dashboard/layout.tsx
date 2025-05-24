@@ -35,39 +35,46 @@ export default function DashboardLayout({
   const [isPreloading, setIsPreloading] = useState(false)
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
+  const { preferences, loading: preferencesLoading } = useAppSelector((state) => state.preferences)
   const pathname = usePathname()
 
-  
   useEffect(() => {
     window.scrollTo(0, 0)
-  
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }, 50)
   }, [pathname])
 
-  
   useEffect(() => {
     if (user?.uid && !dataPreloaded && !isPreloading) {
-
       setIsPreloading(true)
       
       const preloadDashboardData = async () => {
         try {
-          const promises = [
+          // First, fetch preferences separately to ensure they're loaded
+          const preferencesPromise = dispatch(fetchUserPreferences(user.uid))
+          
+          // Other data can be fetched in parallel
+          const otherPromises = [
             dispatch(fetchDashboardEssentials(user.uid)),
             dispatch(fetchStreakData({ userId: user.uid, refresh: false })),
             dispatch(fetchWatchlist({ userId: user.uid, limit: 5 })),
-            dispatch(fetchTrendingNews(user.uid)),
-            dispatch(fetchUserPreferences(user.uid))
+            dispatch(fetchTrendingNews(user.uid))
           ]
           
-          const results = await Promise.allSettled(promises)
+          // Wait for preferences first
+          await preferencesPromise
           
-          const preferencesResult = results[4]
+          // Then wait for other data
+          await Promise.allSettled(otherPromises)
           
           setDataPreloaded(true)
-          setPreferencesChecked(true)
+          
+          // Small delay to ensure Redux state is fully updated
+          setTimeout(() => {
+            setPreferencesChecked(true)
+          }, 100)
+          
         } catch (error) {
           console.error('❌ Error preloading dashboard data:', error)
           setDataPreloaded(true)
@@ -81,14 +88,16 @@ export default function DashboardLayout({
     }
   }, [user?.uid, dataPreloaded, isPreloading, dispatch])
 
-  
-  if (!dataPreloaded) {
+  // Don't render until data is preloaded AND preferences are checked
+  if (!dataPreloaded || !preferencesChecked) {
     return (
       <ProtectedRoute>
         <div className="w-full h-screen bg-black flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin h-12 w-12 border-4 border-blue-400 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-white text-lg">Loading...</p>
+            <p className="text-white text-lg">
+              {!dataPreloaded ? "Loading..." : "Checking preferences..."}
+            </p>
           </div>
         </div>
       </ProtectedRoute>

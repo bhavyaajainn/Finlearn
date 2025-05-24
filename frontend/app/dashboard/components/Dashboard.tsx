@@ -33,7 +33,7 @@ export function Dashboard() {
   
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { preferences } = useAppSelector((state) => state.preferences);
+  const { preferences, loading: preferencesLoading } = useAppSelector((state) => state.preferences);
   const { preferencesChecked } = usePreferencesContext();
   const { 
     essentials, 
@@ -44,13 +44,32 @@ export function Dashboard() {
     error 
   } = useAppSelector((state) => state.dashboard);
 
+  // Check preferences and show dialog if needed
   useEffect(() => {
-    if (preferencesChecked && user?.uid && preferences) {
-      if (!preferences?.expertise_level || !preferences?.categories?.length) {
-        setShowPreferencesDialog(true);
+    console.log('Dashboard preferences check:', {
+      preferencesChecked,
+      preferences,
+      preferencesLoading,
+      userId: user?.uid
+    });
+
+    if (preferencesChecked && user?.uid && !preferencesLoading) {
+      // Check if preferences are missing or incomplete
+      const needsPreferences = !preferences || 
+                              !preferences.expertise_level || 
+                              !preferences.categories || 
+                              preferences.categories.length === 0;
+      
+      console.log('Needs preferences:', needsPreferences);
+      
+      if (needsPreferences) {
+        // Small delay to ensure UI is ready
+        setTimeout(() => {
+          setShowPreferencesDialog(true);
+        }, 500);
       }
     }
-  }, [preferencesChecked, user?.uid, preferences]);
+  }, [preferencesChecked, user?.uid, preferences, preferencesLoading]);
 
   const handleNewsClick = useCallback(async (newsItem: TrendingNewsItem) => {
     if (!user?.uid || newsDetailFetched === newsItem.id || fetchingRef.current.has(`news-${newsItem.id}`)) return;
