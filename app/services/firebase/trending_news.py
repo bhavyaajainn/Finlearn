@@ -7,72 +7,60 @@ from datetime import datetime, timedelta
 import logging
 import json
 import uuid
-
+from firebase_admin import firestore
 from .client import db
 
 logger = logging.getLogger(__name__)
 
 def store_trending_news(news_items: List[Dict[str, Any]], expertise_level: str) -> None:
-    """Store trending news items in Firebase."""
+    """Store trending news items in Firebase using consistent IDs."""
     try:
-        batch = db.batch()
-        now = datetime.now()
+        # Generate a consistent document ID for this expertise level
+        doc_id = f"trending_news_{expertise_level}"
+        doc_ref = db.collection("trending_news_by_level").document(doc_id)
         
-        for item in news_items:
-            # Ensure the item has an ID
-            if not item.get('id'):
-                item['id'] = str(uuid.uuid4())
-                
-            # Convert Pydantic model to dict if needed
-            if hasattr(item, 'dict'):
-                item = item.dict()
-                
-            # IMPORTANT: Use a document reference with AUTO-GENERATED ID
-            # Don't try to use the UUID as the document ID
-            doc_ref = db.collection("trending_news").document()  # Auto-generated ID
-            
-            item_data = {
-                **item,
-                "expertise_level": expertise_level,
-                "stored_at": now.isoformat(),
-                "expires_at": (now + timedelta(days=1)).isoformat()
-            }
-            
-            batch.set(doc_ref, item_data)
-            
-        batch.commit()
-        logger.info(f"Stored {len(news_items)} trending news items for {expertise_level} level")
+        # Prepare the data
+        now = datetime.now()
+        data = {
+            "expertise_level": expertise_level,
+            "news_items": news_items,
+            "stored_at": now.isoformat(),
+            "expires_at": (now + timedelta(days=1)).isoformat()
+        }
+        
+        # Store in Firebase (overwrites existing document)
+        doc_ref.set(data)
+        
+        logger.info(f"Stored trending news for {expertise_level} level")
     except Exception as e:
         logger.error(f"Error storing trending news: {e}")
+        raise  # Re-raise to prevent silent failures
 
-def get_trending_news(expertise_level: str, limit: int = 3) -> List[Dict[str, Any]]:
-    """Get trending news items from Firebase.
-    
-    Args:
-        expertise_level: User's expertise level
-        limit: Maximum number of items to return
-        
-    Returns:
-        List of news items
-    """
+def get_trending_news(expertise_level: str) -> List[Dict[str, Any]]:
+    """Get trending news items from Firebase using consistent retrieval."""
     try:
-        # Get current time
-        now = datetime.now().isoformat()
+        # Use the same document ID pattern as in store_trending_news
+        doc_id = f"trending_news_{expertise_level}"
+        doc_ref = db.collection("trending_news_by_level").document(doc_id)
         
-        # Query for non-expired news items matching expertise level
-        docs = (db.collection("trending_news")
-                .where("expertise_level", "==", expertise_level)
-                .where("expires_at", ">", now)
-                .limit(limit)
-                .get())
+        # Get the document
+        doc = doc_ref.get()
         
-        # Convert to list of dictionaries
-        news_items = [doc.to_dict() for doc in docs]
-        
-        if not news_items:
-            logger.warning(f"No trending news found for {expertise_level} level")
+        if not doc.exists:
+            logger.info(f"No trending news found for {expertise_level} level")
             return []
-            
+        
+        # Get document data
+        data = doc.to_dict()
+        
+        # Check if expired
+        now = datetime.now().isoformat()
+        if data.get("expires_at", "") < now:
+            logger.info(f"Trending news for {expertise_level} level has expired")
+            return []
+        
+        # Return the news items
+        news_items = data.get("news_items", [])
         logger.info(f"Retrieved {len(news_items)} trending news items for {expertise_level} level")
         return news_items
     except Exception as e:
@@ -211,3 +199,24 @@ def track_article_view(user_id: str, news_id: str) -> None:
                 log_topic_read(user_id, topic)
     except Exception as e:
         logger.error(f"Error tracking article view: {e}")
+
+
+def cleanup_old_trending_news(expertise_level: str) -> None:
+    """Remove old news items for a given expertise level before adding new ones."""
+    try:
+        # Find all documents for this expertise level
+        docs = (db.collection("trending_news")
+                .where("expertise_level", "==", expertise_level)
+                .limit(100)  # Safety limit
+                .get())
+        
+        # Create batch for efficient deletion
+        batch = db.batch()
+        for doc in docs:
+            batch.delete(doc.reference)
+            
+        # Execute deletion
+        batch.commit()
+        logger.info(f"Cleaned up old news items for {expertise_level} level")
+    except Exception as e:
+        logger.error(f"Error cleaning up old news: {e}")
