@@ -1,134 +1,168 @@
 'use client'
 
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronLeft,
-  Newspaper,
-  FileText,
-  Layers,
-  BrainCircuit,
-  Plus,
-} from "lucide-react"
+import { useEffect, useState } from "react"
+import { useAppSelector } from "@/app/store/hooks"
+import { toast } from "sonner"
+import { useParams } from "next/navigation"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useAppSelector } from "@/app/store/hooks"
-import { toast } from "sonner"
-import { useParams } from "next/navigation"
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  FileText,
+  Layers,
+} from "lucide-react"
 
-
-export interface Asset {
-  symbol: string;
-  name: string;
-  asset_type: string;
-  current_price: number;
-  price_change_percent: number;
-  expertise_level: 'beginner' | 'intermediate' | 'advanced'; // assuming fixed levels
-  research_article: ResearchArticle;
-  similar_assets: SimilarAsset[];
-  recent_news: RecentNews[];
-  related_topics: string[];
+export interface AssetInfo {
+  name: string
+  current_price: number
+  price_change_percent: number
+  symbol: string
+  asset_type: string
 }
 
-export interface ResearchArticle {
-  title: string;
-  summary: string;
-  introduction: string;
-  sections: ArticleSection[];
-  knowledge_connections: string;
-  watchlist_relevance: string;
-  comparison: string;
-  conclusion: string;
-  recommendation: Recommendation;
-  connections: string; // "Missing connections section" implies a fallback string
+export interface TooltipWord {
+  word: string
+  tooltip: string
 }
 
-export interface ArticleSection {
-  title: string;
-  content: string;
+export interface Section {
+  title: string
+  content: string
 }
 
 export interface Recommendation {
-  rating: 'Buy' | 'Hold' | 'Sell';
-  reasoning: string;
-  risk_level: 'Low' | 'Medium' | 'High';
-  time_horizon: 'Short-term' | 'Medium-term' | 'Long-term';
+  time_horizon: string
+  risk_level: string
+  reasoning: string
+  action: string
 }
 
-export interface SimilarAsset {
-  symbol: string;
-  name: string;
-  price: number;
-  reason: string;
-}
-
-export interface RecentNews {
-  headline: string;
-  date: string; // ISO format
-  source: string;
-  author: string;
-  url: string;
-  summary: string;
-  impact: {
-    direction: 'positive' | 'negative' | 'neutral';
-    reason: string;
-  };
-  citation: string;
+export interface AssetData {
+  symbol: string
+  name: string
+  asset_type: string
+  current_price: number
+  price_change_percent: number
+  expertise_level: string
+  loading_status: {
+    asset_loaded: boolean
+    analysis_loaded: boolean
+    related_loaded: boolean
+  }
+  asset_info: AssetInfo
+  from_cache: boolean
+  recent_news: any[] // Replace `any` with a specific `NewsItem` type if you have one
+  similar_assets: any[] // Replace `any` with a specific `SimilarAsset` type if available
+  title: string
+  summary: string
+  sections: Section[]
+  references: string[]
+  recommendation: Recommendation
+  generated_at: string
+  format: string
+  conclusion: string
+  tooltip_words: TooltipWord[]
+  watchlist_relevance: string
 }
 
 
 export default function WatchlistDetails() {
-  const [details, setDetails] = useState<Asset>()
-  const [isLoading, setIsLoading] = useState(true) // Add loading state
+  const [details, setDetails] = useState<AssetData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const { user } = useAppSelector((state) => state.auth)
   const params = useParams()
-  // const assetName = params?.id ? decodeURIComponent(params.id as string) : '';
 
-  console.log(user?.uid);
   useEffect(() => {
-    const isParamsReady = params.id && params?.id.length >= 2;
-    const isUserReady = !!user?.uid;
+    const fetchAllData = async () => {
+      if (!params.id || params.id.length < 2 || !user?.uid) return
 
-    if (!isParamsReady || !isUserReady) return;
-
-
-    const API_URL = params.id ? `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/research/${params.id[0]}?user_id=${user.uid}&asset_type=${params.id[1]}&include_comparison=true&include_news=true&refresh=false` : '';
-
-    console.log(API_URL);
-
-    const fetchWatchlist = async () => {
-      setIsLoading(true);
+      setIsLoading(true)
       try {
-        const res = await fetch(API_URL, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const [symbol, assetType] = params.id;
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+        const userId = user.uid
 
-        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+        const urls = [
+          `${baseUrl}/watchlist/asset/${symbol}?user_id=${userId}&asset_type=${assetType}`,
+          `${baseUrl}/watchlist/analysis/${symbol}?user_id=${userId}&asset_type=${assetType}&refresh=false`,
+          `${baseUrl}/watchlist/related/${symbol}?user_id=${userId}&asset_type=${assetType}&include_comparison=true&refresh=false`
+        ]
 
-        const data = await res.json();
-        setDetails(data);
-      } catch (error: any) {
-        console.error("Error fetching watchlist:", error);
-        toast("Failed to fetch asset details");
+        const responses = await Promise.all(urls.map(url => fetch(url).then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+          return res.json()
+        })));
+
+        const basic_asset_data = responses[0];
+        const articles_tooltips_data = responses[1]
+        const similar_news_data = responses[2]
+
+        setDetails({
+          ...basic_asset_data,
+          similar_assets: articles_tooltips_data.research_article || [],
+          recent_news: similar_news_data || []
+        })
+
+      } catch (error) {
+        console.error("Fetch error:", error)
+        toast.error("Failed to load asset details")
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchWatchlist();
+    fetchAllData()
   }, [user?.uid, params]);
 
+  console.log(details);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <div className="container mx-auto py-4 px-4">
+          <Skeleton className="h-6 w-[200px] bg-gray-800" />
+        </div>
+
+        <div className="container mx-auto px-4 space-y-8">
+          <div className="bg-gray-900 rounded-lg p-6 space-y-4">
+            <Skeleton className="h-8 w-1/4 bg-gray-800" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-20 bg-gray-800 rounded-md" />
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex gap-4">
+              {[...Array(2)].map((_, i) => (
+                <Skeleton key={i} className="h-10 w-32 bg-gray-800" />
+              ))}
+            </div>
+
+            <div className="bg-gray-900 rounded-lg p-6 space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-6 w-1/3 bg-gray-800" />
+                  <Skeleton className="h-4 w-full bg-gray-800" />
+                  <Skeleton className="h-4 w-2/3 bg-gray-800" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navigation */}
       <div className="container mx-auto py-4 px-4">
         <Link href="/dashboard/watchlist" className="cursor-pointer">
           <Button variant="link" className="text-blue-400 p-0 flex items-center">
@@ -137,41 +171,31 @@ export default function WatchlistDetails() {
           </Button>
         </Link>
       </div>
-      {isLoading ? (
-        <div className="flex items-center justify-center h-[calc(100vh-160px)]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
 
+      {details ? (
         <>
-          {/* Header */}
           <div className="container mx-auto px-4">
             <div className="bg-gray-900 rounded-lg p-6 mb-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                 <div className="flex items-center gap-4">
                   <div>
-                    <h1 className="text-2xl font-bold">{details?.name || "Unknown Asset"}</h1>
+                    <h1 className="text-2xl font-bold">{details.name}</h1>
                     <div className="text-gray-400">
-                      {details?.symbol || "N/A"} • {details?.asset_type || "Unknown Type"}
+                      {details.symbol} • {details.asset_type}
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
                   <div className="text-3xl font-bold">
-                    ${details?.current_price || "0.00"}
+                    ${details.current_price.toFixed(2)}
                   </div>
-                  <div
-                    className={`flex items-center ${(details?.price_change_percent || 0) < 0 ? "text-red-500" : "text-green-500"
-                      }`}
-                  >
-                    {(details?.price_change_percent || 0) < 0 ? (
+                  <div className={`flex items-center ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}>
+                    {details.price_change_percent < 0 ? (
                       <ArrowDown className="h-4 w-4 mr-1" />
                     ) : (
                       <ArrowUp className="h-4 w-4 mr-1" />
                     )}
-                    <span>
-                      {Math.abs(details?.price_change_percent || 0).toFixed(2)}%
-                    </span>
+                    <span>{Math.abs(details.price_change_percent).toFixed(2)}%</span>
                   </div>
                 </div>
               </div>
@@ -179,122 +203,64 @@ export default function WatchlistDetails() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div className="bg-gray-800 p-3 rounded-md">
                   <div className="text-gray-400 text-sm">Symbol</div>
-                  <div className="text-xl font-bold">{details?.symbol || "N/A"}</div>
+                  <div className="text-xl font-bold">{details.symbol}</div>
                 </div>
                 <div className="bg-gray-800 p-3 rounded-md">
                   <div className="text-gray-400 text-sm">Asset Type</div>
-                  <div className="text-xl font-bold">{details?.asset_type || "N/A"}</div>
+                  <div className="text-xl font-bold">{details.asset_type}</div>
                 </div>
                 <div className="bg-gray-800 p-3 rounded-md">
                   <div className="text-gray-400 text-sm">Current Price</div>
-                  <div className="text-xl font-bold">${details?.current_price || "0.00"}</div>
+                  <div className="text-xl font-bold">${details.current_price.toFixed(2)}</div>
                 </div>
                 <div className="bg-gray-800 p-3 rounded-md">
                   <div className="text-gray-400 text-sm">Price Change</div>
-                  <div
-                    className={`text-xl font-bold ${(details?.price_change_percent || 0) < 0 ? "text-red-500" : "text-green-500"
-                      }`}
-                  >
-                    {(details?.price_change_percent || 0).toFixed(2)}%
+                  <div className={`text-xl font-bold ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}>
+                    {details.price_change_percent.toFixed(2)}%
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="container mx-auto px-4">
             <Tabs defaultValue="articles" className="w-full">
               <TabsList className="w-full bg-gray-900 p-0 mb-6">
-                {/* <TabsTrigger value="news" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200 cursor-pointer">
-                  <Newspaper className="h-4 w-4 mr-2" />
-                  News
-                </TabsTrigger> */}
-                <TabsTrigger value="articles" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200 cursor-pointer">
+                <TabsTrigger value="articles" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200">
                   <FileText className="h-4 w-4 mr-2" />
                   Articles
                 </TabsTrigger>
-                <TabsTrigger value="similar" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200 cursor-pointer">
+                <TabsTrigger value="similar" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200">
                   <Layers className="h-4 w-4 mr-2" />
                   Similar Assets
                 </TabsTrigger>
-                {/* <TabsTrigger value="ai" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200 cursor-pointer">
-                  <BrainCircuit className="h-4 w-4 mr-2" />
-                  AI Summary
-                </TabsTrigger> */}
               </TabsList>
 
-              {/* News Tab */}
-              {/* <TabsContent value="news" className="mt-0">
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">Recent News</CardTitle>
-                    <CardDescription className="text-gray-400">Latest updates</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {details?.news?.length ? (
-                        details.news.map((news, index) => (
-                          <div key={index} className="border-b border-gray-800 pb-6 last:border-0 last:pb-0">
-                            <div className="flex justify-between items-start mb-2">
-                              <h3 className="font-medium text-xl text-white">{news?.headline || "Untitled"}</h3>
-                              <Badge
-                                className={
-                                  news?.impact?.direction === "negative"
-                                    ? "bg-red-900/50 text-red-300 border-red-700"
-                                    : news?.impact?.direction === "positive"
-                                      ? "bg-green-900/50 text-green-300 border-green-700"
-                                      : "bg-blue-900/50 text-blue-300 border-blue-700"
-                                }
-                              >
-                                {news?.impact?.direction || "neutral"}
-                              </Badge>
-                            </div>
-                            <p className="text-gray-300 mb-3">{news?.summary || "No summary available."}</p>
-                            <div className="flex justify-between items-center text-sm text-gray-400">
-                              <span>
-                                {news?.source || "Unknown source"} • {news?.date || "Unknown date"}
-                              </span>
-                              <Button variant="link" className="text-blue-400 p-0 h-auto cursor-pointer">
-                                Read more
-                              </Button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-400">No news available.</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent> */}
-
-              {/* Articles Tab */}
               <TabsContent value="articles" className="mt-0">
                 <Card className="bg-gray-900 border-gray-800">
                   <CardHeader>
                     <CardTitle className="text-white">
-                      {details?.research_article?.title || "No Title"}
+                      {details.research_article?.title || "Research Article"}
                     </CardTitle>
-                    <CardDescription className="text-gray-400">Research and analysis</CardDescription>
+                    <CardDescription className="text-gray-400">Detailed analysis</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="mb-6 p-4 bg-gray-800 rounded-lg">
                       <p className="text-gray-300">
-                        {details?.research_article?.summary || "No summary available."}
+                        {details.research_article?.summary || "No summary available"}
                       </p>
                     </div>
 
                     <div className="space-y-8">
-                      {details?.research_article?.sections?.map?.((section, index) => (
+                      {details.research_article?.sections?.map((section, index) => (
                         <div key={index} className="border-b border-gray-800 pb-6 last:border-0 last:pb-0">
-                          <h3 className="text-xl font-medium text-blue-400 mb-3">{section?.title || "Untitled"}</h3>
-                          <p className="text-gray-300">{section?.content || "No content."}</p>
+                          <h3 className="text-xl font-medium text-blue-400 mb-3">{section.title}</h3>
+                          <p className="text-gray-300">{section.content}</p>
                         </div>
                       ))}
                     </div>
 
-                    {details?.research_article?.recommendation && (
+                    {details.research_article?.recommendation && (
                       <div className="mt-8 p-4 bg-gray-800 rounded-lg">
                         <div className="flex justify-between items-center mb-3">
                           <h3 className="text-xl font-medium text-white">Recommendation</h3>
@@ -325,76 +291,49 @@ export default function WatchlistDetails() {
                 </Card>
               </TabsContent>
 
-              {/* Similar Assets Tab */}
               <TabsContent value="similar" className="mt-0">
                 <Card className="bg-gray-900 border-gray-800">
                   <CardHeader>
                     <CardTitle className="text-white">Similar Assets</CardTitle>
-                    <CardDescription className="text-gray-400">Related investment opportunities</CardDescription>
+                    <CardDescription className="text-gray-400">Alternative investment options</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {details?.similar_assets?.length ? (
-                        details.similar_assets.map((asset, index) => (
-                          <div key={index} className="border-b border-gray-800 pb-6 last:border-0 last:pb-0">
-                            <div className="flex justify-between items-center mb-3">
-                              <div className="flex items-center gap-3">
-                                <div>
-                                  <div className="font-medium text-lg text-white">{asset?.name || "Unnamed"}</div>
-                                  <div className="text-gray-400">{asset?.symbol || "N/A"}</div>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="font-bold text-lg text-white">
-                                  ${asset?.price || "0.00"}
-                                </div>
-                                {/* <div className="flex justify-end mt-3">
-                                  <Button className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add to Watchlist
-                                  </Button>
-                                </div> */}
+                      {details.similar_assets.map((asset, index) => (
+                        <div key={index} className="border-b border-gray-800 pb-6 last:border-0 last:pb-0">
+                          <div className="flex justify-between items-center mb-3">
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <div className="font-medium text-lg text-white">{asset.name}</div>
+                                <div className="text-gray-400">{asset.symbol}</div>
                               </div>
                             </div>
-                            <p className="text-gray-300 mb-3">{asset?.reason || "No reason provided."}</p>
+                            <div className="text-right">
+                              <div className="font-bold text-lg text-white">
+                                ${asset.price.toFixed(2)}
+                              </div>
+                            </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-400">No similar assets available.</p>
-                      )}
+                          <p className="text-gray-300 mb-3">{asset.reason}</p>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
-
-              {/* AI Summary Tab */}
-              {/* <TabsContent value="ai" className="mt-0">
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">AI Investment Summary</CardTitle>
-                    <CardDescription className="text-gray-400">AI-generated insights</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div className="p-4 bg-blue-900/20 rounded-lg border border-blue-800">
-                        <h3 className="text-lg font-medium text-blue-300 mb-2">Key Takeaways</h3>
-                        <ul className="list-disc pl-5 text-gray-300 space-y-2">
-                          {details?.ai_summary?.length ? (
-                            details.ai_summary.map((point, i) => <li key={i}>{point}</li>)
-                          ) : (
-                            <li>No AI summary available.</li>
-                          )}
-                        </ul>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent> */}
             </Tabs>
           </div>
         </>
+      ) : (
+        <div className="container mx-auto px-4 text-center py-24 text-gray-400">
+          Failed to load asset details
+        </div>
       )}
     </div>
-
   )
+
+
 }
+
+
+

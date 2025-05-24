@@ -1,6 +1,6 @@
 export interface Asset {
-    added_on: string; // ISO date string
-    asset_type: "stock" | "crypto"; // or use string if dynamic
+    added_on: string;
+    asset_type: "stock" | "crypto";
     currency: string;
     current_price: number;
     exchange: string;
