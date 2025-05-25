@@ -233,9 +233,9 @@ export default function WatchlistPage() {
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                     </div>
                   ) : searchResults.length > 0 ? (
-                    searchResults.map((asset) => (
+                    searchResults.map((asset,index) => (
                       <div
-                        key={asset.symbol}
+                        key={index}
                         className="flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2"
                       >
                         <div>
