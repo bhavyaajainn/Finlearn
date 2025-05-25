@@ -174,7 +174,7 @@ export default function WatchlistPage() {
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto py-8 px-4">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-blue-500 mb-2">Watchlist</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Watchlist</h1>
           <p className="text-gray-400 text-sm sm:text-base">Track & Analyze Your Assets</p>
         </header>
 
@@ -305,9 +305,9 @@ export default function WatchlistPage() {
                   <TableCell className="text-right capitalize">
                     {asset.asset_type}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
+                  <TableCell>
+
+                  <Button
                         variant="ghost"
                         size="icon"
                         className="text-blue-400 cursor-pointer"
@@ -317,7 +317,12 @@ export default function WatchlistPage() {
                         }}
                       >
                         <Eye className="h-4 w-4" />
+                        View Insights
                       </Button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+
                       <Button
                         variant="ghost"
                         size="icon"
