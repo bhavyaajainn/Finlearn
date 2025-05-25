@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useAppSelector, useAppDispatch } from "@/app/store/hooks"
-import { 
+import {
   fetchNewsDetail,
   clearNewsDetail,
   TrendingNewsItem
@@ -18,8 +18,8 @@ import { Progress } from "@/components/ui/progress"
 import { GlossaryCard } from "./GlossaryCard"
 import MotivationCard from "./MotivationCard"
 import Watchlist from "./Watchlist"
-import { 
-  Award, 
+import {
+  Award,
   Trophy,
   BookOpen,
   BarChart3
@@ -30,18 +30,18 @@ export function Dashboard() {
   const [selectedNewsItem, setSelectedNewsItem] = useState<TrendingNewsItem | null>(null);
   const [newsDetailFetched, setNewsDetailFetched] = useState<string | null>(null);
   const fetchingRef = useRef<Set<string>>(new Set());
-  
+
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { preferences, loading: preferencesLoading } = useAppSelector((state) => state.preferences);
   const { preferencesChecked } = usePreferencesContext();
-  const { 
-    essentials, 
-    streak, 
+  const {
+    essentials,
+    streak,
     trendingNews,
     newsDetail,
-    loading, 
-    error 
+    loading,
+    error
   } = useAppSelector((state) => state.dashboard);
 
   // Check preferences and show dialog if needed
@@ -55,13 +55,13 @@ export function Dashboard() {
 
     if (preferencesChecked && user?.uid && !preferencesLoading) {
       // Check if preferences are missing or incomplete
-      const needsPreferences = !preferences || 
-                              !preferences.expertise_level || 
-                              !preferences.categories || 
-                              preferences.categories.length === 0;
-      
+      const needsPreferences = !preferences ||
+        !preferences.expertise_level ||
+        !preferences.categories ||
+        preferences.categories.length === 0;
+
       console.log('Needs preferences:', needsPreferences);
-      
+
       if (needsPreferences) {
         // Small delay to ensure UI is ready
         setTimeout(() => {
@@ -73,15 +73,15 @@ export function Dashboard() {
 
   const handleNewsClick = useCallback(async (newsItem: TrendingNewsItem) => {
     if (!user?.uid || newsDetailFetched === newsItem.id || fetchingRef.current.has(`news-${newsItem.id}`)) return;
-    
+
     setSelectedNewsItem(newsItem);
     setNewsDetailFetched(newsItem.id);
-    
+
     fetchingRef.current.add(`news-${newsItem.id}`);
-    dispatch(fetchNewsDetail({ 
-      newsId: newsItem.id, 
+    dispatch(fetchNewsDetail({
+      newsId: newsItem.id,
       userId: user.uid,
-      refresh: false 
+      refresh: false
     })).finally(() => {
       fetchingRef.current.delete(`news-${newsItem.id}`);
     });
@@ -116,21 +116,21 @@ export function Dashboard() {
         open={showPreferencesDialog}
         onOpenChange={setShowPreferencesDialog}
       />
-    
+
       <div className="w-full min-h-screen overflow-x-hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 max-w-7xl">
           <motion.div variants={container} initial="hidden" animate="show" className="space-y-4 sm:space-y-6">
             {!selectedNewsItem ? (
               <>
                 <motion.div variants={item}>
-                  <TrendingNewsSection 
+                  <TrendingNewsSection
                     newsItems={trendingNews}
                     loading={loading.trendingNews}
                     error={error.trendingNews}
                     onNewsClick={handleNewsClick}
                   />
                 </motion.div>
-                
+
                 <motion.div variants={item}>
                   <Card className="bg-black border-blue-900/50 w-full">
                     <CardHeader className="pb-2 px-4 sm:px-6">
@@ -161,11 +161,10 @@ export function Dashboard() {
                             {Array.from({ length: 7 }).map((_, i) => {
                               const daysToHighlight = Math.min(streak?.current_streak || 0, 7);
                               return (
-                                <div 
-                                  key={i} 
-                                  className={`h-1.5 flex-1 rounded-full ${
-                                    i < daysToHighlight ? "bg-blue-500" : "bg-blue-900"
-                                  }`} 
+                                <div
+                                  key={i}
+                                  className={`h-1.5 flex-1 rounded-full ${i < daysToHighlight ? "bg-blue-500" : "bg-blue-900"
+                                    }`}
                                 />
                               );
                             })}
@@ -185,10 +184,10 @@ export function Dashboard() {
                             <span className="text-sm text-gray-400">days</span>
                           </div>
                           <div className="mt-2 text-xs text-gray-400">
-                            {loading.streak ? "Loading..." : 
-                              streak && streak.longest_streak > streak.current_streak ? 
-                              "Keep going to beat your record!" : 
-                              "You're at your best streak!"
+                            {loading.streak ? "Loading..." :
+                              streak && streak.longest_streak > streak.current_streak ?
+                                "Keep going to beat your record!" :
+                                "You're at your best streak!"
                             }
                           </div>
                         </div>
@@ -213,18 +212,18 @@ export function Dashboard() {
                     </CardContent>
                   </Card>
                 </motion.div>
-                
+
                 <motion.div variants={item}>
-                  <MotivationCard 
-                    quote={essentials?.quote} 
+                  <MotivationCard
+                    quote={essentials?.quote}
                     loading={loading.essentials}
                     error={error.essentials}
                   />
                 </motion.div>
-                
+
                 <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-2">
                   <motion.div variants={item} className="min-w-0">
-                    <GlossaryCard 
+                    <GlossaryCard
                       glossaryTerms={essentials?.glossary_term || []}
                       loading={loading.essentials}
                       error={error.essentials}
@@ -237,7 +236,7 @@ export function Dashboard() {
               </>
             ) : (
               <motion.div variants={item}>
-                <NewsDetailView 
+                <NewsDetailView
                   newsDetail={newsDetail}
                   selectedNewsItem={selectedNewsItem}
                   loading={loading.newsDetail}

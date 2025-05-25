@@ -184,3 +184,20 @@ export const updatePreferences = async (userid: string, expertiseLevel: string, 
         toast(error.message || "Something went wrong. Please try again.");
     }
 };
+
+export const fetchWatchlist = async (API_BASE_URL: string, userId: string) => {
+    if (userId) return;
+
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/watchlist?user_id=${userId}&include_similar=false`
+        );
+        const data = await response.json();
+
+        return data.watchlist;
+
+    } catch (error) {
+        console.error("Error fetching watchlist:", error);
+        toast.error("Failed to fetch watchlist");
+    }
+};
