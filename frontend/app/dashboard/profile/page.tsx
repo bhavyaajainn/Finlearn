@@ -70,6 +70,7 @@ const ProfilePage = () => {
     }
   }, [user]);
 
+<<<<<<< HEAD
   useEffect(() => {
     const today = new Date();
     const data: Record<string, number> = {};
@@ -241,6 +242,8 @@ const ProfilePage = () => {
       </div>
     );
   };
+=======
+>>>>>>> ef9c7336138c75af46a3463717267a64342c9013
 
   return (
     <div className="min-h-screen bg-black text-white">
