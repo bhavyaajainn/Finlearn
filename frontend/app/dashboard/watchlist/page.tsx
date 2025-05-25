@@ -67,6 +67,8 @@ export default function WatchlistPage() {
     fetchUserWatchlist();
   }, [user?.uid]);
 
+  console.log(user?.uid)
+
   useEffect(() => {
     if (isDialogOpen && debouncedSearchTerm.trim()) {
       setIsSearching(true);
@@ -288,7 +290,7 @@ export default function WatchlistPage() {
                     <div className="text-sm text-gray-400">{asset.symbol}</div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div>{isNaN(asset.current_price) ? '--' : formatCurrency(asset.current_price)}</div>
+                    <div>${isNaN(asset.current_price) ? '--' : asset.current_price}</div>
                     <div className={cn(
                       "flex items-center justify-end",
                       asset.price_change_percent >= 0 ? "text-green-500" : "text-red-500"

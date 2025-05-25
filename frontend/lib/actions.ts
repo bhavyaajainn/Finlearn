@@ -57,6 +57,7 @@ export async function addToWatchlist(
         console.error("Validation Error: Missing required parameters.");
         return [];
     }
+    console.log(userid)
 
     try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/add?user_id=${userid}`, {
