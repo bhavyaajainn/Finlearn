@@ -1,11 +1,6 @@
 from typing import List, Dict, Optional
 import json
 
-def get_day_summary_prompt(topics: List[Dict[str, str]]) -> str:
-    """Generate a prompt to summarize daily learning topics."""
-    joined = ", ".join(t["topic"] for t in topics)
-    return f"Summarize what a user learned today based on reading: {joined}. Then give 3 quiz questions on it."
-
 
 def get_beginner_article_prompt(category: str, topic: Optional[str] = None) -> str:
     """Get prompt for generating beginner-level financial articles.
@@ -148,8 +143,6 @@ def get_advanced_article_prompt(category: str, topic: Optional[str] = None) -> s
       "topic": "{topic if topic else category}"
     }}
     """
-
-
 
 
 def get_topic_article_prompt(category: str, topic: str, expertise_level: str) -> str:

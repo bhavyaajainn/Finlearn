@@ -15,7 +15,6 @@ from .watchlist import (
 
 # Import and expose reading log functionality
 from .reading_log import (
-    get_user_day_log,
     log_topic_read
 )
 
@@ -34,7 +33,6 @@ __all__ = [
     "get_user_watchlists",
     "add_to_watchlist",
     "remove_from_watchlist",
-    "get_user_day_log",
     "log_topic_read",
     "get_user_categories",
     "get_user_selected_categories",
