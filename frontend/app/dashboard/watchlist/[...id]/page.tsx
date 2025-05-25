@@ -405,84 +405,94 @@ export default function WatchlistDetails() {
                   <Card className="bg-gray-900 border-gray-800">
                     <CardHeader>
                       <CardTitle className="text-white">
-                        Alternative Investments
+                        Alternative Investments and Recent News
                       </CardTitle>
                       <CardDescription className="text-gray-400">
-                        {details.similar_assets.length} similar assets found
+                        {details.similar_assets.length} similar assets and {details.recent_news.length} Recent News Found
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {details.recent_news?.length > 0 && (
-                        <div className="mt-6 space-y-4">
-                          <h3 className="text-blue-400 text-lg font-semibold">Recent News</h3>
-                          {details.recent_news.map((newsItem, idx) => (
-                            <div key={idx} className="p-4 bg-gray-800 rounded-lg">
-                              <h4 className="text-white font-medium text-md mb-1">
-                                {newsItem.headline}
-                              </h4>
-                              <p className="text-gray-300 text-sm mb-2">
-                                {newsItem.summary}
-                              </p>
-                              <div className="text-gray-400 text-xs flex justify-between items-center">
-                                <span>{newsItem.source} — {newsItem.date}</span>
-                                <a
-                                  href={newsItem.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 hover:underline"
-                                >
-                                  Read more
-                                </a>
-                              </div>
+                      {relatedLoaded ? (
+                        <>
+                          {details.recent_news?.length > 0 && (
+                            <div className="space-y-4">
+                              <h3 className="text-blue-400 text-lg font-semibold">Recent News</h3>
+                              {details.recent_news.map((newsItem, idx) => (
+                                <div key={idx} className="p-4 bg-gray-800 rounded-lg">
+                                  <h4 className="text-white font-medium text-md mb-1">
+                                    {newsItem.headline}
+                                  </h4>
+                                  <p className="text-gray-300 text-sm mb-2">
+                                    {newsItem.summary}
+                                  </p>
+                                  <div className="text-gray-400 text-xs flex justify-between items-center">
+                                    <span>{newsItem.source} — {newsItem.date}</span>
+                                    <a
+                                      href={newsItem.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-400 hover:underline"
+                                    >
+                                      Read more
+                                    </a>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
+
+                          <div className="space-y-6 mt-10">
+                            <h3 className="text-blue-400 text-lg font-semibold">Similar Assets</h3>
+                            {details.similar_assets.length > 0 ? (
+                              details.similar_assets.map((asset, index) => (
+                                <div key={index} className="border-b border-gray-800 pb-6">
+                                  <div className="flex justify-between items-center mb-3">
+                                    <div className="flex items-center gap-3">
+                                      <div>
+                                        <div className="font-medium text-lg text-white">
+                                          {asset.name}
+                                        </div>
+                                        <div className="text-gray-400">
+                                          {asset.symbol}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="font-bold text-lg text-green-400">
+                                        ${asset.current_price}
+                                      </div>
+                                      <span className="mt-1 text-sm text-white">
+                                        {asset.similarity_reason}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {asset.comparison_points?.length > 0 && (
+                                    <div className="mt-3 space-y-2">
+                                      {asset.comparison_points.map((point: any, idx: number) => (
+                                        <div key={idx} className="bg-gray-800 p-3 rounded-md text-sm text-gray-300">
+                                          <div className="font-semibold text-white">{point.metric}</div>
+                                          <div>{point.description}</div>
+                                          <div className="text-green-400">{point.comparison}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center text-white">
+                                No similar assets found.
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-4">
+                          <Skeleton className="h-6 w-1/4 bg-gray-800" />
+                          <Skeleton className="h-6 w-1/4 bg-gray-800" />
+                          <Skeleton className="h-6 w-1/4 bg-gray-800" />
                         </div>
                       )}
-
-                      <div className="space-y-6 mt-10">
-                        <h3 className="text-blue-400 text-lg font-semibold">Similar Assets</h3>
-                        {details.similar_assets.length > 0 ? (
-                          details.similar_assets.map((asset, index) => (
-                            <div key={index} className="border-b border-gray-800 pb-6">
-                              <div className="flex justify-between items-center mb-3">
-                                <div className="flex items-center gap-3">
-                                  <div>
-                                    <div className="font-medium text-lg text-white">
-                                      {asset.name}
-                                    </div>
-                                    <div className="text-gray-400">
-                                      {asset.symbol}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="font-bold text-lg text-green-400">
-                                    ${asset.current_price}
-                                  </div>
-                                  <span className="mt-1 text-sm text-white">
-                                    {asset.similarity_reason}
-                                  </span>
-                                </div>
-                              </div>
-                              {asset.comparison_points?.length > 0 && (
-                                <div className="mt-3 space-y-2">
-                                  {asset.comparison_points.map((point: any, idx: number) => (
-                                    <div key={idx} className="bg-gray-800 p-3 rounded-md text-sm text-gray-300">
-                                      <div className="font-semibold text-white">{point.metric}</div>
-                                      <div>{point.description}</div>
-                                      <div className="text-green-400">{point.comparison}</div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center text-white">
-                            No similar assets found.
-                          </div>
-                        )}
-                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>

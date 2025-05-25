@@ -300,7 +300,7 @@ export default function WatchlistPage() {
                       ) : (
                         <TrendingDown className="h-4 w-4 mr-1" />
                       )}
-                      {isNaN(Math.abs(asset.price_change_percent).toFixed(2)) ? "--" : Math.abs(asset.price_change_percent).toFixed(2)}%
+                      {isNaN(asset.price_change_percent) ? "--" : Math.abs(asset.price_change_percent)}%
                     </div>
                   </TableCell>
                   <TableCell className="text-right capitalize">
