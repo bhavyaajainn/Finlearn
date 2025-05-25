@@ -206,3 +206,21 @@ export const fetchWatchlist = async (API_BASE_URL: string, userId: string) => {
     }
 };
 
+export const fetchstats = async (API_BASE_URL: string, userId: string , period:string ,start_date:string,end_date:string) => {
+
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/summary?user_id=${userId}&period=${period}&start_date=${start_date}&end_date=${end_date}&refresh=false`
+        );
+        const data = await response.json();
+
+        console.log("fetch watchlist",data);
+
+        return data;
+
+    } catch (error) {
+        console.error("Error fetching watchlist:", error);
+        toast.error("Failed to fetch watchlist");
+    }
+};
+

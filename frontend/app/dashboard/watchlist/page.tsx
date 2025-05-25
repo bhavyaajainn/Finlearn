@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/app/store/hooks";
 import { toast } from "sonner";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { searchAssets, addToWatchlist, fetchWatchlist } from "@/lib/actions";
 import { useTransition } from "react";
 import {
@@ -137,7 +137,7 @@ export default function WatchlistPage() {
     } catch (error) {
       setWatchlist(prev => prev.filter(a => a.symbol !== asset.symbol));
       console.error("Addition error:", error);
-      toast.error("Failed to add asset");
+      toast("Failed to add asset");
     } finally {
       setAddingAssetId(null);
     }
@@ -155,10 +155,9 @@ export default function WatchlistPage() {
       setWatchlist(prev =>
         prev.filter(asset => asset.symbol !== symbol || asset.asset_type !== assetType)
       );
-      toast.success(`${symbol} removed successfully`);
     } catch (error) {
       console.error("Removal error:", error);
-      toast.error("Failed to remove asset");
+      toast("Failed to remove asset");
     }
   };
 
