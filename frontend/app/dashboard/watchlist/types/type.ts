@@ -34,3 +34,72 @@ export interface WatchlistAsset {
     current_price: number;
     price_change_percent: number;
 }
+
+export interface AssetInfo {
+    name: string
+    current_price: number
+    price_change_percent: number
+    symbol: string
+    asset_type: string
+}
+
+export interface TooltipWord {
+    word: string
+    tooltip: string
+}
+
+export interface Section {
+    title: string
+    content: string
+}
+
+export interface Recommendation {
+    time_horizon: string
+    risk_level: string
+    reasoning: string
+    action: string
+}
+
+export interface NewsImpact {
+    reason: string
+    direction: 'positive' | 'negative' | 'neutral'
+}
+
+export interface NewsItem {
+    author: string | null
+    citation: string
+    date: string
+    headline: string
+    impact: NewsImpact
+    source: string
+    summary: string
+    url: string
+}
+
+export interface ResearchAssetData {
+    symbol: string
+    name: string
+    asset_type: string
+    current_price: number
+    price_change_percent: number
+    expertise_level: string
+    loading_status: {
+        asset_loaded: boolean
+        analysis_loaded: boolean
+        related_loaded: boolean
+    }
+    asset_info: AssetInfo
+    from_cache: boolean
+    recent_news: NewsItem[]
+    similar_assets: any[] 
+    title: string
+    summary: string
+    sections: Section[]
+    references: string[]
+    recommendation: Recommendation
+    generated_at: string
+    format: string
+    conclusion: string
+    tooltip_words: TooltipWord[]
+    watchlist_relevance: string
+}

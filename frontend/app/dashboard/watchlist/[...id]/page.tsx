@@ -24,127 +24,121 @@ import {
   Info,
   Layers,
 } from "lucide-react"
-
-export interface AssetInfo {
-  name: string
-  current_price: number
-  price_change_percent: number
-  symbol: string
-  asset_type: string
-}
-
-export interface TooltipWord {
-  word: string
-  tooltip: string
-}
-
-export interface Section {
-  title: string
-  content: string
-}
-
-export interface Recommendation {
-  time_horizon: string
-  risk_level: string
-  reasoning: string
-  action: string
-}
-
-export interface NewsImpact {
-  reason: string
-  direction: 'positive' | 'negative' | 'neutral'
-}
-
-export interface NewsItem {
-  author: string | null
-  citation: string
-  date: string
-  headline: string
-  impact: NewsImpact
-  source: string
-  summary: string
-  url: string
-}
-
-export interface AssetData {
-  symbol: string
-  name: string
-  asset_type: string
-  current_price: number
-  price_change_percent: number
-  expertise_level: string
-  loading_status: {
-    asset_loaded: boolean
-    analysis_loaded: boolean
-    related_loaded: boolean
-  }
-  asset_info: AssetInfo
-  from_cache: boolean
-  recent_news: NewsItem[]
-  similar_assets: any[] // Replace `any` with a specific `SimilarAsset` type if available
-  title: string
-  summary: string
-  sections: Section[]
-  references: string[]
-  recommendation: Recommendation
-  generated_at: string
-  format: string
-  conclusion: string
-  tooltip_words: TooltipWord[]
-  watchlist_relevance: string
-}
-
+import { ResearchAssetData } from "../types/type"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function WatchlistDetails() {
-  const [details, setDetails] = useState<AssetData | null>(null)
+  const [details, setDetails] = useState<ResearchAssetData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [relatedLoaded, setRelatedLoaded] = useState(false)
   const { user } = useAppSelector((state) => state.auth)
   const params = useParams()
+  const [selectedTerm, setSelectedTerm] = useState<{ word: string; tooltip: string } | null>(null);
 
   const renderTooltipContent = (content: string) => {
     if (!details?.tooltip_words?.length) return content;
 
-    return content.split(' ').map((word, index) => {
-      const tooltip = details.tooltip_words.find(t => t.word === word);
-      return tooltip ? (
-        <Tooltip key={index}>
-          <TooltipTrigger className="border-b border-dashed border-blue-400">
-            {word}{' '}
-          </TooltipTrigger>
-          <TooltipContent className="bg-gray-800 border-gray-700 text-white max-w-[300px]">
-            <p>{tooltip.tooltip}</p>
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        <span key={index}>{word} </span>
-      );
-    });
+    const stopWords = new Set([
+      'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at',
+      'of', 'to', 'for', 'with', 'as', 'by', 'it', 'is', 'are',
+      'was', 'were', 'be', 'been', 'being'
+    ]);
+
+    const tooltipMap = new Map(
+      details.tooltip_words.map(t => [
+        normalizeToken(t.word),
+        t
+      ])
+    );
+
+    const tokens = content.split(/(\s+|\p{P}+|[\n])/gu);
+
+    return (
+      <span className="whitespace-pre-wrap">
+        {tokens.map((token, index) => {
+          const cleanToken = normalizeToken(token);
+
+          if (!cleanToken || stopWords.has(cleanToken)) {
+            return <span key={index}>{token}</span>;
+          }
+
+          const tooltip = tooltipMap.get(cleanToken);
+          if (!tooltip) return <span key={index}>{token}</span>;
+
+          return (
+            <button
+              key={`${index}-${cleanToken}`}
+              onClick={() => setSelectedTerm(tooltip)}
+              className="border-b border-dashed border-blue-400 hover:border-blue-300 cursor-pointer bg-blue-400/10 px-1 mx-0.5 rounded-sm"
+            >
+              {token}
+            </button>
+          );
+        })}
+      </span>
+    );
+  };
+
+  // Normalize and stem token to base form
+  const normalizeToken = (token: string): string => {
+    return token
+      .replace(/^[\p{P}\s]+|[\p{P}\s]+$/gu, '') // remove surrounding punctuation
+      .toLowerCase()
+      .replace(/(ing|ed|s)$/, ''); // crude stemming
+  };
+
+
+  const fetchRelatedData = async () => {
+    if (!params.id || params.id.length < 2 || !user?.uid || relatedLoaded) return;
+
+    try {
+      const [symbol, assetType] = params.id as string[];
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+      const userId = user.uid;
+
+      const relatedUrl = `${baseUrl}/watchlist/related/${symbol}?user_id=${userId}&asset_type=${assetType}&include_comparison=true&refresh=false`;
+
+      const relatedRes = await fetch(relatedUrl).then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      });
+
+      setDetails(prev => ({
+        ...prev!,
+        recent_news: relatedRes.recent_news || [],
+        similar_assets: relatedRes.similar_assets || [],
+      }));
+
+      setRelatedLoaded(true);
+    } catch (error) {
+      console.error("Fetch related error:", error);
+      toast.error("Failed to load related assets");
+    }
   };
 
   useEffect(() => {
-    const fetchAllData = async () => {
-      if (!params.id || params.id.length < 2 || !user?.uid) return
+    const fetchInitialData = async () => {
+      if (!params.id || params.id.length < 2 || !user?.uid) return;
 
-      setIsLoading(true)
+      setIsLoading(true);
       try {
         const [symbol, assetType] = params.id as string[];
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-        const userId = user.uid
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        const userId = user.uid;
 
-        const urls = [
-          `${baseUrl}/watchlist/asset/${symbol}?user_id=${userId}&asset_type=${assetType}`,
-          `${baseUrl}/watchlist/analysis/${symbol}?user_id=${userId}&asset_type=${assetType}&refresh=false`,
-          `${baseUrl}/watchlist/related/${symbol}?user_id=${userId}&asset_type=${assetType}&include_comparison=true&refresh=false`
-        ]
+        const [assetRes, analysisRes] = await Promise.all([
+          fetch(`${baseUrl}/watchlist/asset/${symbol}?user_id=${userId}&asset_type=${assetType}`),
+          fetch(`${baseUrl}/watchlist/analysis/${symbol}?user_id=${userId}&asset_type=${assetType}&refresh=false`)
+        ].map(url => url.then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })));
 
-        const [assetRes, analysisRes, relatedRes] = await Promise.all(
-          urls.map(url => fetch(url).then(res => {
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
-            return res.json()
-          }))
-        );
-
-        // Data mapping with fallbacks
         setDetails({
           symbol: assetRes.symbol || 'N/A',
           name: assetRes.name || 'Unnamed Asset',
@@ -165,8 +159,8 @@ export default function WatchlistDetails() {
             asset_type: ''
           },
           from_cache: analysisRes.from_cache || false,
-          recent_news: relatedRes.recent_news || [],
-          similar_assets: relatedRes.similar_assets || [],
+          recent_news: [],
+          similar_assets: [],
           title: analysisRes.research_article.title || 'Research Report',
           summary: analysisRes.research_article.summary || 'No summary available',
           sections: analysisRes.research_article.sections?.map((s: any) => ({
@@ -188,14 +182,14 @@ export default function WatchlistDetails() {
         });
 
       } catch (error) {
-        console.error("Fetch error:", error)
-        toast.error("Failed to load asset details")
+        console.error("Fetch error:", error);
+        toast.error("Failed to load asset details");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchAllData()
+    fetchInitialData();
   }, [user?.uid, params]);
 
   if (isLoading) {
@@ -204,7 +198,6 @@ export default function WatchlistDetails() {
         <div className="container mx-auto py-4 px-4">
           <Skeleton className="h-6 w-[200px] bg-gray-800" />
         </div>
-
         <div className="container mx-auto px-4 space-y-8">
           <div className="bg-gray-900 rounded-lg p-6 space-y-4">
             <Skeleton className="h-8 w-1/4 bg-gray-800" />
@@ -214,14 +207,12 @@ export default function WatchlistDetails() {
               ))}
             </div>
           </div>
-
           <div className="space-y-6">
             <div className="flex gap-4">
               {[...Array(2)].map((_, i) => (
                 <Skeleton key={i} className="h-10 w-32 bg-gray-800" />
               ))}
             </div>
-
             <div className="bg-gray-900 rounded-lg p-6 space-y-4">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="space-y-2">
@@ -247,17 +238,28 @@ export default function WatchlistDetails() {
           </Button>
         </Link>
       </div>
-
+      <Dialog open={!!selectedTerm} onOpenChange={() => setSelectedTerm(null)}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-[90vw] sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-blue-400">{selectedTerm?.word}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-100 text-lg">{selectedTerm?.tooltip}</p>
+            <div className="text-sm text-gray-400 mt-4">
+              Click outside to close this explanation
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       {details ? (
         <>
-          {/* Header Section */}
           <div className="container mx-auto px-4">
             <div className="bg-gray-900 rounded-lg p-6 mb-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                 <div className="flex items-center gap-4">
                   <div>
                     <h1 className="text-2xl font-bold">
-                      {details.name || 'Unnamed Asset'}
+                      {details.name}
                       <Tooltip>
                         <TooltipTrigger className="ml-2">
                           <Info className="h-4 w-4 text-blue-400" />
@@ -269,13 +271,13 @@ export default function WatchlistDetails() {
                       </Tooltip>
                     </h1>
                     <div className="text-gray-400">
-                      {details.symbol || 'N/A'} • {details.asset_type || 'Unknown Type'}
+                      {details.symbol} • {details.asset_type}
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
                   <div className="text-3xl font-bold">
-                    ${details.current_price?.toFixed(2) || '0.00'}
+                    ${details.current_price?.toFixed(2)}
                   </div>
                   <div className={`flex items-center ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}>
                     {details.price_change_percent < 0 ? (
@@ -283,12 +285,10 @@ export default function WatchlistDetails() {
                     ) : (
                       <ArrowUp className="h-4 w-4 mr-1" />
                     )}
-                    <span>{(Math.abs(details.price_change_percent)?.toFixed(2) || '0.00')}%</span>
+                    <span>{(Math.abs(details.price_change_percent)?.toFixed(2))}%</span>
                   </div>
                 </div>
               </div>
-
-              {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 {[
                   { label: 'Symbol', value: details.symbol },
@@ -297,9 +297,7 @@ export default function WatchlistDetails() {
                 ].map((stat, index) => (
                   <div key={index} className="bg-gray-800 p-3 rounded-md">
                     <div className="text-gray-400 text-sm">{stat.label}</div>
-                    <div className="text-xl font-bold">
-                      {stat.value || 'N/A'}
-                    </div>
+                    <div className="text-xl font-bold">{stat.value}</div>
                   </div>
                 ))}
                 <div className="bg-gray-800 p-3 rounded-md">
@@ -312,22 +310,27 @@ export default function WatchlistDetails() {
             </div>
           </div>
 
-          {/* Main Content Tabs */}
           <div className="container mx-auto px-4">
             <TooltipProvider>
-              <Tabs defaultValue="articles">
+              <Tabs
+                defaultValue="articles"
+                onValueChange={(value) => {
+                  if (value === 'similar' && !relatedLoaded) {
+                    fetchRelatedData();
+                  }
+                }}
+              >
                 <TabsList className="w-full bg-gray-900">
-                  <TabsTrigger value="articles" className="text-black" >
+                  <TabsTrigger value="articles" className="!text-white data-[state=active]:!text-black">
                     <FileText className="h-4 w-4 mr-2" />
                     Research Articles
                   </TabsTrigger>
-                  <TabsTrigger value="similar" className="text-black">
+                  <TabsTrigger value="similar" className="!text-white data-[state=active]:!text-black">
                     <Layers className="h-4 w-4 mr-2" />
-                    Similar Assets
+                    Similar Assets and News
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Research Tab */}
                 <TabsContent value="articles">
                   <Card className="bg-gray-900 border-gray-800">
                     <CardHeader>
@@ -346,33 +349,6 @@ export default function WatchlistDetails() {
                         </p>
                       </div>
 
-                      {/* News Section */}
-                      {details.recent_news?.length > 0 && (
-                        <div className="mt-6 space-y-4">
-                          <h3 className="text-blue-400 text-lg font-semibold">Recent News</h3>
-                          {details.recent_news.map((newsItem, idx) => (
-                            <div key={idx} className="p-4 bg-gray-800 rounded-lg">
-                              <h4 className="text-white font-medium text-md mb-1">
-                                {newsItem.headline}
-                              </h4>
-                              <p className="text-gray-300 text-sm mb-2">
-                                {newsItem.summary}
-                              </p>
-                              <div className="text-gray-400 text-xs flex justify-between items-center">
-                                <span>{newsItem.source} — {newsItem.date}</span>
-                                <a
-                                  href={newsItem.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 hover:underline"
-                                >
-                                  Read more
-                                </a>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
 
 
                       {details.sections?.map((section, index) => (
@@ -394,7 +370,6 @@ export default function WatchlistDetails() {
                         </div>
                       ))}
 
-                      {/* Recommendation Section */}
                       <div className="mt-8 p-4 bg-gray-800 rounded-lg">
                         <div className="flex justify-between items-center mb-3">
                           <h3 className="text-xl font-medium text-white">
@@ -426,7 +401,6 @@ export default function WatchlistDetails() {
                   </Card>
                 </TabsContent>
 
-                {/* Similar Assets Tab */}
                 <TabsContent value="similar">
                   <Card className="bg-gray-900 border-gray-800">
                     <CardHeader>
@@ -438,7 +412,35 @@ export default function WatchlistDetails() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-6">
+                      {details.recent_news?.length > 0 && (
+                        <div className="mt-6 space-y-4">
+                          <h3 className="text-blue-400 text-lg font-semibold">Recent News</h3>
+                          {details.recent_news.map((newsItem, idx) => (
+                            <div key={idx} className="p-4 bg-gray-800 rounded-lg">
+                              <h4 className="text-white font-medium text-md mb-1">
+                                {newsItem.headline}
+                              </h4>
+                              <p className="text-gray-300 text-sm mb-2">
+                                {newsItem.summary}
+                              </p>
+                              <div className="text-gray-400 text-xs flex justify-between items-center">
+                                <span>{newsItem.source} — {newsItem.date}</span>
+                                <a
+                                  href={newsItem.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:underline"
+                                >
+                                  Read more
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="space-y-6 mt-10">
+                        <h3 className="text-blue-400 text-lg font-semibold">Similar Assets</h3>
                         {details.similar_assets.length > 0 ? (
                           details.similar_assets.map((asset, index) => (
                             <div key={index} className="border-b border-gray-800 pb-6">
@@ -446,27 +448,25 @@ export default function WatchlistDetails() {
                                 <div className="flex items-center gap-3">
                                   <div>
                                     <div className="font-medium text-lg text-white">
-                                      {asset.name || 'Unknown Asset'}
+                                      {asset.name}
                                     </div>
                                     <div className="text-gray-400">
-                                      {asset.symbol || 'N/A'}
+                                      {asset.symbol}
                                     </div>
                                   </div>
                                 </div>
                                 <div className="text-right">
                                   <div className="font-bold text-lg text-green-400">
-                                    ${asset.current_price || '0.00'}
+                                    ${asset.current_price}
                                   </div>
-                                  <Badge className="mt-1 text-sm">
-                                    {asset.similarity_reason || 'Similar asset'}
-                                  </Badge>
+                                  <span className="mt-1 text-sm text-white">
+                                    {asset.similarity_reason}
+                                  </span>
                                 </div>
                               </div>
-
-                              {/* Render comparison points if available */}
                               {asset.comparison_points?.length > 0 && (
                                 <div className="mt-3 space-y-2">
-                                  {asset.comparison_points.map((point, idx) => (
+                                  {asset.comparison_points.map((point: any, idx: number) => (
                                     <div key={idx} className="bg-gray-800 p-3 rounded-md text-sm text-gray-300">
                                       <div className="font-semibold text-white">{point.metric}</div>
                                       <div>{point.description}</div>
@@ -476,7 +476,6 @@ export default function WatchlistDetails() {
                                 </div>
                               )}
                             </div>
-
                           ))
                         ) : (
                           <div className="text-center text-white">
@@ -498,6 +497,4 @@ export default function WatchlistDetails() {
       )}
     </div>
   )
-
-
-};
+}
