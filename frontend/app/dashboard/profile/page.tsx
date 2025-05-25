@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { BookOpen, LineChart, User, TrendingUp } from "lucide-react"
 import { useAppSelector } from "@/app/store/hooks"
 import { MultiSelect } from "@/components/multi-select"
@@ -18,6 +18,9 @@ import {
   LineChart as RechartsLineChart,
   Line,
 } from "recharts"
+import { toast } from "sonner"
+import { fetchPreferences, fetchstreak, updatePreferences } from "@/lib/actions"
+import { UserPreferences } from "./types/profiletypes"
 
 // Enhanced dummy data for yearly heatmap
 const generateYearlyHeatmapData = (year: number) => {
@@ -77,25 +80,60 @@ interface Streak {
   total_articles: number
 }
 
-interface UserPreferences {
-  categories: string[]
-  expertiseLevel: string
-}
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState<string>("topics")
-  const [userdata, setUserdata] = useState<UserPreferences>({
-    categories: ["forex", "technical analysis"],
-    expertiseLevel: "intermediate",
-  })
+  const [userdata, setUserdata] = useState<UserPreferences>();
   const [expertiseLevel, setExpertiseLevel] = useState<string>("beginner")
-  const [streak] = useState<Streak>({
-    current_streak: 5,
-    longest_streak: 10,
-    total_articles: 25,
-  })
-  const [topics, setTopics] = useState<string[]>(["forex", "technical analysis"])
   const { user } = useAppSelector((state) => state.auth)
+  const [streak, setStreak] = useState<Streak>();
+  const [topics, setTopics] = useState<string[]>([]);
+
+  const handleExpertiseSelect = async (level: string) => {
+    setExpertiseLevel(level);
+    await updateUserPreferences();
+    setActiveTab("topics");
+  }
+
+  const fetchUserPreferences = async () => {
+    if (!user) return toast("No user found.");
+    try {
+      const data = await fetchPreferences(user.uid);
+      setUserdata(data);
+    } catch (err: any) {
+      toast.error(err.message || "Error fetching preferences.");
+    }
+  };
+
+  const fetchuserstreak = async () => {
+    if (!user) return toast.error("No user found.");
+    try {
+      const streakData = await fetchstreak(user.uid);
+      setStreak(streakData);
+    } catch (err: any) {
+      toast.error(err.message || "Error fetching streak.");
+    }
+  };
+
+  const updateUserPreferences = async () => {
+    if (!user) return toast.error("No user found.");
+    if (topics.length === 0) return toast.error("No topics added.");
+
+    try {
+      const updated = await updatePreferences(user.uid, expertiseLevel, topics, userdata!);
+      setUserdata(updated);
+      toast.success("Preferences updated!");
+    } catch (err: any) {
+      toast.error(err.message || "Error updating preferences.");
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchUserPreferences();
+      fetchuserstreak();
+    }
+  }, [user]);
 
   // Enhanced GitHub-style Heatmap Component
   const Heatmap = () => {
@@ -303,25 +341,125 @@ const ProfilePage = () => {
     </Card>
   )
 
+  // Articles Section Component
+  const ArticlesSection = () => {
+    // Sample articles data based on your user summary example
+    const articlesData = [
+      {
+        title: "Navigating US Dollar Strength Amid Geopolitical Uncertainty",
+        category: "forex",
+        date: "2025-05-25",
+        readTime: "5 min read",
+        summary: "Analysis of USD performance during global uncertainty periods",
+      },
+      {
+        title: "Technical Analysis: Support and Resistance Levels",
+        category: "technical analysis",
+        date: "2025-05-24",
+        readTime: "7 min read",
+        summary: "Understanding key technical indicators for forex trading",
+      },
+      {
+        title: "Central Bank Policies and Currency Impact",
+        category: "forex",
+        date: "2025-05-23",
+        readTime: "6 min read",
+        summary: "How monetary policy decisions affect currency valuations",
+      },
+      {
+        title: "Risk Management in Forex Trading",
+        category: "risk management",
+        date: "2025-05-22",
+        readTime: "8 min read",
+        summary: "Essential strategies for managing trading risks",
+      },
+      {
+        title: "Market Sentiment Analysis Techniques",
+        category: "market analysis",
+        date: "2025-05-21",
+        readTime: "4 min read",
+        summary: "Tools and methods for gauging market sentiment",
+      },
+    ]
+
+    const getCategoryColor = (category: string) => {
+      const colors: { [key: string]: string } = {
+        forex: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+        "technical analysis": "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+        "risk management": "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+        "market analysis": "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+      }
+      return colors[category] || "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
+    }
+
+    const formatDate = (dateStr: string) => {
+      const date = new Date(dateStr)
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    }
+
+    return (
+      <Card className="bg-zinc-900 border-zinc-800">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-blue-400" />
+            <CardTitle className="text-white">Recent Articles Read</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {articlesData.map((article, index) => (
+              <div
+                key={index}
+                className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700 hover:border-zinc-600 transition-all duration-200"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <h4 className="text-white font-medium text-lg mb-2 leading-tight">{article.title}</h4>
+                    <p className="text-gray-400 text-sm mb-3 leading-relaxed">{article.summary}</p>
+                    <div className="flex flex-wrap items-center gap-3 text-sm">
+                      <Badge className={`${getCategoryColor(article.category)} border-0 text-xs`}>
+                        {article.category}
+                      </Badge>
+                      <span className="text-gray-500">{article.readTime}</span>
+                      <span className="text-gray-500">{formatDate(article.date)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Show more button */}
+          <div className="mt-6 text-center">
+            <Button variant="outline" className="border-zinc-700 text-white hover:bg-zinc-800">
+              View All Articles ({articlesData.length + 15} total)
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   // User Summary Section
-  const UserSummary = () => (
+  const UserSummary = (streak : Streak) => (
     <div className="space-y-6">
-      <h3 className="text-white text-xl">
-        Your Learning Stats
-      </h3>
       <Card className="bg-zinc-900 border-zinc-800">
         <CardContent className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4">
-              <div className="text-2xl font-bold text-white">{streak.total_articles}</div>
+              <div className="text-2xl font-bold text-white">{streak?.total_articles}</div>
               <div className="text-sm text-gray-400">Total Articles</div>
             </div>
             <div className="text-center p-4">
-              <div className="text-2xl font-bold text-white">{streak.current_streak}</div>
+              <div className="text-2xl font-bold text-white">{streak?.current_streak}</div>
               <div className="text-sm text-gray-400">Current Streak</div>
             </div>
             <div className="text-center p-4">
-              <div className="text-2xl font-bold text-white">{streak.longest_streak}</div>
+              <div className="text-2xl font-bold text-white">{streak?.longest_streak}</div>
               <div className="text-sm text-gray-400">Longest Streak</div>
             </div>
             <div className="text-center p-4">
@@ -334,6 +472,7 @@ const ProfilePage = () => {
 
       <Heatmap />
       <ProgressChart />
+      <ArticlesSection />
     </div>
   )
 
@@ -376,11 +515,11 @@ const ProfilePage = () => {
                     <div className="space-y-4">
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Current Streak</div>
-                        <div className="text-white">{streak.current_streak} days</div>
+                        <div className="text-white">{streak?.current_streak || 0} days</div>
                       </div>
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Longest Streak</div>
-                        <div className="text-white">{streak.longest_streak} days</div>
+                        <div className="text-white">{streak?.longest_streak || 0} days</div>
                       </div>
                     </div>
                   </div>
@@ -433,7 +572,7 @@ const ProfilePage = () => {
                   <div className="space-y-4">
                     <h3 className="font-medium text-white">Selected Topics</h3>
                     <div className="flex flex-wrap gap-2">
-                      {userdata.categories.map((category) => (
+                      {userdata?.categories.map((category) => (
                         <Badge key={category} className="bg-blue-900/30 text-blue-300 border-blue-800">
                           {category}
                         </Badge>
@@ -457,7 +596,7 @@ const ProfilePage = () => {
           </Card>
 
           {/* Data Visualization Section */}
-          <UserSummary />
+          <UserSummary current_streak={streak?.current_streak || 0} longest_streak={streak?.longest_streak || 0} total_articles={streak?.total_articles || 0} />
         </div>
       </div>
     </div>
