@@ -55,7 +55,7 @@ const ProfilePage = () => {
     if (topics.length === 0) return toast.error("No topics added.");
 
     try {
-      const updated = await updatePreferences(user.uid, expertiseLevel, topics, userdata);
+      const updated = await updatePreferences(user.uid, expertiseLevel, topics, userdata!);
       setuserdata(updated);
       toast.success("Preferences updated!");
     } catch (err: any) {
@@ -415,7 +415,7 @@ const ProfilePage = () => {
                   <Button
                     variant="default"
                     className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer flex-1 sm:flex-none"
-                    onClick={updatePreferences}
+                    onClick={() => user && updatePreferences(user.uid, expertiseLevel, topics, userdata!)}
                     disabled={topics.length === 0}
                   >
                     Save Preferences
