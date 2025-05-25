@@ -210,8 +210,28 @@ async def add_asset_to_watchlist(
         Confirmation message and added asset details
     """
     try:
-        # Validate that the asset exists by getting its info
-        asset_info = get_asset_info(asset.symbol, asset.asset_type)
+        # First search to get correct data
+        search_results = await asyncio.to_thread(
+            fast_search_assets,
+            query=asset.symbol, 
+            asset_type=asset.asset_type,
+            limit=2
+        )
+        
+        # Use first search result if available
+        asset_info = None
+        for result in search_results:
+            if result.get("symbol", "").upper() == asset.symbol.upper():
+                asset_info = result
+                break
+        
+        # If no exact match found, use first result or fallback to get_asset_info
+        if not asset_info:
+            if search_results:
+                asset_info = search_results[0]  # Use first result as fallback
+            else:
+                # If search found nothing, try original method
+                asset_info = get_asset_info(asset.symbol, asset.asset_type)
         
         # Add to Firebase with current timestamp
         add_to_watchlist(
@@ -221,7 +241,7 @@ async def add_asset_to_watchlist(
             notes=asset.notes
         )
         
-        # Return confirmation with asset details
+        # Return with search-consistent data
         return {
             "message": f"{asset.symbol} added to watchlist",
             "asset": {
@@ -232,8 +252,8 @@ async def add_asset_to_watchlist(
                 "notes": asset.notes
             }
         }
-        
     except Exception as e:
+        logger.error(f"Error adding asset to watchlist: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to add asset: {str(e)}")
 
 @router.delete("/remove")
