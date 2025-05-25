@@ -2,7 +2,7 @@
 
 ## Inspiration
 We noticed a huge gap in how financial literacy is taught — it's often dull, generic, and disconnected from the real financial decisions people make every day. Most tools feel like textbooks, not companions. We wanted to change that.  
-We envisioned **FinLearn AI** as a daily, personalized financial learning assistant — one that makes understanding finance engaging, relevant, and actionable. We were inspired by how people already consume bite-sized content (like social media reels or news notifications) and thought: *why can’t learning money be just as intuitive and habit-forming?*
+We envisioned **FinLearn AI** as a daily, personalized financial learning hub — one that makes understanding finance engaging, relevant, and actionable. We were inspired by how people already consume bite-sized content (like social media reels or news notifications) and thought: *why can’t learning money be just as intuitive and habit-forming?*
 
 ## What it does
 **FinLearn AI** is a personalized financial literacy companion that empowers users to:  
@@ -47,7 +47,7 @@ Syncing real-time crypto and stock data with user watchlists while maintaining p
 
 ## Accomplishments that we're proud of
 - Built a full-stack AI-driven learning platform that makes finance practical and engaging  
-- Integrated Perplexity AI for real-time content transformation from finance news  
+- Integrated Perplexity SONAR APIs for real-time content transformation from finance news  
 - Created a fully responsive, animated UI with Framer Motion + Tailwind  
 - Developed intelligent goal-tracking and progress feedback systems  
 - Made finance more approachable for users who previously found it intimidating or boring
@@ -57,7 +57,7 @@ Syncing real-time crypto and stock data with user watchlists while maintaining p
 We learned that most financial apps fail to connect education with real-world action, leaving users unmotivated and underserved.
 
 🤖 **Working with Perplexity AI API**  
-We discovered that while Perplexity AI provides rich content, its limitations around structure and rate limits required us to build fallback systems and formatting layers to maintain quality.
+We discovered that while Perplexity SONAR APIs provides rich content, its limitations around structure and latency required us to build fallback systems and formatting layers to maintain quality.
 
 📈 **Personalization is More Than Preferences**  
 We realized that meaningful personalization must evolve with user behavior — like article interactions, quiz results, and goal completions — not rely solely on static inputs.
