@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { BookOpen, LineChart, User, TrendingUp } from "lucide-react"
 import { useAppSelector } from "@/app/store/hooks"
 import { MultiSelect } from "@/components/multi-select"
@@ -9,20 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import {
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  LineChart as RechartsLineChart,
-  Line,
-} from "recharts"
 import { toast } from "sonner"
 import { fetchPreferences, fetchstreak, updatePreferences } from "@/lib/actions"
 import { UserPreferences } from "./types/profiletypes"
 
 // Enhanced dummy data for yearly heatmap
+
+
 const generateYearlyHeatmapData = (year: number) => {
   const data = []
   const startDate = new Date(year, 0, 1)
@@ -48,36 +41,25 @@ const dummyHeatmapData = {
   data: generateYearlyHeatmapData(2025),
 }
 
-const dummyProgressData = {
-  user_id: "kea4N8foGdMvvuyO9NNITS1QmP62",
-  period: "week",
-  date_range: { start: "2025-05-19", end: "2025-05-25" },
-  articles_data: [
-    { date: "Mon", count: 2 },
-    { date: "Tue", count: 4 },
-    { date: "Wed", count: 3 },
-    { date: "Thu", count: 5 },
-    { date: "Fri", count: 2 },
-    { date: "Sat", count: 1 },
-    { date: "Sun", count: 3 },
-  ],
-  categories_data: {
-    forex: [
-      { date: "Mon", count: 1 },
-      { date: "Tue", count: 2 },
-      { date: "Wed", count: 1 },
-      { date: "Thu", count: 3 },
-      { date: "Fri", count: 2 },
-      { date: "Sat", count: 0 },
-      { date: "Sun", count: 2 },
-    ],
-  },
-}
-
 interface Streak {
   current_streak: number
   longest_streak: number
   total_articles: number
+}
+interface RawDay {
+  date: string
+  count: number
+}
+
+interface HeatmapDay extends RawDay {
+  week: number
+  day: number
+}
+
+interface HeatmapData {
+  user_id: string
+  year: number
+  data: RawDay[]
 }
 
 
@@ -88,12 +70,15 @@ const ProfilePage = () => {
   const { user } = useAppSelector((state) => state.auth)
   const [streak, setStreak] = useState<Streak>();
   const [topics, setTopics] = useState<string[]>([]);
+  const [heatmap, setheatmap] = useState<HeatmapData>();
 
-  const handleExpertiseSelect = async (level: string) => {
-    setExpertiseLevel(level);
-    await updateUserPreferences();
-    setActiveTab("topics");
-  }
+  // const handleExpertiseSelect = async (level: string) => {
+  //   setExpertiseLevel(level);
+  //   await updateUserPreferences();
+  //   setActiveTab("topics");
+  // }
+
+  console.log(user?.uid)
 
   const fetchUserPreferences = async () => {
     if (!user) return toast("No user found.");
@@ -128,16 +113,49 @@ const ProfilePage = () => {
     }
   };
 
+  const fetchHeatMap = async () => {
+    if (!user) return toast("No user found.");
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/summary/heatmap?user_id=${user.uid}&year=2025`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Server responded with status ${res.status}: ${errorText}`);
+      }
+
+      const data = await res.json();
+
+      setheatmap(data);
+
+    } catch (error: any) {
+      console.error("Error searching assets:", error.message);
+      return [];
+    }
+  };
+
+  console.log(heatmap);
+
   useEffect(() => {
     if (user) {
       fetchUserPreferences();
       fetchuserstreak();
+      fetchHeatMap();
     }
   }, [user]);
 
-  // Enhanced GitHub-style Heatmap Component
   const Heatmap = () => {
-    const getIntensityLevel = (count: number): number => {
+    const getWeekOfYear = (date: Date) => {
+      const first = new Date(date.getFullYear(), 0, 1)
+      const dayOfYear = Math.floor((+date - +first) / (1000 * 60 * 60 * 24))
+      return Math.floor((dayOfYear + first.getDay()) / 7)
+    }
+
+    const getIntensityLevel = (count: number) => {
       if (count === 0) return 0
       if (count <= 2) return 1
       if (count <= 4) return 2
@@ -145,95 +163,110 @@ const ProfilePage = () => {
       return 4
     }
 
-    const getColor = (count: number): string => {
-      const intensity = getIntensityLevel(count)
-      const colors = [
-        "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700", // 0
-        "bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800", // 1
-        "bg-green-200 dark:bg-green-800/50 border-green-300 dark:border-green-700", // 2
-        "bg-green-400 dark:bg-green-600/70 border-green-500 dark:border-green-500", // 3
-        "bg-green-600 dark:bg-green-500 border-green-700 dark:border-green-400", // 4
-      ]
-      return colors[intensity]
-    }
+    const colors = [
+      "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700",      // 0
+      "bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800",// 1
+      "bg-green-200 dark:bg-green-800/50 border-gray-300 dark:border-gray-700",  // 2
+      "bg-green-400 dark:bg-green-600/70 border-green-500",                      // 3
+      "bg-green-600 dark:bg-green-500 border-green-700 dark:border-green-400",   // 4
+    ]
 
-    const formatDate = (dateStr: string): string => {
-      const date = new Date(dateStr)
-      return date.toLocaleDateString("en-US", {
+    const formatDate = (d: string) =>
+      new Date(d).toLocaleDateString("en-US", {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric",
       })
-    }
 
-    const getActivityText = (count: number): string => {
-      if (count === 0) return "No articles read"
-      if (count === 1) return "1 article read"
-      return `${count} articles read`
-    }
+    const getActivityText = (c: number) =>
+      c === 0 ? "No articles read" : c === 1 ? "1 article read" : `${c} articles read`
 
-    // Group data by weeks
-    const weeks: any[][] = []
-    const maxWeek = Math.max(...dummyHeatmapData.data.map((d) => d.week))
+    // ─── Transform raw data to include week/day ───────────────────────────────────
+    const processedData: HeatmapDay[] = useMemo(() => {
+      if (!heatmap) return []
+      return heatmap.data.map((d) => {
+        const dt = new Date(d.date)
+        return {
+          ...d,
+          day: dt.getDay(),
+          week: getWeekOfYear(dt),
+        }
+      })
+    }, [heatmap])
 
-    for (let week = 0; week <= maxWeek; week++) {
-      const weekData = Array(7).fill(null)
-      dummyHeatmapData.data
-        .filter((d) => d.week === week)
-        .forEach((d) => {
-          weekData[d.day] = d
-        })
-      weeks.push(weekData)
-    }
+    if (!heatmap) return null
 
-    const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    // ─── Build weeks matrix ───────────────────────────────────────────────────────
+    const sortedData = [...processedData].sort((a, b) => +new Date(a.date) - +new Date(b.date))
 
+    // Group by unique week key: `${year}-W${week}`
+    const weekMap = new Map<string, (HeatmapDay | null)[]>()
+
+    sortedData.forEach((d) => {
+      const weekKey = `${new Date(d.date).getFullYear()}-W${d.week}`
+      if (!weekMap.has(weekKey)) {
+        weekMap.set(weekKey, Array<HeatmapDay | null>(7).fill(null))
+      }
+      const weekColumn = weekMap.get(weekKey)!
+      weekColumn[d.day] = d
+    })
+
+    const weeks = Array.from(weekMap.values())
+
+    // const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
+    // ─── Summary stats ────────────────────────────────────────────────────────────
+    const total = heatmap.data.reduce((s, d) => s + d.count, 0)
+    const activeDays = heatmap.data.filter((d) => d.count > 0).length
+    const best = Math.max(...heatmap.data.map((d) => d.count))
+    const avg = Math.round(total / (activeDays || 1))
+
+    // ─── Render ───────────────────────────────────────────────────────────────────
     return (
       <TooltipProvider>
         <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center gap-2 mb-6">
               <TrendingUp className="h-5 w-5 text-blue-400" />
-              <h3 className="text-lg font-semibold text-white">Learning Activity - {dummyHeatmapData.year}</h3>
+              <h3 className="text-lg font-semibold text-white">
+                Learning Activity – {heatmap.year}
+              </h3>
             </div>
 
             {/* Month labels */}
-            <div className="hidden sm:block mb-2">
+            {/* <div className="hidden sm:block mb-2">
               <div className="grid grid-cols-12 gap-1 text-xs text-gray-400 ml-8">
-                {monthLabels.map((month, index) => (
-                  <div key={index} className="text-center">
-                    {month}
-                  </div>
+                {monthLabels.map((m, i) => (
+                  <div key={i} className="text-center">{m}</div>
                 ))}
               </div>
-            </div>
+            </div> */}
 
             <div className="flex gap-2">
               {/* Day labels */}
               <div className="hidden sm:flex flex-col gap-1 text-xs text-gray-400 pt-1">
-                {dayLabels.map((day, index) => (
-                  <div key={index} className="h-3 flex items-center">
-                    {index % 2 === 1 ? day : ""}
+                {dayLabels.map((d, i) => (
+                  <div key={i} className="h-3 flex items-center">
+                    {i % 2 === 1 ? d : ""}
                   </div>
                 ))}
               </div>
 
-              {/* Heatmap grid */}
+              {/* Calendar grid */}
               <div className="flex-1 overflow-x-auto">
                 <div className="flex gap-1 min-w-max">
-                  {weeks.map((week, weekIndex) => (
-                    <div key={weekIndex} className="flex flex-col gap-1">
-                      {week.map((day, dayIndex) => (
-                        <Tooltip key={`${weekIndex}-${dayIndex}`}>
+                  {weeks.map((col, wi) => (
+                    <div key={wi} className="flex flex-col gap-1">
+                      {col.map((cell, di) => (
+                        <Tooltip key={`${wi}-${di}`}>
                           <TooltipTrigger asChild>
                             <div
-                              className={`w-3 h-3 rounded-sm border transition-all duration-200 hover:ring-2 hover:ring-blue-400 hover:ring-opacity-50 cursor-pointer ${day
-                                ? getColor(day.count)
-                                : "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                                }`}
+                              className={`w-3 h-3 rounded-sm border transition-all duration-200
+                                hover:ring-2 hover:ring-blue-400 hover:ring-opacity-50 cursor-pointer
+                                ${cell ? colors[getIntensityLevel(cell.count)]
+                                  : "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700"}`}
                             />
                           </TooltipTrigger>
                           <TooltipContent
@@ -241,11 +274,13 @@ const ProfilePage = () => {
                             className="bg-gray-900 border-gray-700 text-white p-3 rounded-lg shadow-lg"
                           >
                             <div className="text-sm">
-                              <div className="font-medium">{day ? getActivityText(day.count) : "No activity"}</div>
+                              <div className="font-medium">
+                                {cell ? getActivityText(cell.count) : "No activity"}
+                              </div>
                               <div className="text-gray-400 text-xs mt-1">
-                                {day
-                                  ? formatDate(day.date)
-                                  : `${dummyHeatmapData.year}-${String(Math.floor(weekIndex / 4) + 1).padStart(2, "0")}-${String(dayIndex + 1).padStart(2, "0")}`}
+                                {cell
+                                  ? formatDate(cell.date)
+                                  : `${heatmap.year}-${String(Math.floor(wi / 4) + 1).padStart(2, "0")}-${String(di + 1).padStart(2, "0")}`}
                               </div>
                             </div>
                           </TooltipContent>
@@ -258,47 +293,14 @@ const ProfilePage = () => {
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-between mt-6 text-xs text-gray-400">
+            <div className="flex items-center justify-between mt-6 text-xs text-gray-300">
               <span>Less</span>
               <div className="flex gap-1 items-center">
-                <div className="w-3 h-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm"></div>
-                <div className="w-3 h-3 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-sm"></div>
-                <div className="w-3 h-3 bg-green-200 dark:bg-green-800/50 border border-green-300 dark:border-green-700 rounded-sm"></div>
-                <div className="w-3 h-3 bg-green-400 dark:bg-green-600/70 border border-green-500 dark:border-green-500 rounded-sm"></div>
-                <div className="w-3 h-3 bg-green-600 dark:bg-green-500 border border-green-700 dark:border-green-400 rounded-sm"></div>
+                {colors.map((c, i) => (
+                  <div key={i} className={`w-3 h-3 ${c} rounded-sm`}></div>
+                ))}
               </div>
               <span>More</span>
-            </div>
-
-            {/* Summary stats */}
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-              <div>
-                <div className="text-lg font-semibold text-white">
-                  {dummyHeatmapData.data.reduce((sum, day) => sum + day.count, 0)}
-                </div>
-                <div className="text-xs text-gray-400">Total articles</div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold text-white">
-                  {dummyHeatmapData.data.filter((day) => day.count > 0).length}
-                </div>
-                <div className="text-xs text-gray-400">Active days</div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold text-white">
-                  {Math.max(...dummyHeatmapData.data.map((day) => day.count))}
-                </div>
-                <div className="text-xs text-gray-400">Best day</div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold text-white">
-                  {Math.round(
-                    dummyHeatmapData.data.reduce((sum, day) => sum + day.count, 0) /
-                    dummyHeatmapData.data.filter((day) => day.count > 0).length,
-                  ) || 0}
-                </div>
-                <div className="text-xs text-gray-400">Daily average</div>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -307,174 +309,329 @@ const ProfilePage = () => {
   }
 
   // Progress Chart Component
-  const ProgressChart = () => (
-    <Card className="bg-zinc-900 border-zinc-800">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <LineChart className="h-5 w-5 text-blue-400" />
-          <h3 className="text-lg font-semibold text-white">Weekly Progress</h3>
-        </div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <RechartsLineChart data={dummyProgressData.articles_data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="date" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
-              <RechartsTooltip
-                contentStyle={{ backgroundColor: "#1F2937", border: "none" }}
-                itemStyle={{ color: "#E5E7EB" }}
-              />
-              <Line type="monotone" dataKey="count" stroke="#3B82F6" strokeWidth={2} name="Articles Read" />
-              <Line
-                type="monotone"
-                dataKey={(entry) =>
-                  dummyProgressData.categories_data.forex.find((d) => d.date === entry.date)?.count || 0
-                }
-                stroke="#10B981"
-                strokeWidth={2}
-                name="Forex Articles"
-              />
-            </RechartsLineChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
-  )
+  // const ProgressChart = () => (
+  //   <Card className="bg-zinc-900 border-zinc-800">
+  //     <CardContent className="p-6">
+  //       <div className="flex items-center gap-2 mb-4">
+  //         <LineChart className="h-5 w-5 text-blue-400" />
+  //         <h3 className="text-lg font-semibold text-white">Weekly Progress</h3>
+  //       </div>
+  //       <div className="h-64">
+  //         <ResponsiveContainer width="100%" height="100%">
+  //           <RechartsLineChart data={heatmap?.data}>
+  //             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+  //             <XAxis dataKey="date" stroke="#9CA3AF" />
+  //             <YAxis stroke="#9CA3AF" />
+  //             <RechartsTooltip
+  //               contentStyle={{ backgroundColor: "#1F2937", border: "none" }}
+  //               itemStyle={{ color: "#E5E7EB" }}
+  //             />
+  //             <Line type="monotone" dataKey="count" stroke="#3B82F6" strokeWidth={2} name="Articles Read" />
+  //             {/* <Line
+  //               type="monotone"
+  //               dataKey={(entry) =>
+  //                 heatmap?.categories_data.forex.find((d) => d.date === entry.date)?.count || 0
+  //               }
+  //               stroke="#10B981"
+  //               strokeWidth={2}
+  //               name="Forex Articles"
+  //             /> */}
+  //           </RechartsLineChart>
+  //         </ResponsiveContainer>
+  //       </div>
+  //     </CardContent>
+  //   </Card>
+  // )
 
-  // Articles Section Component
-  const ArticlesSection = () => {
-    // Sample articles data based on your user summary example
-    const articlesData = [
-      {
-        title: "Navigating US Dollar Strength Amid Geopolitical Uncertainty",
-        category: "forex",
-        date: "2025-05-25",
-        readTime: "5 min read",
-        summary: "Analysis of USD performance during global uncertainty periods",
+  // User Summary Section
+  const UserSummary = (streak: Streak) => {
+    // Sample data based on your API response structure
+    const userSummaryData = {
+      user_id: "kea4N8foGdMvvuyO9NNITS1QmP62",
+      period: "day",
+      date_range: {
+        start: "2025-05-25",
+        end: "2025-05-25",
       },
-      {
-        title: "Technical Analysis: Support and Resistance Levels",
-        category: "technical analysis",
-        date: "2025-05-24",
-        readTime: "7 min read",
-        summary: "Understanding key technical indicators for forex trading",
+      statistics: {
+        articles_read: 1,
+        tooltips_viewed: 0,
+        categories: {
+          forex: 1,
+        },
       },
-      {
-        title: "Central Bank Policies and Currency Impact",
-        category: "forex",
-        date: "2025-05-23",
-        readTime: "6 min read",
-        summary: "How monetary policy decisions affect currency valuations",
+      streak: {
+        current_streak: 1,
+        last_active: "2025-05-25",
+        updated_at: "2025-05-25T15:27:38.832082Z",
+        total_articles: 2,
+        longest_streak: 1,
       },
-      {
-        title: "Risk Management in Forex Trading",
-        category: "risk management",
-        date: "2025-05-22",
-        readTime: "8 min read",
-        summary: "Essential strategies for managing trading risks",
-      },
-      {
-        title: "Market Sentiment Analysis Techniques",
-        category: "market analysis",
-        date: "2025-05-21",
-        readTime: "4 min read",
-        summary: "Tools and methods for gauging market sentiment",
-      },
-    ]
-
-    const getCategoryColor = (category: string) => {
-      const colors: { [key: string]: string } = {
-        forex: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-        "technical analysis": "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-        "risk management": "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-        "market analysis": "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-      }
-      return colors[category] || "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
+      articles_read: ["Navigating US Dollar Strength Amid Geopolitical Uncertainty"],
+      summary:
+        "### Personalized Learning Summary\n\n**Congratulations on Your Progress**\n\nYou've taken a significant step in expanding your knowledge by reading about \"Navigating US Dollar Strength Amid Geopolitical Uncertainty.\" This article has likely deepened your understanding of the **forex** market, particularly how geopolitical factors influence currency values.\n\n### Focused Areas of Interest\n\nYour focus on **forex** indicates a strong interest in understanding the dynamics of currency markets. You're likely curious about how economic indicators, political events, and global uncertainties impact currency values.\n\n### Encouragement to Continue Learning\n\nYour engagement with financial topics is commendable, and continuing to explore these areas will only enhance your understanding. Keep delving into the world of finance, and you'll soon find yourself navigating complex financial scenarios with confidence.\n\n### Suggested Next Steps\n\nGiven your interest in forex and geopolitical influences, here are some areas you might explore next:\n\n- **Economic Indicators and Their Impact on Currency Values**: Dive deeper into how GDP growth rates, inflation, and interest rates affect currency strength.\n- **Geopolitical Events and Market Volatility**: Learn more about how political decisions and global events can suddenly shift currency markets.\n- **Diversification Strategies in Forex**: Explore how investors use different currencies to diversify their portfolios and mitigate risk.\n\nKeep up the good work! The world of finance is vast and dynamic, and your curiosity will serve you well in navigating its complexities.",
+      quiz_questions: [
+        {
+          question: "What is the main purpose of using stop-loss orders in forex trading?",
+          options: [
+            {
+              label: "A",
+              text: "To automatically close a trade at a set price and limit potential losses",
+            },
+            {
+              label: "B",
+              text: "To guarantee a profit on every trade",
+            },
+            {
+              label: "C",
+              text: "To convert all profits into a different currency",
+            },
+            {
+              label: "D",
+              text: "To increase the leverage on your account",
+            },
+          ],
+          correct_answer: "A",
+          explanation:
+            "Stop-loss orders are used to automatically close a trade at a predetermined price, helping traders limit their potential losses and manage risk effectively.",
+        },
+        {
+          question: "Which of the following best describes the practice of 'trend trading' in the forex market?",
+          options: [
+            {
+              label: "A",
+              text: "Trading only when the market is closed",
+            },
+            {
+              label: "B",
+              text: "Identifying and profiting from the direction of price movements",
+            },
+            {
+              label: "C",
+              text: "Buying every currency pair available",
+            },
+            {
+              label: "D",
+              text: "Using news headlines to predict prices without charts",
+            },
+          ],
+          correct_answer: "B",
+          explanation:
+            "Trend trading involves recognizing the direction of price movements (up or down) and placing trades to profit from that trend, rather than predicting random moves.",
+        },
+        {
+          question: "What is a key reason why financial markets are important for investors?",
+          options: [
+            {
+              label: "A",
+              text: "They allow investors to buy and sell assets like stocks, bonds, and currencies",
+            },
+            {
+              label: "B",
+              text: "They provide free vacations for frequent traders",
+            },
+            {
+              label: "C",
+              text: "They guarantee profits on all investments",
+            },
+            {
+              label: "D",
+              text: "They eliminate all financial risk",
+            },
+          ],
+          correct_answer: "A",
+          explanation:
+            "Financial markets enable investors to buy and sell a range of assets, including stocks, bonds, and currencies, which is essential for portfolio growth and risk management.",
+        },
+      ],
+      generated_at: "2025-05-25T19:48:32.656639",
     }
 
     const formatDate = (dateStr: string) => {
-      const date = new Date(dateStr)
-      return date.toLocaleDateString("en-US", {
+      return new Date(dateStr).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
       })
     }
 
+    const getCategoryColor = (category: string) => {
+      const colors: { [key: string]: string } = {
+        forex: "bg-blue-500",
+        "technical analysis": "bg-purple-500",
+        "risk management": "bg-red-500",
+        "market analysis": "bg-green-500",
+        economics: "bg-yellow-500",
+        trading: "bg-indigo-500",
+      }
+      return colors[category] || "bg-gray-500"
+    }
+
     return (
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-blue-400" />
-            <CardTitle className="text-white">Recent Articles Read</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {articlesData.map((article, index) => (
-              <div
-                key={index}
-                className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700 hover:border-zinc-600 transition-all duration-200"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div className="flex-1">
-                    <h4 className="text-white font-medium text-lg mb-2 leading-tight">{article.title}</h4>
-                    <p className="text-gray-400 text-sm mb-3 leading-relaxed">{article.summary}</p>
-                    <div className="flex flex-wrap items-center gap-3 text-sm">
-                      <Badge className={`${getCategoryColor(article.category)} border-0 text-xs`}>
-                        {article.category}
-                      </Badge>
-                      <span className="text-gray-500">{article.readTime}</span>
-                      <span className="text-gray-500">{formatDate(article.date)}</span>
+      <div className="space-y-6">
+        {/* Enhanced Statistics Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Stats Card */}
+          <Card className="bg-zinc-900 border-zinc-800 lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-400" />
+                Learning Statistics
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-zinc-800/50 rounded-lg">
+                  <div className="text-3xl font-bold text-blue-400">{userSummaryData.statistics.articles_read}</div>
+                  <div className="text-sm text-gray-400 mt-1">Articles Read</div>
+                  <div className="text-xs text-gray-500 mt-1">Today</div>
+                </div>
+                <div className="text-center p-4 bg-zinc-800/50 rounded-lg">
+                  <div className="text-3xl font-bold text-green-400">{userSummaryData.streak.current_streak}</div>
+                  <div className="text-sm text-gray-400 mt-1">Current Streak</div>
+                  <div className="text-xs text-gray-500 mt-1">Days</div>
+                </div>
+                <div className="text-center p-4 bg-zinc-800/50 rounded-lg">
+                  <div className="text-3xl font-bold text-purple-400">{userSummaryData.streak.total_articles}</div>
+                  <div className="text-sm text-gray-400 mt-1">Total Articles</div>
+                  <div className="text-xs text-gray-500 mt-1">All time</div>
+                </div>
+                <div className="text-center p-4 bg-zinc-800/50 rounded-lg">
+                  <div className="text-3xl font-bold text-orange-400">{userSummaryData.quiz_questions.length}</div>
+                  <div className="text-sm text-gray-400 mt-1">Quiz Questions</div>
+                  <div className="text-xs text-gray-500 mt-1">Completed</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Categories Breakdown */}
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Categories Focus</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Object.entries(userSummaryData.statistics.categories).map(([category, count]) => (
+                  <div key={category} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${getCategoryColor(category)}`}></div>
+                      <span className="text-white capitalize text-sm">{category}</span>
                     </div>
+                    <Badge className="bg-zinc-800 text-white border-zinc-700">
+                      {count} article{count !== 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+                ))}
+                <div className="pt-2 border-t border-zinc-700">
+                  <div className="text-xs text-gray-400">
+                    Last active: {formatDate(userSummaryData.streak.last_active)}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Show more button */}
-          <div className="mt-6 text-center">
-            <Button variant="outline" className="border-zinc-700 text-white hover:bg-zinc-800">
-              View All Articles ({articlesData.length + 15} total)
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Articles Read Section */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-blue-400" />
+              Recent Articles ({userSummaryData.articles_read.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {userSummaryData.articles_read.map((article, index) => (
+                <div
+                  key={index}
+                  className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-all"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="text-white font-medium mb-2">{article}</h4>
+                      <div className="flex items-center gap-4 text-sm">
+                        <Badge className="bg-blue-900/30 text-blue-300 border-blue-800">
+                          {Object.keys(userSummaryData.statistics.categories)[0]}
+                        </Badge>
+                        <span className="text-gray-400">Read on {formatDate(userSummaryData.date_range.start)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quiz Performance Section */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <LineChart className="h-5 w-5 text-blue-400" />
+              Quiz Performance ({userSummaryData.quiz_questions.length} Questions)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {userSummaryData.quiz_questions.map((quiz, index) => (
+                <div key={index} className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                  <div className="mb-3">
+                    <h4 className="text-white font-medium mb-2">Question {index + 1}</h4>
+                    <p className="text-gray-300 text-sm mb-3">{quiz.question}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+                    {quiz.options.map((option) => (
+                      <div
+                        key={option.label}
+                        className={`p-2 rounded text-sm border ${option.label === quiz.correct_answer
+                          ? "bg-green-900/30 border-green-700 text-green-300"
+                          : "bg-zinc-700/50 border-zinc-600 text-gray-300"
+                          }`}
+                      >
+                        <span className="font-medium">{option.label}:</span> {option.text}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-3 bg-blue-900/20 border border-blue-800 rounded">
+                    <div className="text-blue-300 text-xs font-medium mb-1">Explanation:</div>
+                    <div className="text-blue-200 text-sm">{quiz.explanation}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Learning Summary */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <User className="h-5 w-5 text-blue-400" />
+              Personalized Learning Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="prose prose-invert max-w-none">
+              <div className="text-gray-300 leading-relaxed whitespace-pre-line">
+                {userSummaryData.summary.replace(/###/g, "").replace(/\*\*/g, "")}
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-zinc-700">
+              <div className="text-xs text-gray-500">Generated on {formatDate(userSummaryData.generated_at)}</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Heatmap and Charts */}
+        <Heatmap />
+        {/* <ProgressChart /> */}
+      </div>
     )
   }
-
-  // User Summary Section
-  const UserSummary = (streak : Streak) => (
-    <div className="space-y-6">
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4">
-              <div className="text-2xl font-bold text-white">{streak?.total_articles}</div>
-              <div className="text-sm text-gray-400">Total Articles</div>
-            </div>
-            <div className="text-center p-4">
-              <div className="text-2xl font-bold text-white">{streak?.current_streak}</div>
-              <div className="text-sm text-gray-400">Current Streak</div>
-            </div>
-            <div className="text-center p-4">
-              <div className="text-2xl font-bold text-white">{streak?.longest_streak}</div>
-              <div className="text-sm text-gray-400">Longest Streak</div>
-            </div>
-            <div className="text-center p-4">
-              <div className="text-2xl font-bold text-white">3</div>
-              <div className="text-sm text-gray-400">Active Days</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Heatmap />
-      <ProgressChart />
-      <ArticlesSection />
-    </div>
-  )
 
   return (
     <div className="min-h-screen bg-black text-white">
