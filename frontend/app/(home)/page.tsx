@@ -26,7 +26,7 @@ export default function Home() {
             Built for Perplexity AI using Sonar
           </Badge>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 sm:mb-6 text-white leading-tight">
-            Master Web3 Finance with <span className="text-blue-400">AI-Powered</span> Micro-Learning
+            Master Finance with <span className="text-blue-400">AI-Powered</span> Micro-Learning
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-6 sm:mb-8 max-w-3xl mx-auto">
             FinLearn AI delivers personalized, bite-sized financial lessons powered by real-time data and adaptive AI to
