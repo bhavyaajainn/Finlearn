@@ -915,6 +915,31 @@ def fetch_asset_news(
     Returns:
         List of recent news items with analysis and citations
     """
+
+    # Define the schema for structured output
+    news_schema = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "headline": {"type": "string"},
+                "date": {"type": "string"},
+                "source": {"type": "string"},
+                "summary": {"type": "string"},
+                "url": {"type": "string", "description": "Full URL to the original article"},
+                "impact": {
+                    "type": "object",
+                    "properties": {
+                        "direction": {"type": "string", "enum": ["positive", "negative", "neutral"]},
+                        "reason": {"type": "string"}
+                    },
+                    "required": ["direction", "reason"]
+                },
+                "citation": {"type": "string", "description": "Full citation in format: 'Source. (Year). Title. URL'"}
+            },
+            "required": ["headline", "summary", "date", "source"]
+        }
+    }
     # Create prompt for Perplexity API
     prompt = f"""Find the {limit} most significant recent news stories about {symbol} ({asset_type}) from the past 2 weeks.
 
@@ -927,109 +952,31 @@ For each news item, provide:
 6. Brief summary (1-2 sentences)
 7. Potential impact on the asset (positive/negative/neutral and why)
 
-{"Include citation information that allows proper attribution of the news sources." if include_citations else ""}
-
-Format your response as a valid JSON array with this structure:
-[
-  {{
-    "headline": "Example Headline About {symbol}",
-    "date": "2023-05-10",
-    "source": "Bloomberg",
-    "author": "John Smith",
-    "url": "https://example.com/article-link",
-    "summary": "Brief summary of the news item.",
-    "impact": {{
-      "direction": "positive",  // or "negative" or "neutral"
-      "reason": "Explanation of why this news is positive/negative/neutral for {symbol}"
-    }},
-    "citation": "Smith, J. (2023, May 10). Example Headline About {symbol}. Bloomberg. https://example.com/article-link"
-  }}
-]
+IMPORTANT: For citation, include the FULL SOURCE INFORMATION with the complete URL, not just a reference number like [1].
+For example: "Yahoo Finance. (2023). Apple Reports Record Profits. https://finance.yahoo.com/article/123"
 
 Only return the most important news that could potentially affect the asset's value or investment thesis. Ensure all URLs and citation information are accurate.
 """
     
     try:
-        response = call_perplexity_api(prompt)
+        # Use schema-based API call for structured output
+        news_items = call_perplexity_api_with_schema(prompt, news_schema)
         
-        # Parse the response
-        try:
-            # Try to extract JSON from markdown code blocks
-            if "```json" in response:
-                json_start = response.find("```json") + 7
-                json_end = response.find("```", json_start)
-                json_str = response[json_start:json_end].strip()
-                news_items = json.loads(json_str)
-            else:
-                # Try to parse the entire response as JSON
-                news_items = json.loads(response)
-            
-            # Ensure the response is a list
-            if not isinstance(news_items, list):
-                logger.warning(f"Unexpected news response format for {symbol}: {type(news_items)}")
-                return []
+        # We still need to validate and limit results
+        validated_items = []
+        for item in news_items:
+            # Generate citation if not provided
+            if "citation" not in item or not item["citation"] or item["citation"].startswith("["):
+                source = item.get("source", "Financial news")
+                year = item.get("date", "")[:4] if item.get("date") else datetime.now().year
+                title = item.get("headline", "Recent news")
+                url = item.get("url", "")
                 
-            # Validate and enhance each news item
-            validated_items = []
-            for item in news_items:
-                if "headline" in item and "summary" in item:
-                    # Ensure impact is properly formatted
-                    if "impact" not in item or not isinstance(item["impact"], dict):
-                        item["impact"] = {
-                            "direction": "neutral",
-                            "reason": "Impact assessment not available"
-                        }
+                item["citation"] = f"{source}. ({year}). {title}. {url}"
                     
-                    # Ensure date is present
-                    if "date" not in item:
-                        item["date"] = "recent"
-                    
-                    # Ensure source is present
-                    if "source" not in item:
-                        item["source"] = "Financial news source"
-                    
-                    # Generate citation if not provided
-                    if include_citations and "citation" not in item:
-                        # Build a citation in APA format if we have the necessary parts
-                        authors = item.get("author", "")
-                        year = item.get("date", "")[:4] if item.get("date") else ""
-                        title = item.get("headline", "")
-                        source = item.get("source", "")
-                        url = item.get("url", "")
-                        
-                        if year and title and source:
-                            if authors:
-                                last_name = authors.split()[-1]
-                                item["citation"] = f"{last_name}, {authors[0]}. ({year}). {title}. {source}. {url}"
-                            else:
-                                item["citation"] = f"{source}. ({year}). {title}. {url}"
-                        else:
-                            item["citation"] = f"Source: {item.get('source', 'Not available')}"
-                    
-                    validated_items.append(item)
+            validated_items.append(item)
             
-            return validated_items[:limit]
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse news JSON for {symbol}: {e}")
-            # Attempt to extract news from text if JSON parsing fails
-            fallback_news = []
-            if "headlines" in response.lower() or "news" in response.lower():
-                parts = response.split("\n\n")
-                for part in parts:
-                    if ":" in part and len(part.strip()) > 20:
-                        fallback_news.append({
-                            "headline": part.strip()[:100],
-                            "date": "recent",
-                            "source": "Financial news",
-                            "summary": part.strip()[:200],
-                            "impact": {
-                                "direction": "neutral",
-                                "reason": "Impact assessment not available"
-                            },
-                            "citation": "Source information not available"
-                        })
-            return fallback_news[:limit]
+        return validated_items[:limit]
         
     except Exception as e:
         logger.error(f"Error fetching news for {symbol}: {e}")
