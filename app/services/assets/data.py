@@ -584,7 +584,7 @@ def get_stock_info_yfinance(symbol: str) -> Dict[str, Any]:
         raise
 
 def get_crypto_info(symbol: str) -> Dict[str, Any]:
-    """Get cryptocurrency information using CoinGecko.
+    """Get cryptocurrency information using CoinGecko search API first.
     
     Args:
         symbol: Cryptocurrency symbol (e.g., BTC)
@@ -596,34 +596,53 @@ def get_crypto_info(symbol: str) -> Dict[str, Any]:
         # Clean up symbol
         symbol = symbol.upper().replace("-USD", "").strip()
         
-        # Set up CoinGecko API call
+        # STEP 1: Search for the coin to get its CoinGecko ID
+        search_url = "https://api.coingecko.com/api/v3/search"
+        search_response = requests.get(
+            search_url,
+            params={"query": symbol},
+            timeout=3
+        )
+        
+        if search_response.status_code != 200:
+            raise ValueError(f"CoinGecko search API returned status {search_response.status_code}")
+            
+        search_data = search_response.json()
+        coins = search_data.get('coins', [])
+        
+        # Find exact symbol match
+        matching_coin = None
+        for coin in coins:
+            if coin["symbol"].upper() == symbol:
+                matching_coin = coin
+                break
+                
+        if not matching_coin:
+            raise ValueError(f"Could not find cryptocurrency with symbol {symbol}")
+        
+        # STEP 2: Get detailed information using the coin ID
+        coin_id = matching_coin["id"]
         url = "https://api.coingecko.com/api/v3/coins/markets"
         params = {
             "vs_currency": "usd",
-            "ids": "",  # We'll try to match by symbol since id is challenging
-            "per_page": 100,
+            "ids": coin_id,  # Use the specific coin ID we found
+            "per_page": 1,
             "page": 1,
             "sparkline": False,
             "price_change_percentage": "24h"
         }
         
-        # Try to get all coins then filter by symbol
         response = requests.get(url, params=params, timeout=3)
         
         if response.status_code != 200:
-            raise ValueError(f"CoinGecko API returned status {response.status_code}")
+            raise ValueError(f"CoinGecko markets API returned status {response.status_code}")
             
-        coins = response.json()
+        coins_data = response.json()
         
-        # Find the matching coin by symbol
-        coin = None
-        for c in coins:
-            if c["symbol"].upper() == symbol:
-                coin = c
-                break
-        
-        if not coin:
-            raise ValueError(f"Could not find cryptocurrency with symbol {symbol}")
+        if not coins_data:
+            raise ValueError(f"No market data available for {symbol} (ID: {coin_id})")
+            
+        coin = coins_data[0]
         
         # Extract relevant data
         return {
@@ -699,17 +718,29 @@ async def get_similar_assets_with_retry(symbol, asset_type, limit=3, max_retries
     for attempt in range(max_retries):
         try:
             result = await asyncio.to_thread(get_similar_assets, symbol, asset_type, limit)
+            # If we got valid results, return immediately
             if result and len(result) > 0:
                 return result
             
-            # If empty result, wait and retry
-            wait_time = 2 ** attempt  # Exponential backoff
-            logger.info(f"Empty similar assets for {symbol}, retrying in {wait_time}s (attempt {attempt+1}/{max_retries})")
-            await asyncio.sleep(wait_time)
+            # If empty result and not the last attempt, wait before next iteration
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # Exponential backoff
+                logger.info(f"Empty similar assets for {symbol}, retrying in {wait_time}s (attempt {attempt+1}/{max_retries})")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.warning(f"Final attempt for {symbol} returned empty results")
+                
         except Exception as e:
-            logger.warning(f"Error getting similar assets for {symbol} (attempt {attempt+1}): {str(e)}")
-            await asyncio.sleep(1)
+            # If exception and not the last attempt, wait before next iteration
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # Use same exponential backoff for exceptions
+                logger.warning(f"Error getting similar assets for {symbol} (attempt {attempt+1}/{max_retries}): {str(e)}")
+                logger.warning(f"Retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error(f"Final attempt failed for {symbol}: {str(e)}")
     
-    # Return empty list as fallback
+    # If we get here, all retries failed
+    logger.warning(f"All {max_retries} attempts to get similar assets for {symbol} failed")
     return []
 
