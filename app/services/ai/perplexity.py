@@ -17,16 +17,9 @@ logger = logging.getLogger(__name__)
 
 from app.services.ai.prompts.learning_prompts import (
     get_article_prompt,
-    get_beginner_article_prompt,
-    get_intermediate_article_prompt,
-    get_advanced_article_prompt,
-    get_topic_article_prompt
 )
 from app.services.ai.prompts.asset_prompts import (
-    get_asset_search_prompt,
     get_comprehensive_research_prompt,
-    get_similar_stocks_prompt,
-    get_similar_crypto_prompt
 )
 
 # Get API key from environment variable
@@ -73,6 +66,54 @@ def call_perplexity_api(prompt: str) -> str:
         print(f"Error calling Perplexity API: {e}")
         raise
 
+def call_perplexity_api_with_schema(prompt: str, schema: dict) -> Dict[str, Any]:
+    """Call the Perplexity API with JSON schema for structured output.
+    
+    Args:
+        prompt: The prompt to send to Perplexity
+        schema: JSON schema defining the expected response structure
+        
+    Returns:
+        Structured JSON response matching the schema
+    """
+    headers = {
+        "Authorization": f"Bearer {PERPLEXITY_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "model": "sonar", 
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a financial education expert specializing in creating structured content."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"schema": schema},
+        },
+        "temperature": 0.7
+    }
+    
+    try:
+        res = requests.post(BASE_URL, headers=headers, json=data)
+        res.raise_for_status()
+        
+        response_json = res.json()
+        
+        # The structured response is directly in the content field
+        content = response_json["choices"][0]["message"]["content"]
+        return json.loads(content)
+    except Exception as e:
+        logger.error(f"Error calling Perplexity API with schema: {e}")
+        raise
+
+
 def _get_headers() -> Dict[str, str]:
     """Get the headers for Perplexity API requests.
     
@@ -80,127 +121,6 @@ def _get_headers() -> Dict[str, str]:
         Dictionary containing authorization headers
     """
     return {"Authorization": f"Bearer {PERPLEXITY_API_KEY}"}
-
-
-def get_deep_research_on_stock(symbol: str) -> str:
-    """Get comprehensive analysis on a specific stock.
-    
-    Args:
-        symbol: The stock ticker symbol (e.g., 'AAPL')
-        
-    Returns:
-        Detailed analysis of the stock for investors
-    """
-    query = f"Provide a deep analysis on {symbol} stock for weekly investor summary."
-    payload = {"query": query}
-    
-    try:
-        res = requests.post(BASE_URL, headers=_get_headers(), json=payload)
-        res.raise_for_status()
-        return res.json().get("answer", "No insights available.")
-    except Exception as e:
-        print(f"Error fetching research for {symbol}: {e}")
-        return f"Unable to retrieve analysis for {symbol}."
-
-# Add these new functions to support the same functionality as Claude
-
-def generate_category_topics(category: str, expertise_level: str) -> List[Dict[str, Any]]:
-    """Generate a list of specific topics within a financial category.
-    
-    Args:
-        category: The financial category
-        expertise_level: Target audience expertise level
-        
-    Returns:
-        List of topics with descriptions
-    """
-    prompt = f"""Generate a list of 2-3 specific topics or concepts within the financial category of {category} that would be appropriate for a {expertise_level} level audience.
-    
-    For each topic:
-    1. Provide a concise but specific title (not too broad)
-    2. Include a brief 1-2 sentence description
-    3. Indicate why this topic is important for someone at a {expertise_level} level
-    
-    Format your response as valid JSON with this structure:
-    [
-      {{
-        "topic_id": "unique-id-1",
-        "title": "Topic Title 1",
-        "description": "Brief description of the topic",
-        "importance": "Why this topic matters for {expertise_level} learners"
-      }},
-      ...
-    ]
-    
-    Ensure that:
-    - For beginners: focus on foundational concepts and terminology
-    - For intermediate: include practical applications and strategies
-    - For advanced: cover complex mechanisms, advanced strategies, and emerging trends
-    """
-    
-    try:
-        response = call_perplexity_api(prompt)
-        
-        try:
-            if "```json" in response:
-                json_start = response.find("```json") + 7
-                json_end = response.find("```", json_start)
-                json_str = response[json_start:json_end].strip()
-                topics = json.loads(json_str)
-            else:
-                topics = json.loads(response)
-            
-            # Add UUIDs to each topic
-            for topic in topics:
-                if "topic_id" not in topic or topic["topic_id"].startswith("unique-id"):
-                    topic["topic_id"] = str(uuid.uuid4())
-                
-                # Add category and level for reference
-                topic["category"] = category
-                topic["expertise_level"] = expertise_level
-            
-            return topics
-        except json.JSONDecodeError:
-            # Fallback with basic topics if parsing fails
-            return [
-                {
-                    "topic_id": str(uuid.uuid4()),
-                    "title": f"{category.capitalize()} Fundamentals",
-                    "description": f"Basic overview of {category}",
-                    "importance": "Essential foundation for understanding this area",
-                    "category": category,
-                    "expertise_level": expertise_level
-                },
-                {
-                    "topic_id": str(uuid.uuid4()),
-                    "title": f"Current Trends in {category.capitalize()}",
-                    "description": f"Recent developments in {category}",
-                    "importance": "Staying current with market changes",
-                    "category": category,
-                    "expertise_level": expertise_level
-                }
-            ]
-    except Exception as e:
-        print(f"Error generating category topics: {e}")
-        # Fallback with basic topics if API fails
-        return [
-            {
-                "topic_id": str(uuid.uuid4()),
-                "title": f"{category.capitalize()} Fundamentals",
-                "description": f"Basic overview of {category}",
-                "importance": "Essential foundation for understanding this area",
-                "category": category,
-                "expertise_level": expertise_level
-            },
-            {
-                "topic_id": str(uuid.uuid4()),
-                "title": f"Current Trends in {category.capitalize()}",
-                "description": f"Recent developments in {category}",
-                "importance": "Staying current with market changes",
-                "category": category,
-                "expertise_level": expertise_level
-            }
-        ]
 
 
 def fetch_category_news_with_perplexity(category: str) -> str:
@@ -375,54 +295,6 @@ def get_daily_topics(category: str, expertise_level: str, user_id: Optional[str]
     cache_topics(category, expertise_level, topics)
     
     return topics
-
-
-def call_perplexity_api_with_schema(prompt: str, schema: dict) -> Dict[str, Any]:
-    """Call the Perplexity API with JSON schema for structured output.
-    
-    Args:
-        prompt: The prompt to send to Perplexity
-        schema: JSON schema defining the expected response structure
-        
-    Returns:
-        Structured JSON response matching the schema
-    """
-    headers = {
-        "Authorization": f"Bearer {PERPLEXITY_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    data = {
-        "model": "sonar", 
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a financial education expert specializing in creating structured content."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {"schema": schema},
-        },
-        "temperature": 0.7
-    }
-    
-    try:
-        res = requests.post(BASE_URL, headers=headers, json=data)
-        res.raise_for_status()
-        
-        response_json = res.json()
-        
-        # The structured response is directly in the content field
-        content = response_json["choices"][0]["message"]["content"]
-        return json.loads(content)
-    except Exception as e:
-        logger.error(f"Error calling Perplexity API with schema: {e}")
-        raise
 
 
 def generate_article(
@@ -702,36 +574,8 @@ Format your response as a valid JSON array with this structure:
         logger.error(f"Error generating quiz questions: {e}")
         return []
 
-####ASSETS######
 
-def search_assets_with_perplexity(query: str, asset_type: Optional[str] = None, limit: int = 10) -> List[Dict[str, Any]]:
-    """Search for financial assets using Perplexity SONAR."""
-    prompt = get_asset_search_prompt(query, asset_type, limit)
-    
-    try:
-        response = call_perplexity_api(prompt)
-        
-        # Extract JSON from response
-        if "```json" in response:
-            json_start = response.find("```json") + 7
-            json_end = response.find("```", json_start)
-            json_str = response[json_start:json_end].strip()
-            results = json.loads(json_str)
-        else:
-            # Try to parse the entire response
-            try:
-                results = json.loads(response)
-            except:
-                # If parsing fails, return empty list
-                logger.error(f"Failed to parse JSON response from Perplexity: {response}")
-                return []
-        
-        return results[:limit]
-    except Exception as e:
-        logger.error(f"Error searching assets with Perplexity: {e}")
-        return [] 
-
-
+## assets
 def get_similar_stocks(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
     """Get similar stocks with standardized schema structure.
     
@@ -796,7 +640,6 @@ def get_similar_stocks(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
         logger.error(f"Error finding similar stocks for {symbol}: {e}")
         return []
 
-
 def get_similar_crypto(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
     """Get similar cryptocurrencies with standardized schema structure.
     
@@ -859,7 +702,6 @@ def get_similar_crypto(symbol: str, limit: int = 3) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Error finding similar cryptocurrencies for {symbol}: {e}")
         return []
-
 
 def generate_asset_comparison(
     main_asset: Dict[str, Any],
@@ -987,117 +829,6 @@ Ensure the comparison helps the investor understand the relative position of {sy
             "error": str(e)
         }
 
-## analysis
-from app.services.ai.prompts.asset_prompts import get_narrative_research_prompt
-
-def get_narrative_asset_analysis(
-    symbol: str,
-    asset_type: str,
-    expertise_level: str,
-    asset_info: Dict[str, Any],
-    similar_assets: List[Dict[str, Any]] = None,
-    user_interests: List[str] = None
-) -> Dict[str, Any]:
-    """Generate narrative research article with embedded tooltips.
-    
-    Args:
-        symbol: Asset symbol
-        asset_type: Type of asset (stock/crypto)
-        expertise_level: User's expertise level (beginner/intermediate/advanced)
-        asset_info: Detailed asset information
-        similar_assets: List of similar assets for comparison
-        user_interests: User's investment interests/categories
-        
-    Returns:
-        Dictionary with sections of the research article and embedded tooltips
-    """
-    # Create the narrative research prompt
-    prompt = get_narrative_research_prompt(
-        symbol=symbol,
-        asset_type=asset_type,
-        expertise_level=expertise_level,
-        asset_info=asset_info,
-        similar_assets=similar_assets,
-        user_interests=user_interests
-    )
-    
-    try:
-        # Use SONAR model for deep research capabilities
-        response = call_perplexity_api(prompt)
-        
-        # Parse the response as a JSON object with article sections
-        try:
-            # Try to extract JSON from markdown code blocks
-            if "```json" in response:
-                json_start = response.find("```json") + 7
-                json_end = response.find("```", json_start)
-                json_str = response[json_start:json_end].strip()
-                research = json.loads(json_str)
-            else:
-                # Try parsing the entire response as JSON
-                research = json.loads(response)
-                
-            # Make sure all expected sections are present
-            required_sections = [
-                "title", "summary", "introduction", "sections", 
-                "comparison", "conclusion", "recommendation"
-            ]
-            
-            for section in required_sections:
-                if section not in research:
-                    research[section] = f"Missing {section} section"
-                    
-            return research
-            
-        except Exception as e:
-            logger.error(f"Error parsing research JSON: {e}")
-            # If JSON parsing fails, structure the raw text
-            sections = response.split("\n\n## ")
-            
-            if len(sections) > 1:
-                # Try to extract title
-                title_section = sections[0]
-                if title_section.startswith("# "):
-                    title = title_section.split("\n")[0].replace("# ", "")
-                else:
-                    title = f"Research Analysis: {symbol}"
-                    
-                # Structure the remaining content
-                article_sections = []
-                for section in sections[1:]:
-                    if section.strip():
-                        parts = section.split("\n", 1)
-                        if len(parts) > 1:
-                            section_title = parts[0].strip()
-                            section_content = parts[1].strip()
-                            article_sections.append({
-                                "title": section_title,
-                                "content": section_content
-                            })
-                
-                return {
-                    "title": title,
-                    "summary": sections[0].replace("# " + title, "").strip(),
-                    "sections": article_sections,
-                    "format": "text"
-                }
-            
-            # If we can't parse sections, return the raw text
-            return {
-                "title": f"Research Analysis: {symbol}",
-                "content": response,
-                "format": "raw_text"
-            }
-        
-    except Exception as e:
-        logger.error(f"Error generating narrative analysis: {e}")
-        return {
-            "error": str(e),
-            "title": f"Unable to generate analysis for {symbol}",
-            "content": f"An error occurred: {str(e)}"
-        }
-
-
 def get_interactive_asset_analysis(
     symbol: str,
     asset_type: str,
@@ -1166,8 +897,6 @@ def get_interactive_asset_analysis(
             "generated_at": datetime.now().isoformat(),
             "format": "error"
         }
-
-
 
 def fetch_asset_news(
     symbol: str, 
@@ -1305,7 +1034,6 @@ Only return the most important news that could potentially affect the asset's va
     except Exception as e:
         logger.error(f"Error fetching news for {symbol}: {e}")
         return []
-
 
 def fetch_trending_finance_news(
     expertise_level: str,
@@ -1481,8 +1209,6 @@ Include at least 5-8 important tooltip words with clear explanations for terms A
             "reading_time_minutes": 1
         }
 
-
-
 def get_financial_glossary_term(expertise_level: str) -> List[Dict[str, Any]]:
     """Get financial glossary terms tailored to user's expertise level.
     
@@ -1568,7 +1294,6 @@ Each term should be:
                 "example": "A conservative investor might prefer bonds over volatile stocks."
             }
         ]
-    
 
 def get_finance_quote() -> Dict[str, Any]:
     """Get motivational finance quote of the day.

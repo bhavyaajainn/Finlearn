@@ -283,7 +283,6 @@ def get_related_topics(user_id: str, asset_symbol: str, asset_type: str) -> List
         logger.error(f"Error finding related topics: {e}")
         return []
     
-# Add this function if not already present
 
 def log_asset_research(
     user_id: str, 

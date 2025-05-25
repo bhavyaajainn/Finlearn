@@ -15,7 +15,7 @@ from app.services.firebase.cache import cache_research_article, get_asset_compar
 logger = logging.getLogger(__name__)
 
 
-from app.services.assets.data import fast_search_assets, get_asset_info, get_asset_info_async, get_similar_assets, get_similar_assets_async
+from app.services.assets.data import fast_search_assets, get_asset_info, get_asset_info_async, get_similar_assets, get_similar_assets_async, get_similar_assets_with_retry
 from app.services.firebase import add_to_watchlist, remove_from_watchlist
 from app.services.ai.perplexity import fetch_asset_news, generate_asset_comparison, get_interactive_asset_analysis
 from app.api.models import AssetType, AddAssetRequest, SearchRequest
@@ -518,7 +518,7 @@ async def get_related_content(
         # Run all related content tasks in parallel
         tasks = [
             asyncio.to_thread(get_asset_info, symbol, asset_type),
-            asyncio.to_thread(get_similar_assets, symbol, asset_type, 3),
+            get_similar_assets_with_retry(symbol, asset_type, 3),
             asyncio.to_thread(fetch_asset_news, symbol, asset_type.value),
         ]
         
