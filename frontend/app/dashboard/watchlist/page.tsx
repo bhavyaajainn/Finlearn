@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/app/store/hooks";
 import { toast } from "sonner";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { searchAssets, addToWatchlist, fetchWatchlist } from "@/lib/actions";
 import { useTransition } from "react";
 import {
@@ -137,7 +137,7 @@ export default function WatchlistPage() {
     } catch (error) {
       setWatchlist(prev => prev.filter(a => a.symbol !== asset.symbol));
       console.error("Addition error:", error);
-      toast.error("Failed to add asset");
+      toast("Failed to add asset");
     } finally {
       setAddingAssetId(null);
     }
@@ -155,10 +155,9 @@ export default function WatchlistPage() {
       setWatchlist(prev =>
         prev.filter(asset => asset.symbol !== symbol || asset.asset_type !== assetType)
       );
-      toast.success(`${symbol} removed successfully`);
     } catch (error) {
       console.error("Removal error:", error);
-      toast.error("Failed to remove asset");
+      toast("Failed to remove asset");
     }
   };
 
@@ -175,7 +174,7 @@ export default function WatchlistPage() {
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto py-8 px-4">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-blue-500 mb-2">Watchlist</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Watchlist</h1>
           <p className="text-gray-400 text-sm sm:text-base">Track & Analyze Your Assets</p>
         </header>
 
@@ -306,9 +305,9 @@ export default function WatchlistPage() {
                   <TableCell className="text-right capitalize">
                     {asset.asset_type}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
+                  <TableCell>
+
+                  <Button
                         variant="ghost"
                         size="icon"
                         className="text-blue-400 cursor-pointer"
@@ -318,7 +317,12 @@ export default function WatchlistPage() {
                         }}
                       >
                         <Eye className="h-4 w-4" />
+                        View Insights
                       </Button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+
                       <Button
                         variant="ghost"
                         size="icon"

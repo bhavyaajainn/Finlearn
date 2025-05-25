@@ -455,15 +455,15 @@ export default function WatchlistDetails() {
                                         <div className="text-gray-400">
                                           {asset.symbol}
                                         </div>
+                                      <span className="mt-3 text-sm text-white">
+                                        {asset.similarity_reason}
+                                      </span>
                                       </div>
                                     </div>
                                     <div className="text-right">
                                       <div className="font-bold text-lg text-green-400">
                                         ${asset.current_price}
                                       </div>
-                                      <span className="mt-1 text-sm text-white">
-                                        {asset.similarity_reason}
-                                      </span>
                                     </div>
                                   </div>
                                   {asset.comparison_points?.length > 0 && (
