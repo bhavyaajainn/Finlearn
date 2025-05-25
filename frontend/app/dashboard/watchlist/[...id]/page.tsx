@@ -1,134 +1,235 @@
 'use client'
 
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronLeft,
-  Newspaper,
-  FileText,
-  Layers,
-  BrainCircuit,
-  Plus,
-} from "lucide-react"
+import { useEffect, useState } from "react"
+import { useAppSelector } from "@/app/store/hooks"
+import { toast } from "sonner"
+import { useParams } from "next/navigation"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useAppSelector } from "@/app/store/hooks"
-import { toast } from "sonner"
-import { useParams } from "next/navigation"
-
-
-export interface Asset {
-  symbol: string;
-  name: string;
-  asset_type: string;
-  current_price: number;
-  price_change_percent: number;
-  expertise_level: 'beginner' | 'intermediate' | 'advanced'; // assuming fixed levels
-  research_article: ResearchArticle;
-  similar_assets: SimilarAsset[];
-  recent_news: RecentNews[];
-  related_topics: string[];
-}
-
-export interface ResearchArticle {
-  title: string;
-  summary: string;
-  introduction: string;
-  sections: ArticleSection[];
-  knowledge_connections: string;
-  watchlist_relevance: string;
-  comparison: string;
-  conclusion: string;
-  recommendation: Recommendation;
-  connections: string; // "Missing connections section" implies a fallback string
-}
-
-export interface ArticleSection {
-  title: string;
-  content: string;
-}
-
-export interface Recommendation {
-  rating: 'Buy' | 'Hold' | 'Sell';
-  reasoning: string;
-  risk_level: 'Low' | 'Medium' | 'High';
-  time_horizon: 'Short-term' | 'Medium-term' | 'Long-term';
-}
-
-export interface SimilarAsset {
-  symbol: string;
-  name: string;
-  price: number;
-  reason: string;
-}
-
-export interface RecentNews {
-  headline: string;
-  date: string; // ISO format
-  source: string;
-  author: string;
-  url: string;
-  summary: string;
-  impact: {
-    direction: 'positive' | 'negative' | 'neutral';
-    reason: string;
-  };
-  citation: string;
-}
-
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  FileText,
+  Info,
+  Layers,
+} from "lucide-react"
+import { ResearchAssetData } from "../types/type"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function WatchlistDetails() {
-  const [details, setDetails] = useState<Asset>()
-  const [isLoading, setIsLoading] = useState(true) // Add loading state
+  const [details, setDetails] = useState<ResearchAssetData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [relatedLoaded, setRelatedLoaded] = useState(false)
   const { user } = useAppSelector((state) => state.auth)
   const params = useParams()
-  // const assetName = params?.id ? decodeURIComponent(params.id as string) : '';
+  const [selectedTerm, setSelectedTerm] = useState<{ word: string; tooltip: string } | null>(null);
 
-  console.log(user?.uid);
+  const renderTooltipContent = (content: string) => {
+    if (!details?.tooltip_words?.length) return content;
+
+    const stopWords = new Set([
+      'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at',
+      'of', 'to', 'for', 'with', 'as', 'by', 'it', 'is', 'are',
+      'was', 'were', 'be', 'been', 'being'
+    ]);
+
+    const tooltipMap = new Map(
+      details.tooltip_words.map(t => [
+        normalizeToken(t.word),
+        t
+      ])
+    );
+
+    const tokens = content.split(/(\s+|\p{P}+|[\n])/gu);
+
+    return (
+      <span className="whitespace-pre-wrap">
+        {tokens.map((token, index) => {
+          const cleanToken = normalizeToken(token);
+
+          if (!cleanToken || stopWords.has(cleanToken)) {
+            return <span key={index}>{token}</span>;
+          }
+
+          const tooltip = tooltipMap.get(cleanToken);
+          if (!tooltip) return <span key={index}>{token}</span>;
+
+          return (
+            <button
+              key={`${index}-${cleanToken}`}
+              onClick={() => setSelectedTerm(tooltip)}
+              className="border-b border-dashed border-blue-400 hover:border-blue-300 cursor-pointer bg-blue-400/10 px-1 mx-0.5 rounded-sm"
+            >
+              {token}
+            </button>
+          );
+        })}
+      </span>
+    );
+  };
+
+  // Normalize and stem token to base form
+  const normalizeToken = (token: string): string => {
+    return token
+      .replace(/^[\p{P}\s]+|[\p{P}\s]+$/gu, '') // remove surrounding punctuation
+      .toLowerCase()
+      .replace(/(ing|ed|s)$/, ''); // crude stemming
+  };
+
+
+  const fetchRelatedData = async () => {
+    if (!params.id || params.id.length < 2 || !user?.uid || relatedLoaded) return;
+
+    try {
+      const [symbol, assetType] = params.id as string[];
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+      const userId = user.uid;
+
+      const relatedUrl = `${baseUrl}/watchlist/related/${symbol}?user_id=${userId}&asset_type=${assetType}&include_comparison=true&refresh=false`;
+
+      const relatedRes = await fetch(relatedUrl).then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      });
+
+      setDetails(prev => ({
+        ...prev!,
+        recent_news: relatedRes.recent_news || [],
+        similar_assets: relatedRes.similar_assets || [],
+      }));
+
+      setRelatedLoaded(true);
+    } catch (error) {
+      console.error("Fetch related error:", error);
+      toast.error("Failed to load related assets");
+    }
+  };
+
   useEffect(() => {
-    const isParamsReady = params.id && params?.id.length >= 2;
-    const isUserReady = !!user?.uid;
+    const fetchInitialData = async () => {
+      if (!params.id || params.id.length < 2 || !user?.uid) return;
 
-    if (!isParamsReady || !isUserReady) return;
-
-
-    const API_URL = params.id ? `${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/research/${params.id[0]}?user_id=${user.uid}&asset_type=${params.id[1]}&include_comparison=true&include_news=true&refresh=false` : '';
-
-    console.log(API_URL);
-
-    const fetchWatchlist = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(API_URL, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
+        const [symbol, assetType] = params.id as string[];
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        const userId = user.uid;
+
+        const [assetRes, analysisRes] = await Promise.all([
+          fetch(`${baseUrl}/watchlist/asset/${symbol}?user_id=${userId}&asset_type=${assetType}`),
+          fetch(`${baseUrl}/watchlist/analysis/${symbol}?user_id=${userId}&asset_type=${assetType}&refresh=false`)
+        ].map(url => url.then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })));
+
+        setDetails({
+          symbol: assetRes.symbol || 'N/A',
+          name: assetRes.name || 'Unnamed Asset',
+          asset_type: assetRes.asset_type || 'Unknown Type',
+          current_price: assetRes.current_price || 0,
+          price_change_percent: assetRes.price_change_percent || 0,
+          expertise_level: assetRes.expertise_level || 'beginner',
+          loading_status: assetRes.loading_status || {
+            asset_loaded: true,
+            analysis_loaded: false,
+            related_loaded: false
           },
+          asset_info: assetRes.asset_info || {
+            name: '',
+            current_price: 0,
+            price_change_percent: 0,
+            symbol: '',
+            asset_type: ''
+          },
+          from_cache: analysisRes.from_cache || false,
+          recent_news: [],
+          similar_assets: [],
+          title: analysisRes.research_article.title || 'Research Report',
+          summary: analysisRes.research_article.summary || 'No summary available',
+          sections: analysisRes.research_article.sections?.map((s: any) => ({
+            title: s.title || 'Untitled Section',
+            content: s.content || 'Content not available'
+          })) || [],
+          references: analysisRes.research_article.references || [],
+          recommendation: analysisRes.research_article.recommendation || {
+            time_horizon: 'Medium-term',
+            risk_level: 'Medium',
+            reasoning: 'No reasoning provided',
+            action: 'Hold'
+          },
+          generated_at: analysisRes.generated_at || new Date().toISOString(),
+          format: analysisRes.format || 'standard',
+          conclusion: analysisRes.conclusion || 'No conclusion available',
+          tooltip_words: analysisRes.research_article.tooltip_words || [],
+          watchlist_relevance: analysisRes.research_article.watchlist_relevance || 'Not specified'
         });
 
-        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
-
-        const data = await res.json();
-        setDetails(data);
-      } catch (error: any) {
-        console.error("Error fetching watchlist:", error);
-        toast("Failed to fetch asset details");
+      } catch (error) {
+        console.error("Fetch error:", error);
+        toast.error("Failed to load asset details");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchWatchlist();
+    fetchInitialData();
   }, [user?.uid, params]);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <div className="container mx-auto py-4 px-4">
+          <Skeleton className="h-6 w-[200px] bg-gray-800" />
+        </div>
+        <div className="container mx-auto px-4 space-y-8">
+          <div className="bg-gray-900 rounded-lg p-6 space-y-4">
+            <Skeleton className="h-8 w-1/4 bg-gray-800" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-20 bg-gray-800 rounded-md" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-6">
+            <div className="flex gap-4">
+              {[...Array(2)].map((_, i) => (
+                <Skeleton key={i} className="h-10 w-32 bg-gray-800" />
+              ))}
+            </div>
+            <div className="bg-gray-900 rounded-lg p-6 space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-6 w-1/3 bg-gray-800" />
+                  <Skeleton className="h-4 w-full bg-gray-800" />
+                  <Skeleton className="h-4 w-2/3 bg-gray-800" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navigation */}
       <div className="container mx-auto py-4 px-4">
         <Link href="/dashboard/watchlist" className="cursor-pointer">
           <Button variant="link" className="text-blue-400 p-0 flex items-center">
@@ -137,264 +238,273 @@ export default function WatchlistDetails() {
           </Button>
         </Link>
       </div>
-      {isLoading ? (
-        <div className="flex items-center justify-center h-[calc(100vh-160px)]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
-
+      <Dialog open={!!selectedTerm} onOpenChange={() => setSelectedTerm(null)}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-[90vw] sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-blue-400">{selectedTerm?.word}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-100 text-lg">{selectedTerm?.tooltip}</p>
+            <div className="text-sm text-gray-400 mt-4">
+              Click outside to close this explanation
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {details ? (
         <>
-          {/* Header */}
           <div className="container mx-auto px-4">
             <div className="bg-gray-900 rounded-lg p-6 mb-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                 <div className="flex items-center gap-4">
                   <div>
-                    <h1 className="text-2xl font-bold">{details?.name || "Unknown Asset"}</h1>
+                    <h1 className="text-2xl font-bold">
+                      {details.name}
+                      <Tooltip>
+                        <TooltipTrigger className="ml-2">
+                          <Info className="h-4 w-4 text-blue-400" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Asset ID: {details.symbol}</p>
+                          <p>Type: {details.asset_type}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </h1>
                     <div className="text-gray-400">
-                      {details?.symbol || "N/A"} • {details?.asset_type || "Unknown Type"}
+                      {details.symbol} • {details.asset_type}
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
                   <div className="text-3xl font-bold">
-                    ${details?.current_price || "0.00"}
+                    ${details.current_price?.toFixed(2)}
                   </div>
-                  <div
-                    className={`flex items-center ${(details?.price_change_percent || 0) < 0 ? "text-red-500" : "text-green-500"
-                      }`}
-                  >
-                    {(details?.price_change_percent || 0) < 0 ? (
+                  <div className={`flex items-center ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}>
+                    {details.price_change_percent < 0 ? (
                       <ArrowDown className="h-4 w-4 mr-1" />
                     ) : (
                       <ArrowUp className="h-4 w-4 mr-1" />
                     )}
-                    <span>
-                      {Math.abs(details?.price_change_percent || 0).toFixed(2)}%
-                    </span>
+                    <span>{(Math.abs(details.price_change_percent)?.toFixed(2))}%</span>
                   </div>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div className="bg-gray-800 p-3 rounded-md">
-                  <div className="text-gray-400 text-sm">Symbol</div>
-                  <div className="text-xl font-bold">{details?.symbol || "N/A"}</div>
-                </div>
-                <div className="bg-gray-800 p-3 rounded-md">
-                  <div className="text-gray-400 text-sm">Asset Type</div>
-                  <div className="text-xl font-bold">{details?.asset_type || "N/A"}</div>
-                </div>
-                <div className="bg-gray-800 p-3 rounded-md">
-                  <div className="text-gray-400 text-sm">Current Price</div>
-                  <div className="text-xl font-bold">${details?.current_price || "0.00"}</div>
-                </div>
+                {[
+                  { label: 'Symbol', value: details.symbol },
+                  { label: 'Asset Type', value: details.asset_type },
+                  { label: 'Current Price in $', value: details.current_price },
+                ].map((stat, index) => (
+                  <div key={index} className="bg-gray-800 p-3 rounded-md">
+                    <div className="text-gray-400 text-sm">{stat.label}</div>
+                    <div className="text-xl font-bold">{stat.value}</div>
+                  </div>
+                ))}
                 <div className="bg-gray-800 p-3 rounded-md">
                   <div className="text-gray-400 text-sm">Price Change</div>
-                  <div
-                    className={`text-xl font-bold ${(details?.price_change_percent || 0) < 0 ? "text-red-500" : "text-green-500"
-                      }`}
-                  >
-                    {(details?.price_change_percent || 0).toFixed(2)}%
+                  <div className={`text-xl font-bold ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}>
+                    {details.price_change_percent < 0 ? "" : "+"}{details.price_change_percent}%
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="container mx-auto px-4">
-            <Tabs defaultValue="articles" className="w-full">
-              <TabsList className="w-full bg-gray-900 p-0 mb-6">
-                {/* <TabsTrigger value="news" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200 cursor-pointer">
-                  <Newspaper className="h-4 w-4 mr-2" />
-                  News
-                </TabsTrigger> */}
-                <TabsTrigger value="articles" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200 cursor-pointer">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Articles
-                </TabsTrigger>
-                <TabsTrigger value="similar" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200 cursor-pointer">
-                  <Layers className="h-4 w-4 mr-2" />
-                  Similar Assets
-                </TabsTrigger>
-                {/* <TabsTrigger value="ai" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200 cursor-pointer">
-                  <BrainCircuit className="h-4 w-4 mr-2" />
-                  AI Summary
-                </TabsTrigger> */}
-              </TabsList>
+            <TooltipProvider>
+              <Tabs
+                defaultValue="articles"
+                onValueChange={(value) => {
+                  if (value === 'similar' && !relatedLoaded) {
+                    fetchRelatedData();
+                  }
+                }}
+              >
+                <TabsList className="w-full bg-gray-900">
+                  <TabsTrigger value="articles" className="!text-white data-[state=active]:!text-black">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Research Articles
+                  </TabsTrigger>
+                  <TabsTrigger value="similar" className="!text-white data-[state=active]:!text-black">
+                    <Layers className="h-4 w-4 mr-2" />
+                    Similar Assets and News
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* News Tab */}
-              {/* <TabsContent value="news" className="mt-0">
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">Recent News</CardTitle>
-                    <CardDescription className="text-gray-400">Latest updates</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {details?.news?.length ? (
-                        details.news.map((news, index) => (
-                          <div key={index} className="border-b border-gray-800 pb-6 last:border-0 last:pb-0">
-                            <div className="flex justify-between items-start mb-2">
-                              <h3 className="font-medium text-xl text-white">{news?.headline || "Untitled"}</h3>
-                              <Badge
-                                className={
-                                  news?.impact?.direction === "negative"
-                                    ? "bg-red-900/50 text-red-300 border-red-700"
-                                    : news?.impact?.direction === "positive"
-                                      ? "bg-green-900/50 text-green-300 border-green-700"
-                                      : "bg-blue-900/50 text-blue-300 border-blue-700"
-                                }
-                              >
-                                {news?.impact?.direction || "neutral"}
-                              </Badge>
-                            </div>
-                            <p className="text-gray-300 mb-3">{news?.summary || "No summary available."}</p>
-                            <div className="flex justify-between items-center text-sm text-gray-400">
-                              <span>
-                                {news?.source || "Unknown source"} • {news?.date || "Unknown date"}
-                              </span>
-                              <Button variant="link" className="text-blue-400 p-0 h-auto cursor-pointer">
-                                Read more
-                              </Button>
-                            </div>
+                <TabsContent value="articles">
+                  <Card className="bg-gray-900 border-gray-800">
+                    <CardHeader>
+                      <CardTitle className="text-white">
+                        {details.title}
+                        <Badge className="ml-2 bg-zinc-700">
+                          {details.expertise_level}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+                        <h3 className="text-blue-400 mb-2">Key Summary</h3>
+                        <p className="text-gray-300">
+                          {renderTooltipContent(details.summary)}
+                        </p>
+                      </div>
+
+
+
+                      {details.sections?.map((section, index) => (
+                        <div key={index} className="mb-8 mt-10">
+                          <h3 className="text-xl text-blue-400 mb-3">
+                            {section.title}
+                            <Tooltip>
+                              <TooltipTrigger className="ml-2">
+                                <Info className="h-4 w-4" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Section {index + 1} of {details.sections?.length}
+                              </TooltipContent>
+                            </Tooltip>
+                          </h3>
+                          <div className="text-gray-300 space-y-2">
+                            {renderTooltipContent(section.content)}
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-400">No news available.</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent> */}
-
-              {/* Articles Tab */}
-              <TabsContent value="articles" className="mt-0">
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">
-                      {details?.research_article?.title || "No Title"}
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">Research and analysis</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-6 p-4 bg-gray-800 rounded-lg">
-                      <p className="text-gray-300">
-                        {details?.research_article?.summary || "No summary available."}
-                      </p>
-                    </div>
-
-                    <div className="space-y-8">
-                      {details?.research_article?.sections?.map?.((section, index) => (
-                        <div key={index} className="border-b border-gray-800 pb-6 last:border-0 last:pb-0">
-                          <h3 className="text-xl font-medium text-blue-400 mb-3">{section?.title || "Untitled"}</h3>
-                          <p className="text-gray-300">{section?.content || "No content."}</p>
                         </div>
                       ))}
-                    </div>
 
-                    {details?.research_article?.recommendation && (
                       <div className="mt-8 p-4 bg-gray-800 rounded-lg">
                         <div className="flex justify-between items-center mb-3">
-                          <h3 className="text-xl font-medium text-white">Recommendation</h3>
+                          <h3 className="text-xl font-medium text-white">
+                            Final Recommendation
+                          </h3>
                           <Badge className="bg-yellow-600">
-                            {details.research_article.recommendation.rating}
+                            {details.recommendation.action}
                           </Badge>
                         </div>
                         <p className="text-gray-300 mb-4">
-                          {details.research_article.recommendation.reasoning}
+                          {details.recommendation.reasoning}
                         </p>
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 flex-wrap">
                           <div className="flex items-center gap-1">
                             <span className="text-sm text-gray-400">Risk:</span>
                             <Badge variant="outline" className="text-red-400 border-red-800">
-                              {details.research_article.recommendation.risk_level}
+                              {details.recommendation.risk_level}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-sm text-gray-400">Horizon:</span>
+                            <span className="text-sm text-gray-400">Timeframe:</span>
                             <Badge variant="outline" className="text-blue-400 border-blue-800">
-                              {details.research_article.recommendation.time_horizon}
+                              {details.recommendation.time_horizon}
                             </Badge>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-              {/* Similar Assets Tab */}
-              <TabsContent value="similar" className="mt-0">
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">Similar Assets</CardTitle>
-                    <CardDescription className="text-gray-400">Related investment opportunities</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {details?.similar_assets?.length ? (
-                        details.similar_assets.map((asset, index) => (
-                          <div key={index} className="border-b border-gray-800 pb-6 last:border-0 last:pb-0">
-                            <div className="flex justify-between items-center mb-3">
-                              <div className="flex items-center gap-3">
-                                <div>
-                                  <div className="font-medium text-lg text-white">{asset?.name || "Unnamed"}</div>
-                                  <div className="text-gray-400">{asset?.symbol || "N/A"}</div>
+                <TabsContent value="similar">
+                  <Card className="bg-gray-900 border-gray-800">
+                    <CardHeader>
+                      <CardTitle className="text-white">
+                        Alternative Investments and Recent News
+                      </CardTitle>
+                      <CardDescription className="text-gray-400">
+                        {details.similar_assets.length} similar assets and {details.recent_news.length} Recent News Found
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {relatedLoaded ? (
+                        <>
+                          {details.recent_news?.length > 0 && (
+                            <div className="space-y-4">
+                              <h3 className="text-blue-400 text-lg font-semibold">Recent News</h3>
+                              {details.recent_news.map((newsItem, idx) => (
+                                <div key={idx} className="p-4 bg-gray-800 rounded-lg">
+                                  <h4 className="text-white font-medium text-md mb-1">
+                                    {newsItem.headline}
+                                  </h4>
+                                  <p className="text-gray-300 text-sm mb-2">
+                                    {newsItem.summary}
+                                  </p>
+                                  <div className="text-gray-400 text-xs flex justify-between items-center">
+                                    <span>{newsItem.source} — {newsItem.date}</span>
+                                    <a
+                                      href={newsItem.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-400 hover:underline"
+                                    >
+                                      Read more
+                                    </a>
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="font-bold text-lg text-white">
-                                  ${asset?.price || "0.00"}
-                                </div>
-                                {/* <div className="flex justify-end mt-3">
-                                  <Button className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add to Watchlist
-                                  </Button>
-                                </div> */}
-                              </div>
+                              ))}
                             </div>
-                            <p className="text-gray-300 mb-3">{asset?.reason || "No reason provided."}</p>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-400">No similar assets available.</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* AI Summary Tab */}
-              {/* <TabsContent value="ai" className="mt-0">
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">AI Investment Summary</CardTitle>
-                    <CardDescription className="text-gray-400">AI-generated insights</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div className="p-4 bg-blue-900/20 rounded-lg border border-blue-800">
-                        <h3 className="text-lg font-medium text-blue-300 mb-2">Key Takeaways</h3>
-                        <ul className="list-disc pl-5 text-gray-300 space-y-2">
-                          {details?.ai_summary?.length ? (
-                            details.ai_summary.map((point, i) => <li key={i}>{point}</li>)
-                          ) : (
-                            <li>No AI summary available.</li>
                           )}
-                        </ul>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent> */}
-            </Tabs>
+
+                          <div className="space-y-6 mt-10">
+                            <h3 className="text-blue-400 text-lg font-semibold">Similar Assets</h3>
+                            {details.similar_assets.length > 0 ? (
+                              details.similar_assets.map((asset, index) => (
+                                <div key={index} className="border-b border-gray-800 pb-6">
+                                  <div className="flex justify-between items-center mb-3">
+                                    <div className="flex items-center gap-3">
+                                      <div>
+                                        <div className="font-medium text-lg text-white">
+                                          {asset.name}
+                                        </div>
+                                        <div className="text-gray-400">
+                                          {asset.symbol}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="font-bold text-lg text-green-400">
+                                        ${asset.current_price}
+                                      </div>
+                                      <span className="mt-1 text-sm text-white">
+                                        {asset.similarity_reason}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {asset.comparison_points?.length > 0 && (
+                                    <div className="mt-3 space-y-2">
+                                      {asset.comparison_points.map((point: any, idx: number) => (
+                                        <div key={idx} className="bg-gray-800 p-3 rounded-md text-sm text-gray-300">
+                                          <div className="font-semibold text-white">{point.metric}</div>
+                                          <div>{point.description}</div>
+                                          <div className="text-green-400">{point.comparison}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center text-white">
+                                No similar assets found.
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-4">
+                          <Skeleton className="h-6 w-1/4 bg-gray-800" />
+                          <Skeleton className="h-6 w-1/4 bg-gray-800" />
+                          <Skeleton className="h-6 w-1/4 bg-gray-800" />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </TooltipProvider>
           </div>
         </>
+      ) : (
+        <div className="container mx-auto px-4 text-center py-24 text-gray-400">
+          Failed to load asset details
+        </div>
       )}
     </div>
-
   )
 }
