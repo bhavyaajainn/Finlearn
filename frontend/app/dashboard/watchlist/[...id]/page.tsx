@@ -11,10 +11,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   ArrowDown,
   ArrowUp,
   ChevronLeft,
   FileText,
+  Info,
   Layers,
 } from "lucide-react"
 
@@ -43,6 +50,22 @@ export interface Recommendation {
   action: string
 }
 
+export interface NewsImpact {
+  reason: string
+  direction: 'positive' | 'negative' | 'neutral'
+}
+
+export interface NewsItem {
+  author: string | null
+  citation: string
+  date: string
+  headline: string
+  impact: NewsImpact
+  source: string
+  summary: string
+  url: string
+}
+
 export interface AssetData {
   symbol: string
   name: string
@@ -57,7 +80,7 @@ export interface AssetData {
   }
   asset_info: AssetInfo
   from_cache: boolean
-  recent_news: any[] // Replace `any` with a specific `NewsItem` type if you have one
+  recent_news: NewsItem[]
   similar_assets: any[] // Replace `any` with a specific `SimilarAsset` type if available
   title: string
   summary: string
@@ -78,13 +101,33 @@ export default function WatchlistDetails() {
   const { user } = useAppSelector((state) => state.auth)
   const params = useParams()
 
+  const renderTooltipContent = (content: string) => {
+    if (!details?.tooltip_words?.length) return content;
+
+    return content.split(' ').map((word, index) => {
+      const tooltip = details.tooltip_words.find(t => t.word === word);
+      return tooltip ? (
+        <Tooltip key={index}>
+          <TooltipTrigger className="border-b border-dashed border-blue-400">
+            {word}{' '}
+          </TooltipTrigger>
+          <TooltipContent className="bg-gray-800 border-gray-700 text-white max-w-[300px]">
+            <p>{tooltip.tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <span key={index}>{word} </span>
+      );
+    });
+  };
+
   useEffect(() => {
     const fetchAllData = async () => {
       if (!params.id || params.id.length < 2 || !user?.uid) return
 
       setIsLoading(true)
       try {
-        const [symbol, assetType] = params.id;
+        const [symbol, assetType] = params.id as string[];
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
         const userId = user.uid
 
@@ -94,20 +137,55 @@ export default function WatchlistDetails() {
           `${baseUrl}/watchlist/related/${symbol}?user_id=${userId}&asset_type=${assetType}&include_comparison=true&refresh=false`
         ]
 
-        const responses = await Promise.all(urls.map(url => fetch(url).then(res => {
-          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
-          return res.json()
-        })));
+        const [assetRes, analysisRes, relatedRes] = await Promise.all(
+          urls.map(url => fetch(url).then(res => {
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+            return res.json()
+          }))
+        );
 
-        const basic_asset_data = responses[0];
-        const articles_tooltips_data = responses[1]
-        const similar_news_data = responses[2]
-
+        // Data mapping with fallbacks
         setDetails({
-          ...basic_asset_data,
-          similar_assets: articles_tooltips_data.research_article || [],
-          recent_news: similar_news_data || []
-        })
+          symbol: assetRes.symbol || 'N/A',
+          name: assetRes.name || 'Unnamed Asset',
+          asset_type: assetRes.asset_type || 'Unknown Type',
+          current_price: assetRes.current_price || 0,
+          price_change_percent: assetRes.price_change_percent || 0,
+          expertise_level: assetRes.expertise_level || 'beginner',
+          loading_status: assetRes.loading_status || {
+            asset_loaded: true,
+            analysis_loaded: false,
+            related_loaded: false
+          },
+          asset_info: assetRes.asset_info || {
+            name: '',
+            current_price: 0,
+            price_change_percent: 0,
+            symbol: '',
+            asset_type: ''
+          },
+          from_cache: analysisRes.from_cache || false,
+          recent_news: relatedRes.recent_news || [],
+          similar_assets: relatedRes.similar_assets || [],
+          title: analysisRes.research_article.title || 'Research Report',
+          summary: analysisRes.research_article.summary || 'No summary available',
+          sections: analysisRes.research_article.sections?.map((s: any) => ({
+            title: s.title || 'Untitled Section',
+            content: s.content || 'Content not available'
+          })) || [],
+          references: analysisRes.research_article.references || [],
+          recommendation: analysisRes.research_article.recommendation || {
+            time_horizon: 'Medium-term',
+            risk_level: 'Medium',
+            reasoning: 'No reasoning provided',
+            action: 'Hold'
+          },
+          generated_at: analysisRes.generated_at || new Date().toISOString(),
+          format: analysisRes.format || 'standard',
+          conclusion: analysisRes.conclusion || 'No conclusion available',
+          tooltip_words: analysisRes.research_article.tooltip_words || [],
+          watchlist_relevance: analysisRes.research_article.watchlist_relevance || 'Not specified'
+        });
 
       } catch (error) {
         console.error("Fetch error:", error)
@@ -119,8 +197,6 @@ export default function WatchlistDetails() {
 
     fetchAllData()
   }, [user?.uid, params]);
-
-  console.log(details);
 
   if (isLoading) {
     return (
@@ -174,20 +250,32 @@ export default function WatchlistDetails() {
 
       {details ? (
         <>
+          {/* Header Section */}
           <div className="container mx-auto px-4">
             <div className="bg-gray-900 rounded-lg p-6 mb-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                 <div className="flex items-center gap-4">
                   <div>
-                    <h1 className="text-2xl font-bold">{details.name}</h1>
+                    <h1 className="text-2xl font-bold">
+                      {details.name || 'Unnamed Asset'}
+                      <Tooltip>
+                        <TooltipTrigger className="ml-2">
+                          <Info className="h-4 w-4 text-blue-400" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Asset ID: {details.symbol}</p>
+                          <p>Type: {details.asset_type}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </h1>
                     <div className="text-gray-400">
-                      {details.symbol} • {details.asset_type}
+                      {details.symbol || 'N/A'} • {details.asset_type || 'Unknown Type'}
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
                   <div className="text-3xl font-bold">
-                    ${details.current_price.toFixed(2)}
+                    ${details.current_price?.toFixed(2) || '0.00'}
                   </div>
                   <div className={`flex items-center ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}>
                     {details.price_change_percent < 0 ? (
@@ -195,133 +283,212 @@ export default function WatchlistDetails() {
                     ) : (
                       <ArrowUp className="h-4 w-4 mr-1" />
                     )}
-                    <span>{Math.abs(details.price_change_percent).toFixed(2)}%</span>
+                    <span>{(Math.abs(details.price_change_percent)?.toFixed(2) || '0.00')}%</span>
                   </div>
                 </div>
               </div>
 
+              {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div className="bg-gray-800 p-3 rounded-md">
-                  <div className="text-gray-400 text-sm">Symbol</div>
-                  <div className="text-xl font-bold">{details.symbol}</div>
-                </div>
-                <div className="bg-gray-800 p-3 rounded-md">
-                  <div className="text-gray-400 text-sm">Asset Type</div>
-                  <div className="text-xl font-bold">{details.asset_type}</div>
-                </div>
-                <div className="bg-gray-800 p-3 rounded-md">
-                  <div className="text-gray-400 text-sm">Current Price</div>
-                  <div className="text-xl font-bold">${details.current_price.toFixed(2)}</div>
-                </div>
+                {[
+                  { label: 'Symbol', value: details.symbol },
+                  { label: 'Asset Type', value: details.asset_type },
+                  { label: 'Current Price in $', value: details.current_price },
+                ].map((stat, index) => (
+                  <div key={index} className="bg-gray-800 p-3 rounded-md">
+                    <div className="text-gray-400 text-sm">{stat.label}</div>
+                    <div className="text-xl font-bold">
+                      {stat.value || 'N/A'}
+                    </div>
+                  </div>
+                ))}
                 <div className="bg-gray-800 p-3 rounded-md">
                   <div className="text-gray-400 text-sm">Price Change</div>
                   <div className={`text-xl font-bold ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}>
-                    {details.price_change_percent.toFixed(2)}%
+                    {details.price_change_percent < 0 ? "" : "+"}{details.price_change_percent}%
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Main Content Tabs */}
           <div className="container mx-auto px-4">
-            <Tabs defaultValue="articles" className="w-full">
-              <TabsList className="w-full bg-gray-900 p-0 mb-6">
-                <TabsTrigger value="articles" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Articles
-                </TabsTrigger>
-                <TabsTrigger value="similar" className="flex-1 py-3 data-[state=active]:bg-blue-600 text-gray-200">
-                  <Layers className="h-4 w-4 mr-2" />
-                  Similar Assets
-                </TabsTrigger>
-              </TabsList>
+            <TooltipProvider>
+              <Tabs defaultValue="articles">
+                <TabsList className="w-full bg-gray-900">
+                  <TabsTrigger value="articles" className="text-black" >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Research Articles
+                  </TabsTrigger>
+                  <TabsTrigger value="similar" className="text-black">
+                    <Layers className="h-4 w-4 mr-2" />
+                    Similar Assets
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="articles" className="mt-0">
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">
-                      {details.research_article?.title || "Research Article"}
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">Detailed analysis</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-6 p-4 bg-gray-800 rounded-lg">
-                      <p className="text-gray-300">
-                        {details.research_article?.summary || "No summary available"}
-                      </p>
-                    </div>
+                {/* Research Tab */}
+                <TabsContent value="articles">
+                  <Card className="bg-gray-900 border-gray-800">
+                    <CardHeader>
+                      <CardTitle className="text-white">
+                        {details.title}
+                        <Badge className="ml-2 bg-zinc-700">
+                          {details.expertise_level}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-6 p-4 bg-gray-800 rounded-lg">
+                        <h3 className="text-blue-400 mb-2">Key Summary</h3>
+                        <p className="text-gray-300">
+                          {renderTooltipContent(details.summary)}
+                        </p>
+                      </div>
 
-                    <div className="space-y-8">
-                      {details.research_article?.sections?.map((section, index) => (
-                        <div key={index} className="border-b border-gray-800 pb-6 last:border-0 last:pb-0">
-                          <h3 className="text-xl font-medium text-blue-400 mb-3">{section.title}</h3>
-                          <p className="text-gray-300">{section.content}</p>
+                      {/* News Section */}
+                      {details.recent_news?.length > 0 && (
+                        <div className="mt-6 space-y-4">
+                          <h3 className="text-blue-400 text-lg font-semibold">Recent News</h3>
+                          {details.recent_news.map((newsItem, idx) => (
+                            <div key={idx} className="p-4 bg-gray-800 rounded-lg">
+                              <h4 className="text-white font-medium text-md mb-1">
+                                {newsItem.headline}
+                              </h4>
+                              <p className="text-gray-300 text-sm mb-2">
+                                {newsItem.summary}
+                              </p>
+                              <div className="text-gray-400 text-xs flex justify-between items-center">
+                                <span>{newsItem.source} — {newsItem.date}</span>
+                                <a
+                                  href={newsItem.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:underline"
+                                >
+                                  Read more
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+
+                      {details.sections?.map((section, index) => (
+                        <div key={index} className="mb-8 mt-10">
+                          <h3 className="text-xl text-blue-400 mb-3">
+                            {section.title}
+                            <Tooltip>
+                              <TooltipTrigger className="ml-2">
+                                <Info className="h-4 w-4" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Section {index + 1} of {details.sections?.length}
+                              </TooltipContent>
+                            </Tooltip>
+                          </h3>
+                          <div className="text-gray-300 space-y-2">
+                            {renderTooltipContent(section.content)}
+                          </div>
                         </div>
                       ))}
-                    </div>
 
-                    {details.research_article?.recommendation && (
+                      {/* Recommendation Section */}
                       <div className="mt-8 p-4 bg-gray-800 rounded-lg">
                         <div className="flex justify-between items-center mb-3">
-                          <h3 className="text-xl font-medium text-white">Recommendation</h3>
+                          <h3 className="text-xl font-medium text-white">
+                            Final Recommendation
+                          </h3>
                           <Badge className="bg-yellow-600">
-                            {details.research_article.recommendation.rating}
+                            {details.recommendation.action}
                           </Badge>
                         </div>
                         <p className="text-gray-300 mb-4">
-                          {details.research_article.recommendation.reasoning}
+                          {details.recommendation.reasoning}
                         </p>
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 flex-wrap">
                           <div className="flex items-center gap-1">
                             <span className="text-sm text-gray-400">Risk:</span>
                             <Badge variant="outline" className="text-red-400 border-red-800">
-                              {details.research_article.recommendation.risk_level}
+                              {details.recommendation.risk_level}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-sm text-gray-400">Horizon:</span>
+                            <span className="text-sm text-gray-400">Timeframe:</span>
                             <Badge variant="outline" className="text-blue-400 border-blue-800">
-                              {details.research_article.recommendation.time_horizon}
+                              {details.recommendation.time_horizon}
                             </Badge>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-              <TabsContent value="similar" className="mt-0">
-                <Card className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">Similar Assets</CardTitle>
-                    <CardDescription className="text-gray-400">Alternative investment options</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {details.similar_assets.map((asset, index) => (
-                        <div key={index} className="border-b border-gray-800 pb-6 last:border-0 last:pb-0">
-                          <div className="flex justify-between items-center mb-3">
-                            <div className="flex items-center gap-3">
-                              <div>
-                                <div className="font-medium text-lg text-white">{asset.name}</div>
-                                <div className="text-gray-400">{asset.symbol}</div>
+                {/* Similar Assets Tab */}
+                <TabsContent value="similar">
+                  <Card className="bg-gray-900 border-gray-800">
+                    <CardHeader>
+                      <CardTitle className="text-white">
+                        Alternative Investments
+                      </CardTitle>
+                      <CardDescription className="text-gray-400">
+                        {details.similar_assets.length} similar assets found
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {details.similar_assets.length > 0 ? (
+                          details.similar_assets.map((asset, index) => (
+                            <div key={index} className="border-b border-gray-800 pb-6">
+                              <div className="flex justify-between items-center mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div>
+                                    <div className="font-medium text-lg text-white">
+                                      {asset.name || 'Unknown Asset'}
+                                    </div>
+                                    <div className="text-gray-400">
+                                      {asset.symbol || 'N/A'}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold text-lg text-green-400">
+                                    ${asset.current_price || '0.00'}
+                                  </div>
+                                  <Badge className="mt-1 text-sm">
+                                    {asset.similarity_reason || 'Similar asset'}
+                                  </Badge>
+                                </div>
                               </div>
+
+                              {/* Render comparison points if available */}
+                              {asset.comparison_points?.length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                  {asset.comparison_points.map((point, idx) => (
+                                    <div key={idx} className="bg-gray-800 p-3 rounded-md text-sm text-gray-300">
+                                      <div className="font-semibold text-white">{point.metric}</div>
+                                      <div>{point.description}</div>
+                                      <div className="text-green-400">{point.comparison}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                            <div className="text-right">
-                              <div className="font-bold text-lg text-white">
-                                ${asset.price.toFixed(2)}
-                              </div>
-                            </div>
+
+                          ))
+                        ) : (
+                          <div className="text-center text-white">
+                            No similar assets found.
                           </div>
-                          <p className="text-gray-300 mb-3">{asset.reason}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </TooltipProvider>
           </div>
         </>
       ) : (
@@ -333,7 +500,4 @@ export default function WatchlistDetails() {
   )
 
 
-}
-
-
-
+};
