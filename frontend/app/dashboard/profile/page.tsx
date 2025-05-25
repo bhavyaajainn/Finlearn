@@ -12,34 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { toast } from "sonner"
 import { fetchPreferences, fetchstreak, updatePreferences } from "@/lib/actions"
 import { UserPreferences } from "./types/profiletypes"
-
-// Enhanced dummy data for yearly heatmap
-
-
-const generateYearlyHeatmapData = (year: number) => {
-  const data = []
-  const startDate = new Date(year, 0, 1)
-  const endDate = new Date(year, 11, 31)
-
-  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split("T")[0]
-    // Generate random activity data (0-10 articles read per day)
-    const count = Math.random() > 0.7 ? Math.floor(Math.random() * 8) + 1 : 0
-    data.push({
-      date: dateStr,
-      count: count,
-      day: d.getDay(),
-      week: Math.floor((d.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)),
-    })
-  }
-  return data
-}
-
-const dummyHeatmapData = {
-  user_id: "kea4N8foGdMvvuyO9NNITS1QmP62",
-  year: 2025,
-  data: generateYearlyHeatmapData(2025),
-}
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from "recharts"
 
 interface Streak {
   current_streak: number
@@ -97,6 +70,28 @@ interface QuizOption {
   text: string;
   label: string;
 }
+export interface DailyCount {
+  date: string // e.g. "Mon", "Tue"
+  count: number
+}
+
+export interface DateRange {
+  start: string // e.g. "2025-05-19"
+  end: string   // e.g. "2025-05-25"
+}
+
+export interface CategoriesData {
+  [category: string]: DailyCount[]
+}
+
+export interface UserProgressData {
+  user_id: string
+  period: 'week' | 'month'
+  date_range: DateRange
+  articles_data: DailyCount[]
+  tooltips_data: DailyCount[]
+  categories_data: CategoriesData
+}
 
 
 const ProfilePage = () => {
@@ -108,21 +103,18 @@ const ProfilePage = () => {
   const [topics, setTopics] = useState<string[]>([]);
   const [heatmap, setheatmap] = useState<HeatmapData>();
   const [summary, setsummary] = useState<LearningSummary>();
-  // const handleExpertiseSelect = async (level: string) => {
-  //   setExpertiseLevel(level);
-  //   await updateUserPreferences();
-  //   setActiveTab("topics");
-  // }
-
-  console.log(user?.uid)
+  const [progress, setprogress] = useState<UserProgressData>();
 
   const fetchUserPreferences = async () => {
     if (!user) return toast("No user found.");
     try {
       const data = await fetchPreferences(user.uid);
+
+      console.log("fetched data",data)
+
       setUserdata(data);
     } catch (err: any) {
-      toast.error(err.message || "Error fetching preferences.");
+      toast(err.message || "Error fetching preferences.");
     }
   };
 
@@ -135,7 +127,11 @@ const ProfilePage = () => {
       toast.error(err.message || "Error fetching streak.");
     }
   };
-
+  const handleExpertiseSelect = async (level: string) => {
+    setExpertiseLevel(level);
+    await updateUserPreferences();
+    setActiveTab("topics");
+  }
   const updateUserPreferences = async () => {
     if (!user) return toast.error("No user found.");
     if (topics.length === 0) return toast.error("No topics added.");
@@ -180,7 +176,7 @@ const ProfilePage = () => {
 
       console.log(day, start_date, end_date);
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}summary/user_id=${user.uid}&refresh=false`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}summary?user_id=${user.uid}&refresh=false`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -205,7 +201,34 @@ const ProfilePage = () => {
     }
   };
 
-  console.log(summary);
+  const fetchuserprogress = async () => {
+    if (!user) return toast("No user found.");
+    try {
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}summary/progress-chart?user_id=${user.uid}&period=week`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Server responded with status ${res.status}: ${errorText}`);
+      }
+
+      const data = await res.json();
+
+      console.log(data)
+
+      setprogress(data);
+
+    } catch (error: any) {
+      console.log(error)
+      console.error("Error searching assets:", error.message);
+      return [];
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -213,6 +236,7 @@ const ProfilePage = () => {
       fetchuserstreak();
       fetchHeatMap();
       fetchusersummary("day", "25-05-2025", "26-05-2025");
+      fetchuserprogress();
     }
   }, [user]);
 
@@ -375,42 +399,6 @@ const ProfilePage = () => {
       </TooltipProvider>
     )
   }
-
-  // Progress Chart Component
-  // const ProgressChart = () => (
-  //   <Card className="bg-zinc-900 border-zinc-800">
-  //     <CardContent className="p-6">
-  //       <div className="flex items-center gap-2 mb-4">
-  //         <LineChart className="h-5 w-5 text-blue-400" />
-  //         <h3 className="text-lg font-semibold text-white">Weekly Progress</h3>
-  //       </div>
-  //       <div className="h-64">
-  //         <ResponsiveContainer width="100%" height="100%">
-  //           <RechartsLineChart data={heatmap?.data}>
-  //             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-  //             <XAxis dataKey="date" stroke="#9CA3AF" />
-  //             <YAxis stroke="#9CA3AF" />
-  //             <RechartsTooltip
-  //               contentStyle={{ backgroundColor: "#1F2937", border: "none" }}
-  //               itemStyle={{ color: "#E5E7EB" }}
-  //             />
-  //             <Line type="monotone" dataKey="count" stroke="#3B82F6" strokeWidth={2} name="Articles Read" />
-  //             {/* <Line
-  //               type="monotone"
-  //               dataKey={(entry) =>
-  //                 heatmap?.categories_data.forex.find((d) => d.date === entry.date)?.count || 0
-  //               }
-  //               stroke="#10B981"
-  //               strokeWidth={2}
-  //               name="Forex Articles"
-  //             /> */}
-  //           </RechartsLineChart>
-  //         </ResponsiveContainer>
-  //       </div>
-  //     </CardContent>
-  //   </Card>
-  // )
-
   // User Summary Section
   const UserSummary = () => {
 
@@ -528,10 +516,10 @@ const ProfilePage = () => {
                   </div>
                 </div>
               )) || (
-                <div className="text-center text-white">
-                  No articles read yet.
-                </div>
-              )}
+                  <div className="text-center text-white">
+                    No articles read yet.
+                  </div>
+                )}
             </div>
           </CardContent>
         </Card>
@@ -573,10 +561,10 @@ const ProfilePage = () => {
                   </div>
                 </div>
               )) || (
-                <div className="text-center text-white">
-                  No quiz questions completed yet.
-                </div>
-              )}
+                  <div className="text-center text-white">
+                    No quiz questions completed yet.
+                  </div>
+                )}
             </div>
           </CardContent>
         </Card>
@@ -606,6 +594,24 @@ const ProfilePage = () => {
         {/* <ProgressChart /> */}
       </div>
     )
+  }
+
+  function ProgressChart({ data }: any) {
+    return (
+      <div className="p-4 bg-transparent rounded-2xl shadow-xl">
+        <h2 className="text-xl font-bold mb-4 text-white">Weekly Learning Progress</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+            <XAxis dataKey="date" />
+            <YAxis allowDecimals={false} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="count" fill="#8884d8" name="Articles Read" radius={[8, 8, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    );
   }
 
   return (
@@ -685,7 +691,7 @@ const ProfilePage = () => {
                     {["beginner", "intermediate", "advanced"].map((level) => (
                       <button
                         key={level}
-                        onClick={() => setExpertiseLevel(level)}
+                        onClick={() => handleExpertiseSelect(level)}
                         className={`p-6 rounded-lg border ${expertiseLevel === level
                           ? "border-blue-600 bg-blue-900/30 text-blue-300"
                           : "border-zinc-700 bg-zinc-800 hover:border-blue-800 text-white"
@@ -721,14 +727,13 @@ const ProfilePage = () => {
                       className="bg-zinc-800 border-zinc-700"
                     />
                   </div>
-                  <Button className="bg-blue-600 hover:bg-blue-700">Save Preferences</Button>
+                  <Button className="bg-blue-600 hover:bg-blue-700" onClick={updateUserPreferences}>Save Preferences</Button>
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
-
-          {/* Data Visualization Section */}
-          <UserSummary/>
+          <ProgressChart data={progress?.articles_data} />
+          <UserSummary />
         </div>
       </div>
     </div>
