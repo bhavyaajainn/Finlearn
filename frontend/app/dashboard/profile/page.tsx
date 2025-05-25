@@ -70,180 +70,177 @@ const ProfilePage = () => {
     }
   }, [user]);
 
-<<<<<<< HEAD
-  useEffect(() => {
-    const today = new Date();
-    const data: Record<string, number> = {};
+  // useEffect(() => {
+  //   const today = new Date();
+  //   const data: Record<string, number> = {};
 
-    for (let i = 0; i < 365; i++) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-
-
-      const activity = Math.floor(Math.random() * 5);
-      data[dateStr] = activity;
-    }
-
-    setActivityData(data);
-  }, []);
-
-  const getCalendarDays = () => {
-    return calendarView === "30days" ? 30 : calendarView === "6months" ? 180 : 365;
-  };
+  //   for (let i = 0; i < 365; i++) {
+  //     const date = new Date();
+  //     date.setDate(today.getDate() - i);
+  //     const dateStr = date.toISOString().split('T')[0];
 
 
-  const renderActivityHeatmap = () => {
-    const today = new Date();
-    const days = getCalendarDays();
-    const cells = [];
-    const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  //     const activity = Math.floor(Math.random() * 5);
+  //     data[dateStr] = activity;
+  //   }
+
+  //   setActivityData(data);
+  // }, []);
+
+  // const getCalendarDays = () => {
+  //   return calendarView === "30days" ? 30 : calendarView === "6months" ? 180 : 365;
+  // };
 
 
-    const rowHeaders = daysOfWeek.map((day, index) => (
-      <div key={`header-${day}`} className="flex items-center justify-end h-6 pr-2 text-xs text-gray-500 w-12">
-        {day}
-      </div>
-    ));
+  // const renderActivityHeatmap = () => {
+  //   const today = new Date();
+  //   const days = getCalendarDays();
+  //   const cells = [];
+  //   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 
-    const weeksToShow = Math.ceil(days / 7);
+  //   const rowHeaders = daysOfWeek.map((day, index) => (
+  //     <div key={`header-${day}`} className="flex items-center justify-end h-6 pr-2 text-xs text-gray-500 w-12">
+  //       {day}
+  //     </div>
+  //   ));
 
 
-    const calendarData = Array(7).fill(null).map(() => Array(weeksToShow).fill(null));
+  //   const weeksToShow = Math.ceil(days / 7);
 
 
-    for (let dayOffset = 0; dayOffset < days; dayOffset++) {
-      const date = new Date();
-      date.setDate(today.getDate() - dayOffset);
-      const dateStr = date.toISOString().split('T')[0];
+  //   const calendarData = Array(7).fill(null).map(() => Array(weeksToShow).fill(null));
+
+
+  //   for (let dayOffset = 0; dayOffset < days; dayOffset++) {
+  //     const date = new Date();
+  //     date.setDate(today.getDate() - dayOffset);
+  //     const dateStr = date.toISOString().split('T')[0];
 
 
 
-      let dayOfWeek = date.getDay() - 1;
-      if (dayOfWeek < 0) dayOfWeek = 6;
+  //     let dayOfWeek = date.getDay() - 1;
+  //     if (dayOfWeek < 0) dayOfWeek = 6;
 
 
-      const weekIndex = Math.floor(dayOffset / 7);
+  //     const weekIndex = Math.floor(dayOffset / 7);
 
 
-      if (weekIndex < weeksToShow) {
-        const activity = activityData[dateStr] || 0;
-        calendarData[dayOfWeek][weekIndex] = {
-          date,
-          dateStr,
-          activity
-        };
-      }
-    }
+  //     if (weekIndex < weeksToShow) {
+  //       const activity = activityData[dateStr] || 0;
+  //       calendarData[dayOfWeek][weekIndex] = {
+  //         date,
+  //         dateStr,
+  //         activity
+  //       };
+  //     }
+  //   }
 
 
-    for (let row = 0; row < 7; row++) {
-      const weekCells = [];
+  //   for (let row = 0; row < 7; row++) {
+  //     const weekCells = [];
 
 
-      for (let col = 0; col < weeksToShow; col++) {
-        const cellData = calendarData[row][col];
+  //     for (let col = 0; col < weeksToShow; col++) {
+  //       const cellData = calendarData[row][col];
 
-        if (cellData) {
+  //       if (cellData) {
 
-          let bgColor = "bg-zinc-800";
-          if (cellData.activity === 1) bgColor = "bg-green-900/50";
-          if (cellData.activity === 2) bgColor = "bg-green-700/60";
-          if (cellData.activity === 3) bgColor = "bg-green-600/70";
-          if (cellData.activity === 4) bgColor = "bg-green-500";
+  //         let bgColor = "bg-zinc-800";
+  //         if (cellData.activity === 1) bgColor = "bg-green-900/50";
+  //         if (cellData.activity === 2) bgColor = "bg-green-700/60";
+  //         if (cellData.activity === 3) bgColor = "bg-green-600/70";
+  //         if (cellData.activity === 4) bgColor = "bg-green-500";
 
-          weekCells.push(
-            <div
-              key={`cell-${row}-${col}`}
-              className={`${bgColor} w-4 h-4 rounded-sm m-0.5 transition-colors hover:ring-1 hover:ring-blue-400 group relative`}
-              title={`${cellData.dateStr}: Activity level ${cellData.activity}`}
-            >
-              <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 z-10">
-                {cellData.dateStr} (Level: {cellData.activity})
-              </div>
-            </div>
-          );
-        } else {
-          weekCells.push(
-            <div key={`empty-${row}-${col}`} className="w-4 h-4 m-0.5" />
-          );
-        }
-      }
+  //         weekCells.push(
+  //           <div
+  //             key={`cell-${row}-${col}`}
+  //             className={`${bgColor} w-4 h-4 rounded-sm m-0.5 transition-colors hover:ring-1 hover:ring-blue-400 group relative`}
+  //             title={`${cellData.dateStr}: Activity level ${cellData.activity}`}
+  //           >
+  //             <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-zinc-900 text-white px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 z-10">
+  //               {cellData.dateStr} (Level: {cellData.activity})
+  //             </div>
+  //           </div>
+  //         );
+  //       } else {
+  //         weekCells.push(
+  //           <div key={`empty-${row}-${col}`} className="w-4 h-4 m-0.5" />
+  //         );
+  //       }
+  //     }
 
-      cells.push(
-        <div key={`week-row-${row}`} className="flex items-center">
-          {rowHeaders[row]}
-          <div className="flex">{weekCells}</div>
-        </div>
-      );
-    }
-
-
-    const monthLabels = [];
+  //     cells.push(
+  //       <div key={`week-row-${row}`} className="flex items-center">
+  //         {rowHeaders[row]}
+  //         <div className="flex">{weekCells}</div>
+  //       </div>
+  //     );
+  //   }
 
 
-    let monthsNeeded;
-    if (calendarView === "30days") {
-      monthsNeeded = 1;
-    } else if (calendarView === "6months") {
-      monthsNeeded = 6;
-    } else {
-      monthsNeeded = 12;
-    }
+  //   const monthLabels = [];
 
 
-    for (let i = 0; i < monthsNeeded; i++) {
-      const date = new Date();
-      date.setMonth(today.getMonth() - i);
+  //   let monthsNeeded;
+  //   if (calendarView === "30days") {
+  //     monthsNeeded = 1;
+  //   } else if (calendarView === "6months") {
+  //     monthsNeeded = 6;
+  //   } else {
+  //     monthsNeeded = 12;
+  //   }
 
 
-      const monthName = date?.toLocaleString('default', { month: 'short' });
+  //   for (let i = 0; i < monthsNeeded; i++) {
+  //     const date = new Date();
+  //     date.setMonth(today.getMonth() - i);
 
-      monthLabels.push(
-        <div
-          key={`month-${i}`}
-          className="text-xs text-gray-500"
-          style={{
-            position: 'absolute',
-            left: `${100 - (i * (100 / monthsNeeded))}%`,
-            transform: 'translateX(-50%)'
-          }}
-        >
-          {monthName}
-        </div>
-      );
-    }
 
-    return (
-      <div className="mt-4">
-        {/* Month labels at top */}
-        <div className="relative h-6 mb-2 ml-12">
-          {monthLabels}
-        </div>
+  //     const monthName = date?.toLocaleString('default', { month: 'short' });
 
-        {/* Calendar grid */}
-        <div className="overflow-x-auto pb-2">
-          <div className="flex flex-col">
-            {cells}
-          </div>
-        </div>
+  //     monthLabels.push(
+  //       <div
+  //         key={`month-${i}`}
+  //         className="text-xs text-gray-500"
+  //         style={{
+  //           position: 'absolute',
+  //           left: `${100 - (i * (100 / monthsNeeded))}%`,
+  //           transform: 'translateX(-50%)'
+  //         }}
+  //       >
+  //         {monthName}
+  //       </div>
+  //     );
+  //   }
 
-        <div className="flex items-center mt-4 justify-end">
-          <span className="text-xs text-gray-400 mr-2">Activity Level:</span>
-          <div className="flex items-center gap-1">
-            <div className="bg-zinc-800 w-3 h-3 rounded-sm"></div>
-            <div className="bg-green-900/50 w-3 h-3 rounded-sm"></div>
-            <div className="bg-green-700/60 w-3 h-3 rounded-sm"></div>
-            <div className="bg-green-600/70 w-3 h-3 rounded-sm"></div>
-            <div className="bg-green-500 w-3 h-3 rounded-sm"></div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-=======
->>>>>>> ef9c7336138c75af46a3463717267a64342c9013
+  //   return (
+  //     <div className="mt-4">
+  //       {/* Month labels at top */}
+  //       <div className="relative h-6 mb-2 ml-12">
+  //         {monthLabels}
+  //       </div>
+
+  //       {/* Calendar grid */}
+  //       <div className="overflow-x-auto pb-2">
+  //         <div className="flex flex-col">
+  //           {cells}
+  //         </div>
+  //       </div>
+
+  //       <div className="flex items-center mt-4 justify-end">
+  //         <span className="text-xs text-gray-400 mr-2">Activity Level:</span>
+  //         <div className="flex items-center gap-1">
+  //           <div className="bg-zinc-800 w-3 h-3 rounded-sm"></div>
+  //           <div className="bg-green-900/50 w-3 h-3 rounded-sm"></div>
+  //           <div className="bg-green-700/60 w-3 h-3 rounded-sm"></div>
+  //           <div className="bg-green-600/70 w-3 h-3 rounded-sm"></div>
+  //           <div className="bg-green-500 w-3 h-3 rounded-sm"></div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // };
 
   return (
     <div className="min-h-screen bg-black text-white">
