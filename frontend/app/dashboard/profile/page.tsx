@@ -61,6 +61,42 @@ interface HeatmapData {
   year: number
   data: RawDay[]
 }
+interface LearningSummary {
+  period: string;
+  date_range: {
+    start: string;  // ISO date string
+    end: string;    // ISO date string
+  };
+  summary: string;
+  statistics: {
+    tooltips_viewed: number;
+    categories: Record<string, number>;
+    articles_read: number;
+  };
+  articles_read: string[];
+  user_id: string;
+  generated_at: string;  // ISO datetime string
+  streak: {
+    current_streak: number;
+    last_active: string;   // ISO date string
+    updated_at: string;    // ISO datetime string with timezone
+    total_articles: number;
+    longest_streak: number;
+  };
+  quiz_questions: QuizQuestion[];
+}
+
+interface QuizQuestion {
+  explanation: string;
+  correct_answer: string;
+  options: QuizOption[];
+  question: string;
+}
+
+interface QuizOption {
+  text: string;
+  label: string;
+}
 
 
 const ProfilePage = () => {
@@ -71,7 +107,7 @@ const ProfilePage = () => {
   const [streak, setStreak] = useState<Streak>();
   const [topics, setTopics] = useState<string[]>([]);
   const [heatmap, setheatmap] = useState<HeatmapData>();
-
+  const [summary, setsummary] = useState<LearningSummary>();
   // const handleExpertiseSelect = async (level: string) => {
   //   setExpertiseLevel(level);
   //   await updateUserPreferences();
@@ -138,13 +174,45 @@ const ProfilePage = () => {
     }
   };
 
-  console.log(heatmap);
+  const fetchusersummary = async (day: string, start_date: string, end_date: string) => {
+    if (!user) return toast("No user found.");
+    try {
+
+      console.log(day, start_date, end_date);
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}summary/user_id=${user.uid}&refresh=false`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Server responded with status ${res.status}: ${errorText}`);
+      }
+
+      const data = await res.json();
+
+      console.log(data)
+
+      setsummary(data);
+
+    } catch (error: any) {
+      console.log(error)
+      console.error("Error searching assets:", error.message);
+      return [];
+    }
+  };
+
+  console.log(summary);
 
   useEffect(() => {
     if (user) {
       fetchUserPreferences();
       fetchuserstreak();
       fetchHeatMap();
+      fetchusersummary("day", "25-05-2025", "26-05-2025");
     }
   }, [user]);
 
@@ -344,108 +412,7 @@ const ProfilePage = () => {
   // )
 
   // User Summary Section
-  const UserSummary = (streak: Streak) => {
-    // Sample data based on your API response structure
-    const userSummaryData = {
-      user_id: "kea4N8foGdMvvuyO9NNITS1QmP62",
-      period: "day",
-      date_range: {
-        start: "2025-05-25",
-        end: "2025-05-25",
-      },
-      statistics: {
-        articles_read: 1,
-        tooltips_viewed: 0,
-        categories: {
-          forex: 1,
-        },
-      },
-      streak: {
-        current_streak: 1,
-        last_active: "2025-05-25",
-        updated_at: "2025-05-25T15:27:38.832082Z",
-        total_articles: 2,
-        longest_streak: 1,
-      },
-      articles_read: ["Navigating US Dollar Strength Amid Geopolitical Uncertainty"],
-      summary:
-        "### Personalized Learning Summary\n\n**Congratulations on Your Progress**\n\nYou've taken a significant step in expanding your knowledge by reading about \"Navigating US Dollar Strength Amid Geopolitical Uncertainty.\" This article has likely deepened your understanding of the **forex** market, particularly how geopolitical factors influence currency values.\n\n### Focused Areas of Interest\n\nYour focus on **forex** indicates a strong interest in understanding the dynamics of currency markets. You're likely curious about how economic indicators, political events, and global uncertainties impact currency values.\n\n### Encouragement to Continue Learning\n\nYour engagement with financial topics is commendable, and continuing to explore these areas will only enhance your understanding. Keep delving into the world of finance, and you'll soon find yourself navigating complex financial scenarios with confidence.\n\n### Suggested Next Steps\n\nGiven your interest in forex and geopolitical influences, here are some areas you might explore next:\n\n- **Economic Indicators and Their Impact on Currency Values**: Dive deeper into how GDP growth rates, inflation, and interest rates affect currency strength.\n- **Geopolitical Events and Market Volatility**: Learn more about how political decisions and global events can suddenly shift currency markets.\n- **Diversification Strategies in Forex**: Explore how investors use different currencies to diversify their portfolios and mitigate risk.\n\nKeep up the good work! The world of finance is vast and dynamic, and your curiosity will serve you well in navigating its complexities.",
-      quiz_questions: [
-        {
-          question: "What is the main purpose of using stop-loss orders in forex trading?",
-          options: [
-            {
-              label: "A",
-              text: "To automatically close a trade at a set price and limit potential losses",
-            },
-            {
-              label: "B",
-              text: "To guarantee a profit on every trade",
-            },
-            {
-              label: "C",
-              text: "To convert all profits into a different currency",
-            },
-            {
-              label: "D",
-              text: "To increase the leverage on your account",
-            },
-          ],
-          correct_answer: "A",
-          explanation:
-            "Stop-loss orders are used to automatically close a trade at a predetermined price, helping traders limit their potential losses and manage risk effectively.",
-        },
-        {
-          question: "Which of the following best describes the practice of 'trend trading' in the forex market?",
-          options: [
-            {
-              label: "A",
-              text: "Trading only when the market is closed",
-            },
-            {
-              label: "B",
-              text: "Identifying and profiting from the direction of price movements",
-            },
-            {
-              label: "C",
-              text: "Buying every currency pair available",
-            },
-            {
-              label: "D",
-              text: "Using news headlines to predict prices without charts",
-            },
-          ],
-          correct_answer: "B",
-          explanation:
-            "Trend trading involves recognizing the direction of price movements (up or down) and placing trades to profit from that trend, rather than predicting random moves.",
-        },
-        {
-          question: "What is a key reason why financial markets are important for investors?",
-          options: [
-            {
-              label: "A",
-              text: "They allow investors to buy and sell assets like stocks, bonds, and currencies",
-            },
-            {
-              label: "B",
-              text: "They provide free vacations for frequent traders",
-            },
-            {
-              label: "C",
-              text: "They guarantee profits on all investments",
-            },
-            {
-              label: "D",
-              text: "They eliminate all financial risk",
-            },
-          ],
-          correct_answer: "A",
-          explanation:
-            "Financial markets enable investors to buy and sell a range of assets, including stocks, bonds, and currencies, which is essential for portfolio growth and risk management.",
-        },
-      ],
-      generated_at: "2025-05-25T19:48:32.656639",
-    }
+  const UserSummary = () => {
 
     const formatDate = (dateStr: string) => {
       return new Date(dateStr).toLocaleDateString("en-US", {
@@ -482,22 +449,22 @@ const ProfilePage = () => {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-zinc-800/50 rounded-lg">
-                  <div className="text-3xl font-bold text-blue-400">{userSummaryData.statistics.articles_read}</div>
+                  <div className="text-3xl font-bold text-blue-400">{summary?.statistics?.articles_read || 0}</div>
                   <div className="text-sm text-gray-400 mt-1">Articles Read</div>
                   <div className="text-xs text-gray-500 mt-1">Today</div>
                 </div>
                 <div className="text-center p-4 bg-zinc-800/50 rounded-lg">
-                  <div className="text-3xl font-bold text-green-400">{userSummaryData.streak.current_streak}</div>
+                  <div className="text-3xl font-bold text-green-400">{summary?.streak?.current_streak || 0}</div>
                   <div className="text-sm text-gray-400 mt-1">Current Streak</div>
                   <div className="text-xs text-gray-500 mt-1">Days</div>
                 </div>
                 <div className="text-center p-4 bg-zinc-800/50 rounded-lg">
-                  <div className="text-3xl font-bold text-purple-400">{userSummaryData.streak.total_articles}</div>
+                  <div className="text-3xl font-bold text-purple-400">{summary?.streak?.total_articles || 0}</div>
                   <div className="text-sm text-gray-400 mt-1">Total Articles</div>
                   <div className="text-xs text-gray-500 mt-1">All time</div>
                 </div>
                 <div className="text-center p-4 bg-zinc-800/50 rounded-lg">
-                  <div className="text-3xl font-bold text-orange-400">{userSummaryData.quiz_questions.length}</div>
+                  <div className="text-3xl font-bold text-orange-400">{summary?.quiz_questions?.length || 0}</div>
                   <div className="text-sm text-gray-400 mt-1">Quiz Questions</div>
                   <div className="text-xs text-gray-500 mt-1">Completed</div>
                 </div>
@@ -512,7 +479,7 @@ const ProfilePage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {Object.entries(userSummaryData.statistics.categories).map(([category, count]) => (
+                {summary?.statistics?.categories && Object.entries(summary.statistics.categories).map(([category, count]) => (
                   <div key={category} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${getCategoryColor(category)}`}></div>
@@ -525,7 +492,7 @@ const ProfilePage = () => {
                 ))}
                 <div className="pt-2 border-t border-zinc-700">
                   <div className="text-xs text-gray-400">
-                    Last active: {formatDate(userSummaryData.streak.last_active)}
+                    Last active: {formatDate(summary?.streak?.last_active || "")}
                   </div>
                 </div>
               </div>
@@ -538,12 +505,12 @@ const ProfilePage = () => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-blue-400" />
-              Recent Articles ({userSummaryData.articles_read.length})
+              Recent Articles ({summary?.articles_read?.length || 0})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {userSummaryData.articles_read.map((article, index) => (
+              {summary?.articles_read?.map((article, index) => (
                 <div
                   key={index}
                   className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-all"
@@ -553,14 +520,18 @@ const ProfilePage = () => {
                       <h4 className="text-white font-medium mb-2">{article}</h4>
                       <div className="flex items-center gap-4 text-sm">
                         <Badge className="bg-blue-900/30 text-blue-300 border-blue-800">
-                          {Object.keys(userSummaryData.statistics.categories)[0]}
+                          {Object.keys(summary?.statistics?.categories || {})[0]}
                         </Badge>
-                        <span className="text-gray-400">Read on {formatDate(userSummaryData.date_range.start)}</span>
+                        <span className="text-gray-400">Read on {formatDate(summary?.date_range?.start || "")}</span>
                       </div>
                     </div>
                   </div>
                 </div>
-              ))}
+              )) || (
+                <div className="text-center text-white">
+                  No articles read yet.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -570,12 +541,12 @@ const ProfilePage = () => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <LineChart className="h-5 w-5 text-blue-400" />
-              Quiz Performance ({userSummaryData.quiz_questions.length} Questions)
+              Quiz Performance ({summary?.quiz_questions?.length || 0} Questions)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {userSummaryData.quiz_questions.map((quiz, index) => (
+              {summary?.quiz_questions?.map((quiz, index) => (
                 <div key={index} className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
                   <div className="mb-3">
                     <h4 className="text-white font-medium mb-2">Question {index + 1}</h4>
@@ -601,7 +572,11 @@ const ProfilePage = () => {
                     <div className="text-blue-200 text-sm">{quiz.explanation}</div>
                   </div>
                 </div>
-              ))}
+              )) || (
+                <div className="text-center text-white">
+                  No quiz questions completed yet.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -617,11 +592,11 @@ const ProfilePage = () => {
           <CardContent>
             <div className="prose prose-invert max-w-none">
               <div className="text-gray-300 leading-relaxed whitespace-pre-line">
-                {userSummaryData.summary.replace(/###/g, "").replace(/\*\*/g, "")}
+                {summary?.summary?.replace(/###/g, "").replace(/\*\*/g, "") || "No summary available yet."}
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-zinc-700">
-              <div className="text-xs text-gray-500">Generated on {formatDate(userSummaryData.generated_at)}</div>
+              <div className="text-xs text-gray-500">Generated on {formatDate(summary?.generated_at || "")}</div>
             </div>
           </CardContent>
         </Card>
@@ -753,7 +728,7 @@ const ProfilePage = () => {
           </Card>
 
           {/* Data Visualization Section */}
-          <UserSummary current_streak={streak?.current_streak || 0} longest_streak={streak?.longest_streak || 0} total_articles={streak?.total_articles || 0} />
+          <UserSummary/>
         </div>
       </div>
     </div>
