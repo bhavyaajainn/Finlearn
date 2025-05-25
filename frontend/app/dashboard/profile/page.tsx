@@ -311,7 +311,7 @@ const ProfilePage = () => {
       date.setMonth(today.getMonth() - i);
 
 
-      const monthName = date.toLocaleString('default', { month: 'short' });
+      const monthName = date?.toLocaleString('default', { month: 'short' });
 
       monthLabels.push(
         <div

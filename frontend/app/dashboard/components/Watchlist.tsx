@@ -20,9 +20,9 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
 
   const formatPrice = (price: number, currency: string) => {
     if (currency === 'INR') {
-      return `₹${price.toLocaleString()}`;
+      return `₹${price?.toLocaleString()}`;
     }
-    return `$${price.toLocaleString()}`;
+    return `$${price?.toLocaleString()}`;
   };
 
   const formatMarketCap = (marketCap: number, currency: string) => {
@@ -34,7 +34,7 @@ const Watchlist = ({ hideViewFullButton = false }: WatchlistProps) => {
     } else if (marketCap >= 1e6) {
       return `${symbol}${(marketCap / 1e6).toFixed(1)}M`;
     }
-    return `${symbol}${marketCap.toLocaleString()}`;
+    return `${symbol}${marketCap?.toLocaleString()}`;
   };
 
   const handleViewFullWatchlist = () => {
