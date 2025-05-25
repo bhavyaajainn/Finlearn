@@ -1,24 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
-  Award,
-  BadgeCheck,
-  Bitcoin,
   BookOpen,
-  Briefcase,
-  Calendar,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  DollarSign,
-  Edit2,
-  Home,
   LineChart,
-  Lock,
-  Plus,
-  Save,
-  Upload,
   User
 } from "lucide-react";
 import { useAppSelector } from "@/app/store/hooks";
@@ -27,160 +11,62 @@ import { MultiSelect } from "@/components/multi-select";
 import { topicOptions } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Streak, UserPreferences } from "./types/profiletypes";
+import { fetchPreferences, fetchstreak, updatePreferences } from "@/lib/actions";
 
-interface UserPreferences {
-  expertise_level: string,
-  categories: string[],
-}
-
-
-const challengesData = [
-  {
-    id: "7day",
-    name: "7-Day Streak",
-    description: "Complete at least one learning activity daily for 7 consecutive days",
-    progress: 100,
-    completed: true,
-    reward: "Quick Learner Badge",
-    icon: <Award className="h-5 w-5 text-green-400" />
-  },
-  {
-    id: "30day",
-    name: "30-Day Challenge",
-    description: "Complete at least one learning activity daily for 30 consecutive days",
-    progress: 100,
-    completed: true,
-    reward: "Dedicated Student Badge",
-    icon: <Award className="h-5 w-5 text-blue-400" />
-  },
-  {
-    id: "100day",
-    name: "100-Day Challenge",
-    description: "Complete at least one learning activity daily for 100 consecutive days",
-    progress: 65,
-    completed: false,
-    reward: "Finance Expert Badge",
-    icon: <Clock className="h-5 w-5 text-yellow-400" />
-  },
-  {
-    id: "365day",
-    name: "365-Day Challenge",
-    description: "Complete at least one learning activity daily for a full year",
-    progress: 15,
-    completed: false,
-    reward: "Finance Master Title",
-    icon: <Lock className="h-5 w-5 text-gray-400" />
-  },
-];
 const ProfilePage = () => {
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState("John Doe");
-  const [email, setEmail] = useState("john.doe@example.com");
-  const [calendarView, setCalendarView] = useState("1year");
-  const [activityData, setActivityData] = useState<Record<string, number>>({});
-  const [activeTab, setActiveTab] = useState("topics");
+  const [activeTab, setActiveTab] = useState<string>("topics");
   const [userdata, setuserdata] = useState<UserPreferences>();
-  const [expertiseLevel, setExpertiseLevel] = useState("beginner"); // or fetched value
-  const [interests, setInterests] = useState([
-    { id: "stocks", name: "Stocks", icon: <LineChart className="h-4 w-4" />, selected: true },
-    { id: "crypto", name: "Cryptocurrency", icon: <Bitcoin className="h-4 w-4" />, selected: true },
-    { id: "personal-finance", name: "Personal Finance", icon: <DollarSign className="h-4 w-4" />, selected: true },
-    { id: "real-estate", name: "Real Estate", icon: <Home className="h-4 w-4" />, selected: true },
-    { id: "macro-economics", name: "Macro Economics", icon: <LineChart className="h-4 w-4" />, selected: true },
-    { id: "budgeting", name: "Budgeting", icon: <DollarSign className="h-4 w-4" />, selected: true },
-    { id: "retirement", name: "Retirement Planning", icon: <Briefcase className="h-4 w-4" />, selected: true },
-    { id: "tax-optimization", name: "Tax Optimization", icon: <DollarSign className="h-4 w-4" />, selected: true },
-  ]);
-  const handleExpertiseSelect = async (level: string) => {
-    setExpertiseLevel(level);
-    await updatePreferences();
-    setActiveTab("topics");
-  }
+  const [expertiseLevel, setExpertiseLevel] = useState<string>("beginner");
+  const [streak, setStreak] = useState<Streak>();
   const [topics, setTopics] = useState<string[]>([]);
   const { user } = useAppSelector(
     (state) => state.auth
   );
 
-  const fetchPreferences = async () => {
-    if (!user) {
-      toast.error("No user found.");
-      return;
-    }
+  const handleExpertiseSelect = async (level: string) => {
+    setExpertiseLevel(level);
+    await updateUserPreferences();
+    setActiveTab("topics");
+  }
 
+  const fetchUserPreferences = async () => {
+    if (!user) return toast.error("No user found.");
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${user.uid}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData?.message || "Failed to fetch data.");
-      }
-
-      const data = await res.json();
-
+      const data = await fetchPreferences(user.uid);
       setuserdata(data);
-
-      console.log("User preferences:", data);
-      toast.success("User preferences fetched successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Something went wrong. Please try again.");
+    } catch (err: any) {
+      toast.error(err.message || "Error fetching preferences.");
     }
   };
 
-  const updatePreferences = async () => {
-    if (!user) {
-      toast.error("No user found.");
-      return;
+  const fetchuserstreak = async () => {
+    if (!user) return toast.error("No user found.");
+    try {
+      const streakData = await fetchstreak(user.uid);
+      setStreak(streakData);
+    } catch (err: any) {
+      toast.error(err.message || "Error fetching streak.");
     }
+  };
 
-    if (topics.length == 0) {
-      toast.error("No Topics Added");
-    }
+  const updateUserPreferences = async () => {
+    if (!user) return toast.error("No user found.");
+    if (topics.length === 0) return toast.error("No topics added.");
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/selectedcategories?user_id=${user.uid}`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            expertise_level: expertiseLevel,
-            categories: topics.length === 0 ? userdata?.categories : topics,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-
-        console.log(errorData)
-        throw new Error(errorData?.message || "Failed to update data.", errorData);
-      }
-
-      const data = await res.json();
-
-      setuserdata(data);
-
-      console.log("User preferences:", data);
-
-      toast.success("User preferences updated successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Something went wrong. Please try again.");
+      const updated = await updatePreferences(user.uid, expertiseLevel, topics, userdata);
+      setuserdata(updated);
+      toast.success("Preferences updated!");
+    } catch (err: any) {
+      toast.error(err.message || "Error updating preferences.");
     }
   };
 
   useEffect(() => {
     if (user) {
-      fetchPreferences();
+      fetchUserPreferences();
+      fetchuserstreak();
     }
   }, [user]);
 
@@ -374,22 +260,6 @@ const ProfilePage = () => {
                 <User className="h-5 w-5 text-blue-400 mr-2" />
                 <h2 className="text-lg font-medium">Basic Information</h2>
               </div>
-              <button
-                onClick={() => setEditing(!editing)}
-                className="flex items-center bg-transparent text-blue-400 border border-blue-600 px-3 py-1.5 rounded-md text-sm hover:bg-blue-900/30 whitespace-nowrap"
-              >
-                {editing ? (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Edit Profile
-                  </>
-                ) : (
-                  <>
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Edit Profile
-                  </>
-                )}
-              </button>
             </div>
             <div className="p-4">
               <div className="flex flex-col md:flex-row gap-6">
@@ -398,24 +268,10 @@ const ProfilePage = () => {
                     <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
                       <User className="h-16 w-16 text-blue-400/70" />
                     </div>
-                    {editing && (
-                      <button
-                        className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white h-8 w-8 rounded-full border-2 border-black flex items-center justify-center"
-                      >
-                        <Upload className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 mt-4 flex-wrap justify-center">
-                    <div className="bg-blue-900/30 text-blue-400 border border-blue-800 px-2 py-1 rounded-full text-xs flex items-center">
-                      <Award className="h-3 w-3 mr-1" />
-                      Finance Enthusiast
-                    </div>
-                    <div className="bg-green-900/30 text-green-400 border border-green-800 px-2 py-1 rounded-full text-xs flex items-center">
-                      <BadgeCheck className="h-3 w-3 mr-1" />
-                      Quick Learner
-                    </div>
+                    <button
+                      className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white h-8 w-8 rounded-full border-2 border-black flex items-center justify-center"
+                    >
+                    </button>
                   </div>
                 </div>
 
@@ -426,48 +282,31 @@ const ProfilePage = () => {
                       {/* Name */}
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Name</div>
-                        {editing ? (
-                          <input
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        ) : (
-                          <div className="text-white break-words">{name}</div>
-                        )}
+                        <div
+                          className="text-white"
+                        />
+                        <div className="text-white break-words">{user?.displayName ?? "Name not found!"}</div>
                       </div>
 
                       {/* Email */}
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Email</div>
-                        {editing ? (
-                          <input
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        ) : (
-                          <div className="text-white break-words">{email}</div>
-                        )}
+
+                        <div className="text-white break-words">{user?.email ?? "Email not found!"}</div>
                       </div>
 
-                      {/* Member Since */}
-                      <div>
-                        <div className="text-sm text-gray-400 mb-1">Member Since</div>
-                        <div className="text-white">April 15, 2025</div>
-                      </div>
                     </div>
 
                     {/* Right Column */}
                     <div className="space-y-4">
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Current Streak</div>
-                        <div className="text-white">21 days</div>
+                        <div className="text-white">{streak ? streak?.current_streak : "0"} days</div>
                       </div>
 
                       <div>
                         <div className="text-sm text-gray-400 mb-1">Longest Streak</div>
-                        <div className="text-white">32 days</div>
+                        <div className="text-white">{streak ? streak?.longest_streak : "0"} days</div>
                       </div>
                     </div>
                   </div>
