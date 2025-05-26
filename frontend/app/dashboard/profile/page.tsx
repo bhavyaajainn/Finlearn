@@ -1,6 +1,6 @@
 "use client"
-import { useEffect, useMemo, useState } from "react"
-import { BookOpen, LineChart, User, TrendingUp, Plus, Trophy, Calendar, Target, Cross, X, Award, Clock, Lock, BadgeCheck, ChevronRight } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { BookOpen, LineChart, User, Trophy, Calendar, Target, X, Award, Clock, Lock, BadgeCheck, ChevronRight } from "lucide-react"
 import { useAppSelector } from "@/app/store/hooks"
 import { MultiSelect } from "@/components/multi-select"
 import { topicOptions } from "@/lib/data"
@@ -66,7 +66,7 @@ const ProfilePage = () => {
   const [heatmap, setheatmap] = useState<HeatmapData>();
   const [expertiseLevel, setExpertiseLevel] = useState<string>(``)
 
-  const fetchUserPreferences = async () => {
+  const fetchUserPreferences = useCallback(async () => {
     if (!user) return toast("No user found.");
     try {
       const data = await fetchPreferences(user.uid);
@@ -78,9 +78,9 @@ const ProfilePage = () => {
     } catch (err: any) {
       toast(err.message || "Error fetching preferences.");
     }
-  };
+  }, [user]);
 
-  const fetchuserstreak = async () => {
+  const fetchuserstreak = useCallback(async () => {
     if (!user) return toast.error("No user found.");
     try {
       const streakData = await fetchstreak(user.uid);
@@ -88,7 +88,7 @@ const ProfilePage = () => {
     } catch (err: any) {
       toast.error(err.message || "Error fetching streak.");
     }
-  };
+  }, [user]);
 
   const challengesData = useMemo(() => {
     if (!streak) return [];
@@ -162,7 +162,7 @@ const ProfilePage = () => {
   };
 
 
-  const fetchHeatMap = async () => {
+  const fetchHeatMap = useCallback(async () => {
     if (!user) return toast("No user found.");
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/summary/heatmap?user_id=${user.uid}&year=2025`, {
@@ -185,7 +185,7 @@ const ProfilePage = () => {
       console.error("Error searching assets:", error.message);
       return [];
     }
-  };
+  }, [user]);
 
   const handleRemoveCategory = async (categoryToRemove: string) => {
     if (!user) return toast.error("No user found.");
@@ -209,7 +209,7 @@ const ProfilePage = () => {
       fetchuserstreak();
       fetchHeatMap();
     }
-  }, [user]);
+  }, [user,fetchuserstreak,fetchUserPreferences,fetchHeatMap]);
 
   const Heatmap = ({ heatmap }: { heatmap: HeatmapData }) => {
     const getWeekOfYear = (date: Date) => {
@@ -246,7 +246,6 @@ const ProfilePage = () => {
       })
     }, [heatmap])
 
-    if (!heatmap) return null
 
     const sortedData = [...processedData].sort((a, b) => +new Date(a.date) - +new Date(b.date))
 
@@ -281,7 +280,9 @@ const ProfilePage = () => {
       })
 
       return labels
-    }, [weeks])
+    }, [weeks]);
+
+    if (!heatmap) return null
 
     const colors = [
       "bg-zinc-800 border-zinc-700",
