@@ -9,53 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
-import { fetchPreferences, fetchstreak, updatePreferences } from "@/lib/actions"
-import { UserPreferences } from "./types/profiletypes"
-
-interface Streak {
-  current_streak: number
-  longest_streak: number
-  total_articles: number
-}
-interface RawDay {
-  date: string
-  count: number
-}
-
-interface HeatmapDay extends RawDay {
-  week: number
-  day: number
-}
-
-interface HeatmapData {
-  user_id: string
-  year: number
-  data: RawDay[]
-}
-
-export interface DailyCount {
-  date: string // e.g. "Mon", "Tue"
-  count: number
-}
-
-export interface DateRange {
-  start: string // e.g. "2025-05-19"
-  end: string   // e.g. "2025-05-25"
-}
-
-export interface CategoriesData {
-  [category: string]: DailyCount[]
-}
-
-export interface UserProgressData {
-  user_id: string
-  period: 'week' | 'month'
-  date_range: DateRange
-  articles_data: DailyCount[]
-  tooltips_data: DailyCount[]
-  categories_data: CategoriesData
-}
-
+import { fetchPreferences, fetchstreak, fetchuserheatmap, updatePreferences } from "@/lib/actions"
+import { HeatmapData, HeatmapDay, Streak, UserPreferences } from "./types/profiletypes"
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState<string>("topics")
@@ -65,7 +20,7 @@ const ProfilePage = () => {
   const [topics, setTopics] = useState<string[]>([]);
   const [heatmap, setheatmap] = useState<HeatmapData>();
   const [expertiseLevel, setExpertiseLevel] = useState<string>(``)
-
+  const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "";
   const fetchUserPreferences = useCallback(async () => {
     if (!user) return toast("No user found.");
     try {
@@ -141,11 +96,12 @@ const ProfilePage = () => {
       };
     });
   }, [streak]);
+
   const handleExpertiseSelect = async (level: string) => {
     setExpertiseLevel(level);
     await updateUserPreferences();
-    setActiveTab("topics");
   };
+
   const updateUserPreferences = async () => {
     if (!user) return toast.error("No user found.");
 
@@ -162,27 +118,12 @@ const ProfilePage = () => {
 
 
   const fetchHeatMap = useCallback(async () => {
-    if (!user) return toast("No user found.");
+    if (!user) return toast.error("No user found.");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/summary/heatmap?user_id=${user.uid}&year=2025`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Server responded with status ${res.status}: ${errorText}`);
-      }
-
-      const data = await res.json();
-
-      setheatmap(data);
-
-    } catch (error: any) {
-      console.error("Error searching assets:", error.message);
-      return [];
+      const heatmapdata = await fetchuserheatmap(API_BASE_URL, user.uid);
+      setheatmap(heatmapdata);
+    } catch (err: any) {
+      toast.error(err.message || "Error fetching streak.");
     }
   }, [user]);
 
@@ -208,7 +149,7 @@ const ProfilePage = () => {
       fetchuserstreak();
       fetchHeatMap();
     }
-  }, [user,fetchuserstreak,fetchUserPreferences,fetchHeatMap]);
+  }, [user, fetchuserstreak, fetchUserPreferences, fetchHeatMap]);
 
   const Heatmap = ({ heatmap }: { heatmap: HeatmapData }) => {
     const getWeekOfYear = (date: Date) => {

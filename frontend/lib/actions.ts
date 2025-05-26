@@ -15,7 +15,7 @@ export async function searchAssets(searchTerm: string, activeFilter: string) {
     }
 
     try {
-        console.log(searchTerm,activeFilter)
+        console.log(searchTerm, activeFilter)
 
         const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/watchlist/search`, {
             method: "POST",
@@ -196,7 +196,7 @@ export const fetchWatchlist = async (API_BASE_URL: string, userId: string) => {
         );
         const data = await response.json();
 
-        console.log("fetch watchlist",data);
+        console.log("fetch watchlist", data);
 
         return data.watchlist;
 
@@ -206,7 +206,7 @@ export const fetchWatchlist = async (API_BASE_URL: string, userId: string) => {
     }
 };
 
-export const fetchstats = async (API_BASE_URL: string, userId: string , period:string ,start_date:string,end_date:string) => {
+export const fetchstats = async (API_BASE_URL: string, userId: string, period: string, start_date: string, end_date: string) => {
 
     try {
         const response = await fetch(
@@ -214,7 +214,7 @@ export const fetchstats = async (API_BASE_URL: string, userId: string , period:s
         );
         const data = await response.json();
 
-        console.log("fetch watchlist",data);
+        console.log("fetch watchlist", data);
 
         return data;
 
@@ -224,3 +224,25 @@ export const fetchstats = async (API_BASE_URL: string, userId: string , period:s
     }
 };
 
+export const fetchuserheatmap = async (API_BASE_URL: string, userId: string) => {
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/summary/heatmap?user_id=${userId}&year=2025`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Server responded with status ${res.status}: ${errorText}`);
+        }
+        const data = await res.json();
+        
+        return data;
+
+    } catch (error) {
+        console.error("Error fetching user heatmap assets:", error);
+        return [];
+    }
+};
