@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useMemo, useState } from "react"
-import { BookOpen, LineChart, User, TrendingUp, Plus, Trophy, Calendar, Target, Cross, X } from "lucide-react"
+import { BookOpen, LineChart, User, TrendingUp, Plus, Trophy, Calendar, Target, Cross, X, Award, Clock, Lock, BadgeCheck, ChevronRight } from "lucide-react"
 import { useAppSelector } from "@/app/store/hooks"
 import { MultiSelect } from "@/components/multi-select"
 import { topicOptions } from "@/lib/data"
@@ -55,7 +55,44 @@ export interface UserProgressData {
   tooltips_data: DailyCount[]
   categories_data: CategoriesData
 }
-
+const challengesData = [
+  {
+    id: "7day",
+    name: "7-Day Streak",
+    description: "Complete at least one learning activity daily for 7 consecutive days",
+    progress: 100,
+    completed: true,
+    reward: "Quick Learner Badge",
+    icon: <Award className="h-5 w-5 text-green-400" />
+  },
+  {
+    id: "30day",
+    name: "30-Day Challenge",
+    description: "Complete at least one learning activity daily for 30 consecutive days",
+    progress: 100,
+    completed: true,
+    reward: "Dedicated Student Badge",
+    icon: <Award className="h-5 w-5 text-blue-400" />
+  },
+  {
+    id: "100day",
+    name: "100-Day Challenge",
+    description: "Complete at least one learning activity daily for 100 consecutive days",
+    progress: 65,
+    completed: false,
+    reward: "Finance Expert Badge",
+    icon: <Clock className="h-5 w-5 text-yellow-400" />
+  },
+  {
+    id: "365day",
+    name: "365-Day Challenge",
+    description: "Complete at least one learning activity daily for a full year",
+    progress: 15,
+    completed: false,
+    reward: "Finance Master Title",
+    icon: <Lock className="h-5 w-5 text-gray-400" />
+  },
+];
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState<string>("topics")
@@ -450,32 +487,107 @@ const ProfilePage = () => {
             </CardContent>
           </Card>
           {/* Learning Progress */}
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-blue-400" />
-                <CardTitle className="text-white">Learning Progress</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button className="bg-blue-600 hover:bg-blue-700 h-12 text-left justify-start cursor-pointer">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Learning Streak
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-zinc-700 bg-zinc-800 hover:bg-zinc-900 hover:text-white text-white h-12 text-left justify-start cursor-pointer"
-                >
-                  <Target className="h-4 w-4 mr-2" />
-                  Challenges
-                </Button>
-              </div>
-            </CardContent>
-            {heatmap && <Heatmap heatmap={heatmap} />}
-          </Card>
 
-          {/* Activity Calendar */}
+          <Tabs defaultValue="streak" className="w-full">
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-blue-400" />
+                  <CardTitle className="text-white">Learning Progress</CardTitle>
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                <TabsList className="grid grid-cols-2 w-full sm:w-1/2 bg-zinc-800 p-1 rounded-md">
+                  <TabsTrigger
+                    value="streak"
+                    className="data-[state=active]:bg-blue-900/50 text-white cursor-pointer"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Learning Streak
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="challenges"
+                    className="data-[state=active]:bg-blue-900/50 text-white cursor-pointer"
+                  >
+                    <Target className="h-4 w-4 mr-2" />
+                    Challenges
+                  </TabsTrigger>
+                </TabsList>
+              </CardContent>
+
+              <TabsContent value="streak" className="px-6 pb-6">
+                {heatmap && <Heatmap heatmap={heatmap} />}
+              </TabsContent>
+
+              <TabsContent value="challenges" className="space-y-6 px-6 pb-6">
+                {challengesData.map((challenge) => (
+                  <div key={challenge.id} className="bg-zinc-800 rounded-lg p-4">
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`rounded-full p-2.5 ${challenge.completed ? "bg-green-900/30" : "bg-blue-900/30"
+                          }`}
+                      >
+                        {challenge.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium flex items-center text-white">
+                              {challenge.name}
+                              {challenge.completed && (
+                                <BadgeCheck className="h-4 w-4 text-green-400 ml-2" />
+                              )}
+                            </h4>
+                            <p className="text-gray-400 text-sm mt-1">
+                              {challenge.description}
+                            </p>
+                          </div>
+
+                          <div
+                            className={`px-2 py-1 rounded-full text-xs border ${challenge.completed
+                                ? "bg-green-900/30 text-green-400 border-green-800"
+                                : "bg-blue-900/30 text-blue-400 border-blue-800"
+                              }`}
+                          >
+                            {challenge.completed ? "Completed" : "In Progress"}
+                          </div>
+                        </div>
+
+                        <div className="mt-3">
+                          <div className="flex justify-between items-center mb-1.5">
+                            <span className="text-sm text-gray-400">Progress</span>
+                            <span className="text-sm">{challenge.progress}%</span>
+                          </div>
+                          <div className="h-2 w-full bg-zinc-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${challenge.completed ? "bg-green-500" : "bg-blue-600"
+                                }`}
+                              style={{ width: `${challenge.progress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex justify-between items-center text-sm">
+                          <div className="text-gray-400">
+                            Reward:{" "}
+                            <span className="text-blue-400">{challenge.reward}</span>
+                          </div>
+                          {!challenge.completed && (
+                            <button className="text-blue-400 hover:text-blue-300 flex items-center">
+                              View Details
+                              <ChevronRight className="h-4 w-4 ml-1" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
+            </Card>
+          </Tabs>
+
         </div>
       </div>
     </div>
