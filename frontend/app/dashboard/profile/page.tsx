@@ -19,8 +19,10 @@ const ProfilePage = () => {
   const [streak, setStreak] = useState<Streak>();
   const [topics, setTopics] = useState<string[]>([]);
   const [heatmap, setheatmap] = useState<HeatmapData>();
-  const [expertiseLevel, setExpertiseLevel] = useState<string>(``)
+  const [expertiseLevel, setExpertiseLevel] = useState<string>(``);
+  const [loading, setLoading] = useState(false);
   const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "";
+
   const fetchUserPreferences = useCallback(async () => {
     if (!user) return toast("No user found.");
     try {
@@ -106,11 +108,12 @@ const ProfilePage = () => {
     if (!user) return toast.error("No user found.");
 
     try {
+      setLoading(true);
       const previousTopics = userdata?.categories || [];
       const mergedTopics = Array.from(new Set([...previousTopics, ...topics]));
-
       const updated = await updatePreferences(user.uid, expertiseLevel, mergedTopics, userdata!);
       setUserdata(updated);
+      setLoading(false);
     } catch (err: any) {
       toast.error(err.message || "Error updating preferences.");
     }
@@ -433,11 +436,24 @@ const ProfilePage = () => {
                       ))}
 
                     </div>
-                    <MultiSelect options={topicOptions} selected={topics} onChange={setTopics} placeholder="Select topics" className="bg-zinc-800 border-zinc-700" />
+
+                    {
+                      loading ? "Updating preferences..." : <MultiSelect
+                        options={topicOptions}
+                        selected={topics}
+                        onChange={setTopics}
+                        placeholder={loading ? "Updating preferences..." : "Select topics"}
+                        className="bg-zinc-800 border-zinc-700"
+                      />
+                    }
+                    <Button
+                      className="bg-blue-600 hover:bg-blue-700 mt-4"
+                      onClick={updateUserPreferences}
+                      disabled={loading}
+                    >
+                      {loading ? "Saving..." : "Save Preferences"}
+                    </Button>
                   </div>
-                  <Button className="bg-blue-600 hover:bg-blue-700" onClick={updateUserPreferences}>
-                    Save Preferences
-                  </Button>
                 </TabsContent>
               </Tabs>
             </CardContent>

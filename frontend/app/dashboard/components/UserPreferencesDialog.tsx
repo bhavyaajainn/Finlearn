@@ -63,8 +63,7 @@ export default function UserPreferencesDialog({ open, onOpenChange }: UserPrefer
           data 
         })).unwrap();
       }
-      
-      toast.success("Preferences saved successfully!");
+
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error.toString());
