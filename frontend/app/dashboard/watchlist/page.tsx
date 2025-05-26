@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/app/store/hooks";
 import { toast } from "sonner";
@@ -63,9 +63,7 @@ export default function WatchlistPage() {
   const [error, setError] = useState<string | null>(null);
 
 
-  useEffect(() => {
-    fetchUserWatchlist();
-  }, [user?.uid]);
+
 
   console.log(user?.uid)
 
@@ -88,23 +86,20 @@ export default function WatchlistPage() {
     }
   }, [debouncedSearchTerm, activeAssetType, isDialogOpen]);
 
-  const fetchUserWatchlist = async () => {
+  const fetchUserWatchlist = useCallback(async () => {
     if (!user) return toast("No user found.");
     try {
-
       const data = await fetchWatchlist(API_BASE_URL || `${process.env.NEXT_PUBLIC_BASE_URL}`, user.uid);
-
-      if (data.length === 0) {
-        setWatchlist([]);
-      } else {
-        setWatchlist(data);
-      }
-
+      setWatchlist(data.length === 0 ? [] : data);
     } catch (err: any) {
       toast.error(err.message || "Error fetching preferences.");
     }
-  };
+  }, [user, API_BASE_URL]);
 
+  useEffect(() => {
+    fetchUserWatchlist();
+  }, [user?.uid,fetchUserWatchlist]);
+  
   const handleAddAsset = async (asset: AssetData) => {
     if (!user?.uid) {
       toast.error("Authentication required");
@@ -234,7 +229,7 @@ export default function WatchlistPage() {
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                     </div>
                   ) : searchResults.length > 0 ? (
-                    searchResults.map((asset,index) => (
+                    searchResults.map((asset, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2"
@@ -274,6 +269,7 @@ export default function WatchlistPage() {
                 <TableHead className="text-blue-400">Asset</TableHead>
                 <TableHead className="text-blue-400 text-right">Price</TableHead>
                 <TableHead className="text-blue-400 text-right">Type</TableHead>
+                <TableHead className="text-blue-400 text-right">View</TableHead>
                 <TableHead className="text-blue-400 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -305,37 +301,33 @@ export default function WatchlistPage() {
                   <TableCell className="text-right capitalize">
                     {asset.asset_type}
                   </TableCell>
-                  <TableCell>
-
-                  <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-blue-400 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigateToAssetDetails(asset.symbol, asset.asset_type);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                        View Insights
-                      </Button>
-                  </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-400 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveAsset(asset.symbol, asset.asset_type);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <span
+                      className="text-blue-400 cursor-pointer underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateToAssetDetails(asset.symbol, asset.asset_type);
+                      }} 
+                    >
+                      View Insights
+                    </span>
                   </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-400 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveAsset(asset.symbol, asset.asset_type);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                 </TableRow>
               ))}
             </TableBody>
