@@ -274,7 +274,7 @@ export default function WatchlistPage() {
                 <TableHead className="text-blue-400">Asset</TableHead>
                 <TableHead className="text-blue-400 text-right">Price</TableHead>
                 <TableHead className="text-blue-400 text-right">Type</TableHead>
-                <TableHead className="text-blue-400 text-right">Type</TableHead>
+                <TableHead className="text-blue-400 text-right">View</TableHead>
                 <TableHead className="text-blue-400 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>

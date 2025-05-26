@@ -55,44 +55,7 @@ export interface UserProgressData {
   tooltips_data: DailyCount[]
   categories_data: CategoriesData
 }
-const challengesData = [
-  {
-    id: "7day",
-    name: "7-Day Streak",
-    description: "Complete at least one learning activity daily for 7 consecutive days",
-    progress: 100,
-    completed: true,
-    reward: "Quick Learner Badge",
-    icon: <Award className="h-5 w-5 text-green-400" />
-  },
-  {
-    id: "30day",
-    name: "30-Day Challenge",
-    description: "Complete at least one learning activity daily for 30 consecutive days",
-    progress: 100,
-    completed: true,
-    reward: "Dedicated Student Badge",
-    icon: <Award className="h-5 w-5 text-blue-400" />
-  },
-  {
-    id: "100day",
-    name: "100-Day Challenge",
-    description: "Complete at least one learning activity daily for 100 consecutive days",
-    progress: 65,
-    completed: false,
-    reward: "Finance Expert Badge",
-    icon: <Clock className="h-5 w-5 text-yellow-400" />
-  },
-  {
-    id: "365day",
-    name: "365-Day Challenge",
-    description: "Complete at least one learning activity daily for a full year",
-    progress: 15,
-    completed: false,
-    reward: "Finance Master Title",
-    icon: <Lock className="h-5 w-5 text-gray-400" />
-  },
-];
+
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState<string>("topics")
@@ -126,6 +89,58 @@ const ProfilePage = () => {
       toast.error(err.message || "Error fetching streak.");
     }
   };
+
+  const challengesData = useMemo(() => {
+    if (!streak) return [];
+
+    const challengesConfig = [
+      {
+        id: "7day",
+        name: "7-Day Streak",
+        description: "Complete at least one learning activity daily for 7 consecutive days",
+        targetDays: 7,
+        reward: "Quick Learner Badge",
+        icon: <Award className="h-5 w-5 text-green-400" />,
+      },
+      {
+        id: "30day",
+        name: "30-Day Challenge",
+        description: "Complete at least one learning activity daily for 30 consecutive days",
+        targetDays: 30,
+        reward: "Dedicated Student Badge",
+        icon: <Award className="h-5 w-5 text-blue-400" />,
+      },
+      {
+        id: "100day",
+        name: "100-Day Challenge",
+        description: "Complete at least one learning activity daily for 100 consecutive days",
+        targetDays: 100,
+        reward: "Finance Expert Badge",
+        icon: <Clock className="h-5 w-5 text-yellow-400" />,
+      },
+      {
+        id: "365day",
+        name: "365-Day Challenge",
+        description: "Complete at least one learning activity daily for a full year",
+        targetDays: 365,
+        reward: "Finance Master Title",
+        icon: <Lock className="h-5 w-5 text-gray-400" />,
+      },
+    ];
+
+    return challengesConfig.map((challenge) => {
+      const longestStreak = streak.longest_streak;
+      const targetDays = challenge.targetDays;
+      const isCompleted = longestStreak >= targetDays;
+      const progress = Math.min((longestStreak / targetDays) * 100, 100);
+
+      return {
+        ...challenge,
+        progress,
+        completed: isCompleted,
+      };
+    });
+  }, [streak]);
   const handleExpertiseSelect = async (level: string) => {
     setExpertiseLevel(level);
     await updateUserPreferences();
@@ -546,8 +561,8 @@ const ProfilePage = () => {
 
                           <div
                             className={`px-2 py-1 rounded-full text-xs border ${challenge.completed
-                                ? "bg-green-900/30 text-green-400 border-green-800"
-                                : "bg-blue-900/30 text-blue-400 border-blue-800"
+                              ? "bg-green-900/30 text-green-400 border-green-800"
+                              : "bg-blue-900/30 text-blue-400 border-blue-800"
                               }`}
                           >
                             {challenge.completed ? "Completed" : "In Progress"}
@@ -557,7 +572,7 @@ const ProfilePage = () => {
                         <div className="mt-3">
                           <div className="flex justify-between items-center mb-1.5">
                             <span className="text-sm text-gray-400">Progress</span>
-                            <span className="text-sm">{challenge.progress}%</span>
+                            <span className="text-sm text-white">{challenge.progress.toFixed(2)}%</span>
                           </div>
                           <div className="h-2 w-full bg-zinc-700 rounded-full overflow-hidden">
                             <div
