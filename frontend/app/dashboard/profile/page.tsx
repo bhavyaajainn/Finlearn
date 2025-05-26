@@ -148,7 +148,6 @@ const ProfilePage = () => {
   };
   const updateUserPreferences = async () => {
     if (!user) return toast.error("No user found.");
-    if (topics.length === 0) return toast.error("No topics added.");
 
     try {
       const previousTopics = userdata?.categories || [];
