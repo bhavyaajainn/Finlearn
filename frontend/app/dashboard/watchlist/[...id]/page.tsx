@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { normalizeToken } from "@/lib/utils"
 
 export default function WatchlistDetails() {
   const [details, setDetails] = useState<ResearchAssetData | null>(null)
@@ -82,14 +83,6 @@ export default function WatchlistDetails() {
         })}
       </span>
     );
-  };
-
-  // Normalize and stem token to base form
-  const normalizeToken = (token: string): string => {
-    return token
-      .replace(/^[\p{P}\s]+|[\p{P}\s]+$/gu, '') // remove surrounding punctuation
-      .toLowerCase()
-      .replace(/(ing|ed|s)$/, ''); // crude stemming
   };
 
 
@@ -191,6 +184,7 @@ export default function WatchlistDetails() {
 
     fetchInitialData();
   }, [user?.uid, params]);
+
 
   if (isLoading) {
     return (
@@ -427,14 +421,16 @@ export default function WatchlistDetails() {
                                   </p>
                                   <div className="text-gray-400 text-xs flex justify-between items-center">
                                     <span>{newsItem.source} — {newsItem.date}</span>
-                                    <a
-                                      href={newsItem.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-400 hover:underline"
-                                    >
-                                      Read more
-                                    </a>
+                                    {newsItem.url && (
+                                      <a
+                                        href={newsItem.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-400 hover:underline cursor-pointer"
+                                      >
+                                        Read more
+                                      </a>
+                                    )}
                                   </div>
                                 </div>
                               ))}
@@ -455,9 +451,9 @@ export default function WatchlistDetails() {
                                         <div className="text-gray-400">
                                           {asset.symbol}
                                         </div>
-                                      <span className="mt-3 text-sm text-white">
-                                        {asset.similarity_reason}
-                                      </span>
+                                        <span className="mt-3 text-sm text-white">
+                                          {asset.similarity_reason}
+                                        </span>
                                       </div>
                                     </div>
                                     <div className="text-right">

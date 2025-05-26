@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { searchAssets, addToWatchlist, fetchWatchlist } from "@/lib/actions";
 import { useTransition } from "react";
 import {
-  Eye,
   Trash2,
   TrendingUp,
   TrendingDown,
@@ -61,11 +60,7 @@ export default function WatchlistPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [addingAssetId, setAddingAssetId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-
-
-
-  console.log(user?.uid)
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isDialogOpen && debouncedSearchTerm.trim()) {
@@ -91,6 +86,7 @@ export default function WatchlistPage() {
     try {
       const data = await fetchWatchlist(API_BASE_URL || `${process.env.NEXT_PUBLIC_BASE_URL}`, user.uid);
       setWatchlist(data.length === 0 ? [] : data);
+      setIsLoading(false);
     } catch (err: any) {
       toast.error(err.message || "Error fetching preferences.");
     }
@@ -98,8 +94,8 @@ export default function WatchlistPage() {
 
   useEffect(() => {
     fetchUserWatchlist();
-  }, [user?.uid,fetchUserWatchlist]);
-  
+  }, [user?.uid, fetchUserWatchlist]);
+
   const handleAddAsset = async (asset: AssetData) => {
     if (!user?.uid) {
       toast.error("Authentication required");
@@ -172,173 +168,181 @@ export default function WatchlistPage() {
           <h1 className="text-3xl font-bold text-white mb-2">Watchlist</h1>
           <p className="text-gray-400 text-sm sm:text-base">Track & Analyze Your Assets</p>
         </header>
-
-        <div className="mb-6 flex gap-4 items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search watchlist..."
-              className="pl-10 bg-gray-900 border-gray-800 focus:ring-blue-600 h-12"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        {isLoading ? (
+          <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-12 w-12 text-blue-500" />
           </div>
-
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="h-12 px-6 bg-blue-600 hover:bg-blue-700">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Asset
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent className="bg-gray-900 border-gray-800 text-white">
-              <DialogHeader>
-                <DialogTitle className="text-blue-400">Add New Asset</DialogTitle>
-                <DialogDescription className="text-gray-400">
-                  Search for financial assets to monitor
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                <Select value={activeAssetType} onValueChange={setActiveAssetType}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700">
-                    <SelectValue placeholder="Asset Type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-700 text-white cursor-pointer">
-                    <SelectItem value="stock">Stocks</SelectItem>
-                    <SelectItem value="crypto">Crypto</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search assets..."
-                    className="pl-10 bg-gray-800 border-gray-700"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-
-                <div className="max-h-[400px] overflow-y-auto">
-                  {error ? (
-                    <div className="text-red-400 text-center py-4">{error}</div>
-                  ) : isSearching ? (
-                    <div className="flex justify-center items-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                    </div>
-                  ) : searchResults.length > 0 ? (
-                    searchResults.map((asset, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2"
-                      >
-                        <div>
-                          <div className="font-medium">{asset.symbol}</div>
-                          <div className="text-sm text-gray-400">{asset.name}</div>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => handleAddAsset(asset)}
-                          disabled={addingAssetId === asset.symbol}
-                        >
-                          {addingAssetId === asset.symbol ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Plus className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-gray-400 text-center py-4">
-                      {debouncedSearchTerm ? "No results found" : "Start typing to search"}
-                    </div>
-                  )}
-                </div>
+        ) : (
+          <div>
+            <div className="mb-6 flex gap-4 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search watchlist..."
+                  className="pl-10 bg-gray-900 border-gray-800 focus:ring-blue-600 h-12"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
 
-        <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
-          <Table>
-            <TableHeader className="bg-gray-800">
-              <TableRow>
-                <TableHead className="text-blue-400">Asset</TableHead>
-                <TableHead className="text-blue-400 text-right">Price</TableHead>
-                <TableHead className="text-blue-400 text-right">Type</TableHead>
-                <TableHead className="text-blue-400 text-right">View</TableHead>
-                <TableHead className="text-blue-400 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredWatchlist.map((asset) => (
-                <TableRow
-                  key={`${asset.symbol}-${asset.asset_type}`}
-                  className="hover:bg-gray-800/50 cursor-pointer"
-                  onClick={() => navigateToAssetDetails(asset.symbol, asset.asset_type)}
-                >
-                  <TableCell>
-                    <div className="font-medium">{asset.name}</div>
-                    <div className="text-sm text-gray-400">{asset.symbol}</div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div>${isNaN(asset.current_price) ? '--' : asset.current_price}</div>
-                    <div className={cn(
-                      "flex items-center justify-end",
-                      asset.price_change_percent >= 0 ? "text-green-500" : "text-red-500"
-                    )}>
-                      {asset.price_change_percent >= 0 ? (
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 mr-1" />
-                      )}
-                      {isNaN(asset.price_change_percent) ? "--" : Math.abs(asset.price_change_percent)}%
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="h-12 px-6 bg-blue-600 hover:bg-blue-700">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Asset
+                  </Button>
+                </DialogTrigger>
+
+                <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                  <DialogHeader>
+                    <DialogTitle className="text-blue-400">Add New Asset</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      Search for financial assets to monitor
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4">
+                    <Select value={activeAssetType} onValueChange={setActiveAssetType}>
+                      <SelectTrigger className="bg-gray-800 border-gray-700">
+                        <SelectValue placeholder="Asset Type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-900 border-gray-700 text-white cursor-pointer">
+                        <SelectItem value="stock">Stocks</SelectItem>
+                        <SelectItem value="crypto">Crypto</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search assets..."
+                        className="pl-10 bg-gray-800 border-gray-700"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right capitalize">
-                    {asset.asset_type}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className="text-blue-400 cursor-pointer underline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigateToAssetDetails(asset.symbol, asset.asset_type);
-                      }} 
-                    >
-                      View Insights
-                    </span>
-                  </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
 
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-400 cursor-pointer"
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {error ? (
+                        <div className="text-red-400 text-center py-4">{error}</div>
+                      ) : isSearching ? (
+                        <div className="flex justify-center items-center py-8">
+                          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                        </div>
+                      ) : searchResults.length > 0 ? (
+                        searchResults.map((asset, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2"
+                          >
+                            <div>
+                              <div className="font-medium">{asset.symbol}</div>
+                              <div className="text-sm text-gray-400">{asset.name}</div>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => handleAddAsset(asset)}
+                              disabled={addingAssetId === asset.symbol}
+                            >
+                              {addingAssetId === asset.symbol ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Plus className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-400 text-center py-4">
+                          {debouncedSearchTerm ? "No results found" : "Start typing to search"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="bg-zinc-900 rounded-lg p-6 shadow-lg">
+              <Table>
+                <TableHeader className="bg-gray-900">
+                  <TableRow>
+                    <TableHead className="text-blue-400">Asset</TableHead>
+                    <TableHead className="text-blue-400 text-right">Price</TableHead>
+                    <TableHead className="text-blue-400 text-right">Type</TableHead>
+                    <TableHead className="text-blue-400 text-right">View</TableHead>
+                    <TableHead className="text-blue-400 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredWatchlist.map((asset) => (
+                    <TableRow
+                      key={`${asset.symbol}-${asset.asset_type}`}
+                      className="hover:bg-gray-800/50 cursor-pointer"
+                      onClick={() => navigateToAssetDetails(asset.symbol, asset.asset_type)}
+                    >
+                      <TableCell>
+                        <div className="font-medium">{asset.name}</div>
+                        <div className="text-sm text-gray-400">{asset.symbol}</div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div>${isNaN(asset.current_price) ? '--' : asset.current_price}</div>
+                        <div className={cn(
+                          "flex items-center justify-end",
+                          asset.price_change_percent >= 0 ? "text-green-500" : "text-red-500"
+                        )}>
+                          {asset.price_change_percent >= 0 ? (
+                            <TrendingUp className="h-4 w-4 mr-1" />
+                          ) : (
+                            <TrendingDown className="h-4 w-4 mr-1" />
+                          )}
+                          {isNaN(asset.price_change_percent) ? "--" : Math.abs(asset.price_change_percent)}%
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right capitalize">
+                        {asset.asset_type}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span
+                          className="text-blue-400 cursor-pointer underline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRemoveAsset(asset.symbol, asset.asset_type);
+                            navigateToAssetDetails(asset.symbol, asset.asset_type);
                           }}
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                          View Insights
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
 
-          {filteredWatchlist.length === 0 && (
-            <div className="text-center text-gray-400 py-6">
-              {watchlist.length === 0 ? "Your watchlist is empty" : "No matching assets found"}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-400 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveAsset(asset.symbol, asset.asset_type);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {filteredWatchlist.length === 0 && (
+                <div className="text-center text-gray-400 py-6">
+                  {watchlist.length === 0 ? "Your watchlist is empty" : "No matching assets found"}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

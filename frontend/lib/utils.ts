@@ -13,3 +13,10 @@ export const formatCurrency = (value: number) => {
     maximumFractionDigits: 2,
   }).format(value);
 };
+
+export const normalizeToken = (token: string): string => {
+  return token
+    .replace(/^[\p{P}\s]+|[\p{P}\s]+$/gu, '') // remove surrounding punctuation
+    .toLowerCase()
+    .replace(/(ing|ed|s)$/, ''); // crude stemming
+};
