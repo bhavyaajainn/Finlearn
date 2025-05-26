@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useMemo, useState } from "react"
-import { BookOpen, LineChart, User, TrendingUp, Plus, Trophy, Calendar, Target } from "lucide-react"
+import { BookOpen, LineChart, User, TrendingUp, Plus, Trophy, Calendar, Target, Cross, X } from "lucide-react"
 import { useAppSelector } from "@/app/store/hooks"
 import { MultiSelect } from "@/components/multi-select"
 import { topicOptions } from "@/lib/data"
@@ -135,6 +135,22 @@ const ProfilePage = () => {
     }
   };
 
+  const handleRemoveCategory = async (categoryToRemove: string) => {
+    if (!user) return toast.error("No user found.");
+
+    const updatedTopics = (userdata?.categories || []).filter(
+      (category) => category !== categoryToRemove
+    );
+
+    try {
+      const updated = await updatePreferences(user.uid, expertiseLevel, updatedTopics, userdata!);
+      setUserdata(updated);
+      setTopics(updatedTopics)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove category.");
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchUserPreferences();
@@ -226,7 +242,7 @@ const ProfilePage = () => {
     return (
       <TooltipProvider>
         <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-4 sm:p-6 bg-zinc-800 mx-6 rounded-lg">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-blue-400" />
@@ -411,16 +427,16 @@ const ProfilePage = () => {
                     <h3 className="font-medium text-white">Select Topics</h3>
                     <div className="flex flex-wrap gap-2">
                       {userdata?.categories.map((category) => (
-                        <button
-                          key={category}
-                          className={`p-4 rounded-lg border transition-all 
-                               border-blue-600 bg-blue-900/30 text-blue-300
+                        <div key={category} className="flex items-center gap-2">
+                          <button
+                            className={`p-4 rounded-lg border transition-all flex gap-2
+                               border-blue-600 bg-blue-900/30 text-blue-300 items-center
                              `}
-                        >
-                          <div className="flex items-center gap-2">
+                          >
                             <span className="text-sm font-medium">{category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()}</span>
-                          </div>
-                        </button>
+                            <X className="text-white cursor-pointer" width={15} height={15} onClick={() => handleRemoveCategory(category)} />
+                          </button>
+                        </div>
                       ))}
 
                     </div>

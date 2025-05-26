@@ -234,7 +234,7 @@ export default function WatchlistPage() {
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                     </div>
                   ) : searchResults.length > 0 ? (
-                    searchResults.map((asset,index) => (
+                    searchResults.map((asset, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2"
@@ -274,6 +274,7 @@ export default function WatchlistPage() {
                 <TableHead className="text-blue-400">Asset</TableHead>
                 <TableHead className="text-blue-400 text-right">Price</TableHead>
                 <TableHead className="text-blue-400 text-right">Type</TableHead>
+                <TableHead className="text-blue-400 text-right">Type</TableHead>
                 <TableHead className="text-blue-400 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -305,37 +306,33 @@ export default function WatchlistPage() {
                   <TableCell className="text-right capitalize">
                     {asset.asset_type}
                   </TableCell>
-                  <TableCell>
-
-                  <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-blue-400 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigateToAssetDetails(asset.symbol, asset.asset_type);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                        View Insights
-                      </Button>
-                  </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-400 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveAsset(asset.symbol, asset.asset_type);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <span
+                      className="text-blue-400 cursor-pointer underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateToAssetDetails(asset.symbol, asset.asset_type);
+                      }} 
+                    >
+                      View Insights
+                    </span>
                   </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-400 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveAsset(asset.symbol, asset.asset_type);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                 </TableRow>
               ))}
             </TableBody>
