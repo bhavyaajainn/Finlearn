@@ -101,6 +101,8 @@ export default function WatchlistDetails() {
         return res.json();
       });
 
+
+      console.log(relatedRes);
       setDetails(prev => ({
         ...prev!,
         recent_news: relatedRes.recent_news || [],
@@ -113,6 +115,7 @@ export default function WatchlistDetails() {
       toast.error("Failed to load related assets");
     }
   };
+
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -185,7 +188,7 @@ export default function WatchlistDetails() {
     fetchInitialData();
   }, [user?.uid, params]);
 
-
+  console.log(details);
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black text-white">
@@ -419,9 +422,9 @@ export default function WatchlistDetails() {
                                   <p className="text-gray-300 text-sm mb-2">
                                     {newsItem.summary}
                                   </p>
-                                  <div className="text-gray-400 text-xs flex justify-between items-center">
+                                  <div className="text-gray-400 text-sm flex justify-between items-center">
                                     <span>{newsItem.source} — {newsItem.date}</span>
-                                    {newsItem.url && (
+                                    {newsItem.url ? (
                                       <a
                                         href={newsItem.url}
                                         target="_blank"
@@ -430,6 +433,10 @@ export default function WatchlistDetails() {
                                       >
                                         Read more
                                       </a>
+                                    ) : (
+                                      <div className="text-blue-400 hover:underline max-w-3/4 text-sm mt-3">
+                                        <span>{newsItem.citation}</span>
+                                      </div>
                                     )}
                                   </div>
                                 </div>
