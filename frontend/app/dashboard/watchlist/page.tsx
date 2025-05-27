@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { useDebounce } from "@/hooks/use-debouce";
 import { AssetData, WatchlistAsset } from "./types/type";
+import { Card, CardContent } from "@/components/ui/card";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -163,25 +164,25 @@ export default function WatchlistPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <header className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Watchlist</h1>
+      <div className="container mx-auto py-4 px-4 sm:py-8 sm:px-6 lg:px-8">
+        <header className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2">Watchlist</h1>
           <p className="text-gray-400 text-sm sm:text-base">Track & Analyze Your Assets</p>
         </header>
 
         {isLoading ? (
-          <div className="flex justify-center items-center h-screen">
-            <Loader2 className="h-12 w-12 text-blue-500" />
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
           </div>
         ) : (
           <div>
             {/* Controls */}
-            <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
-              <div className="relative w-full sm:flex-1">
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search watchlist..."
-                  className="pl-10 bg-gray-900 border-gray-800 focus:ring-blue-600 h-12 w-full"
+                  className="pl-10 bg-gray-900 border-gray-800 focus:ring-blue-600 h-10 sm:h-12 w-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -189,13 +190,13 @@ export default function WatchlistPage() {
 
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="h-12 w-full sm:w-auto px-6 bg-blue-600 hover:bg-blue-700">
+                  <Button className="h-10 sm:h-12 w-full sm:w-auto px-4 sm:px-6 bg-blue-600 hover:bg-blue-700 text-sm sm:text-base">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Add Asset
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="w-full max-w-md bg-gray-900 border-gray-800 text-white">
+                <DialogContent className="w-[95vw] max-w-md mx-auto bg-gray-900 border-gray-800 text-white">
                   <DialogHeader>
                     <DialogTitle className="text-blue-400">Add New Asset</DialogTitle>
                     <DialogDescription className="text-gray-400">
@@ -208,7 +209,7 @@ export default function WatchlistPage() {
                       <SelectTrigger className="bg-gray-800 border-gray-700">
                         <SelectValue placeholder="Asset Type" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-900 border-gray-700 text-white cursor-pointer">
+                      <SelectContent className="bg-gray-900 border-gray-700 text-white">
                         <SelectItem value="stock">Stocks</SelectItem>
                         <SelectItem value="crypto">Crypto</SelectItem>
                       </SelectContent>
@@ -224,9 +225,9 @@ export default function WatchlistPage() {
                       />
                     </div>
 
-                    <div className="max-h-[400px] overflow-y-auto">
+                    <div className="max-h-[300px] sm:max-h-[400px] overflow-y-auto">
                       {error ? (
-                        <div className="text-red-400 text-center py-4">{error}</div>
+                        <div className="text-red-400 text-center py-4 text-sm">{error}</div>
                       ) : isSearching ? (
                         <div className="flex justify-center items-center py-8">
                           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -237,14 +238,15 @@ export default function WatchlistPage() {
                             key={index}
                             className="flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2"
                           >
-                            <div>
-                              <div className="font-medium">{asset.symbol}</div>
-                              <div className="text-sm text-gray-400">{asset.name}</div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium truncate">{asset.symbol}</div>
+                              <div className="text-sm text-gray-400 truncate">{asset.name}</div>
                             </div>
                             <Button
                               size="sm"
                               onClick={() => handleAddAsset(asset)}
                               disabled={addingAssetId === asset.symbol}
+                              className="ml-2 flex-shrink-0"
                             >
                               {addingAssetId === asset.symbol ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -255,7 +257,7 @@ export default function WatchlistPage() {
                           </div>
                         ))
                       ) : (
-                        <div className="text-gray-400 text-center py-4">
+                        <div className="text-gray-400 text-center py-4 text-sm">
                           {debouncedSearchTerm ? "No results found" : "Start typing to search"}
                         </div>
                       )}
@@ -265,79 +267,158 @@ export default function WatchlistPage() {
               </Dialog>
             </div>
 
-            {/* Table */}
-            <div className="bg-zinc-900 rounded-lg p-6 shadow-lg overflow-x-auto">
-              <Table className="min-w-[600px]">
-                <TableHeader className="bg-gray-900">
-                  <TableRow>
-                    <TableHead className="text-blue-400">Asset</TableHead>
-                    <TableHead className="text-blue-400 text-right">Price</TableHead>
-                    <TableHead className="text-blue-400 text-right">Type</TableHead>
-                    <TableHead className="text-blue-400 text-right">View</TableHead>
-                    <TableHead className="text-blue-400 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredWatchlist.map((asset) => (
-                    <TableRow
-                      key={`${asset.symbol}-${asset.asset_type}`}
-                      className="hover:bg-gray-800/50 cursor-pointer"
-                      onClick={() => navigateToAssetDetails(asset.symbol, asset.asset_type)}
-                    >
-                      <TableCell>
-                        <div className="font-medium">{asset.name}</div>
-                        <div className="text-sm text-gray-400">{asset.symbol}</div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div>${isNaN(asset.current_price) ? '--' : asset.current_price}</div>
-                        <div className={cn(
-                          "flex items-center justify-end",
-                          asset.price_change_percent >= 0 ? "text-green-500" : "text-red-500"
-                        )}>
-                          {asset.price_change_percent >= 0 ? (
-                            <TrendingUp className="h-4 w-4 mr-1" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 mr-1" />
-                          )}
-                          {isNaN(asset.price_change_percent) ? "--" : Math.abs(asset.price_change_percent)}%
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right capitalize">
-                        {asset.asset_type}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span
-                          className="text-blue-400 cursor-pointer underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigateToAssetDetails(asset.symbol, asset.asset_type);
-                          }}
-                        >
-                          View Insights
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-zinc-900 rounded-lg p-6 shadow-lg">
+              <div className="overflow-x-auto">
+                <Table className="w-full">
+                  <TableHeader className="bg-gray-900">
+                    <TableRow>
+                      <TableHead className="text-blue-400">Asset</TableHead>
+                      <TableHead className="text-blue-400 text-right">Price</TableHead>
+                      <TableHead className="text-blue-400 text-right">Type</TableHead>
+                      <TableHead className="text-blue-400 text-right">View</TableHead>
+                      <TableHead className="text-blue-400 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredWatchlist.map((asset) => (
+                      <TableRow
+                        key={`${asset.symbol}-${asset.asset_type}`}
+                        className="hover:bg-gray-800/50 cursor-pointer"
+                        onClick={() => navigateToAssetDetails(asset.symbol, asset.asset_type)}
+                      >
+                        <TableCell>
+                          <div className="font-medium">{asset.name}</div>
+                          <div className="text-sm text-gray-400">{asset.symbol}</div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div>${isNaN(asset.current_price) ? "--" : asset.current_price.toLocaleString()}</div>
+                          <div
+                            className={cn(
+                              "flex items-center justify-end",
+                              asset.price_change_percent >= 0 ? "text-green-500" : "text-red-500",
+                            )}
+                          >
+                            {asset.price_change_percent >= 0 ? (
+                              <TrendingUp className="h-4 w-4 mr-1" />
+                            ) : (
+                              <TrendingDown className="h-4 w-4 mr-1" />
+                            )}
+                            {isNaN(asset.price_change_percent) ? "--" : Math.abs(asset.price_change_percent).toFixed(2)}
+                            %
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right capitalize">{asset.asset_type}</TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className="text-blue-400 cursor-pointer underline hover:text-blue-300"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigateToAssetDetails(asset.symbol, asset.asset_type)
+                            }}
+                          >
+                            View Insights
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-red-400 cursor-pointer"
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
                             onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveAsset(asset.symbol, asset.asset_type);
+                              e.stopPropagation()
+                              handleRemoveAsset(asset.symbol, asset.asset_type)
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {filteredWatchlist.length === 0 && (
                 <div className="text-center text-gray-400 py-6">
+                  {watchlist.length === 0 ? "Your watchlist is empty" : "No matching assets found"}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+              {filteredWatchlist.map((asset) => (
+                <Card
+                  key={`${asset.symbol}-${asset.asset_type}`}
+                  className="bg-zinc-900 border-gray-800 cursor-pointer hover:bg-gray-800/50 transition-colors"
+                  onClick={() => navigateToAssetDetails(asset.symbol, asset.asset_type)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-white truncate">{asset.name}</h3>
+                        <p className="text-sm text-gray-400">{asset.symbol}</p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10 h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemoveAsset(asset.symbol, asset.asset_type)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-right">
+                        <div className="text-lg font-semibold text-white">
+                          ${isNaN(asset.current_price) ? "--" : asset.current_price.toLocaleString()}
+                        </div>
+                        <div
+                          className={cn(
+                            "flex items-center text-sm",
+                            asset.price_change_percent >= 0 ? "text-green-500" : "text-red-500",
+                          )}
+                        >
+                          {asset.price_change_percent >= 0 ? (
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3 mr-1" />
+                          )}
+                          {isNaN(asset.price_change_percent) ? "--" : Math.abs(asset.price_change_percent).toFixed(2)}%
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-sm text-gray-400 mb-1">Type</div>
+                        <div className="text-sm capitalize text-white">{asset.asset_type}</div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-800">
+                      <Button
+                        variant="ghost"
+                        className="w-full text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 h-8 text-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigateToAssetDetails(asset.symbol, asset.asset_type)
+                        }}
+                      >
+                        View Insights
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {filteredWatchlist.length === 0 && (
+                <div className="text-center text-gray-400 py-8">
                   {watchlist.length === 0 ? "Your watchlist is empty" : "No matching assets found"}
                 </div>
               )}

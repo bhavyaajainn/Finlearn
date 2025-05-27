@@ -227,159 +227,192 @@ export default function WatchlistDetails() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="container mx-auto py-4 px-4">
+      {/* Header with back button */}
+      <div className="container mx-auto py-3 sm:py-4 px-4">
         <Link href="/dashboard/watchlist" className="cursor-pointer">
-          <Button variant="link" className="text-blue-400 p-0 flex items-center">
+          <Button variant="link" className="text-blue-400 p-0 flex items-center hover:text-blue-300">
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to Watchlist
+            <span className="text-sm sm:text-base">Back to Watchlist</span>
           </Button>
         </Link>
       </div>
 
+      {/* Term explanation dialog */}
       <Dialog open={!!selectedTerm} onOpenChange={() => setSelectedTerm(null)}>
-        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-[95vw] sm:max-w-[600px]">
+        <DialogContent className="bg-gray-900 border-gray-700 text-white w-[95vw] max-w-[500px] mx-auto">
           <DialogHeader>
-            <DialogTitle className="text-blue-400 break-words">{selectedTerm?.word}</DialogTitle>
+            <DialogTitle className="text-blue-400 break-words text-lg">{selectedTerm?.word}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-gray-100 text-lg break-words">{selectedTerm?.tooltip}</p>
-            <div className="text-sm text-gray-400 mt-4">
-              Click outside to close this explanation
-            </div>
+            <p className="text-gray-100 text-base break-words leading-relaxed">{selectedTerm?.tooltip}</p>
+            <div className="text-xs sm:text-sm text-gray-400">Click outside to close this explanation</div>
           </div>
         </DialogContent>
       </Dialog>
 
       {details ? (
         <>
-          <div className="container mx-auto px-4">
-            <div className="bg-gray-900 rounded-lg p-6 mb-6">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-4">
-                <div className="flex items-start gap-4 flex-1">
-                  <div>
-                    <h1 className="text-2xl font-bold break-words">
+          {/* Asset header section */}
+          <div className="container mx-auto px-4 mb-4 sm:mb-6">
+            <div className="bg-gray-900 rounded-lg p-4 sm:p-6">
+              {/* Mobile-first header layout */}
+              <div className="space-y-4">
+                {/* Asset name and info */}
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold break-words leading-tight">
                       {details.name}
-                      <Tooltip>
-                        <TooltipTrigger className="ml-2">
-                          <Info className="h-4 w-4 text-blue-400" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Asset ID: {details.symbol}</p>
-                          <p>Type: {details.asset_type}</p>
-                        </TooltipContent>
-                      </Tooltip>
                     </h1>
-                    <div className="text-gray-400">
+                    <div className="text-gray-400 text-sm sm:text-base mt-1">
                       {details.symbol} • {details.asset_type}
                     </div>
                   </div>
+                  <Tooltip>
+                    <TooltipTrigger className="flex-shrink-0 mt-1">
+                      <Info className="h-4 w-4 text-blue-400" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Asset ID: {details.symbol}</p>
+                      <p>Type: {details.asset_type}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="text-3xl font-bold">
-                    ${details.current_price?.toFixed(2)}
+
+                {/* Price information */}
+                <div className="flex items-center justify-between sm:justify-start sm:gap-8">
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-bold">${details.current_price?.toFixed(2)}</div>
+                    <div className="text-xs sm:text-sm text-gray-400">Current Price</div>
                   </div>
-                  <div className={`flex items-center ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}>
+                  <div
+                    className={`flex items-center ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}
+                  >
                     {details.price_change_percent < 0 ? (
                       <ArrowDown className="h-4 w-4 mr-1" />
                     ) : (
                       <ArrowUp className="h-4 w-4 mr-1" />
                     )}
-                    <span>{(Math.abs(details.price_change_percent)?.toFixed(2))}%</span>
+                    <span className="text-lg sm:text-xl font-semibold">
+                      {Math.abs(details.price_change_percent)?.toFixed(2)}%
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              {/* Statistics grid - responsive */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
                 {[
-                  { label: 'Symbol', value: details.symbol },
-                  { label: 'Asset Type', value: details.asset_type },
-                  { label: 'Current Price in $', value: details.current_price },
+                  { label: "Symbol", value: details.symbol },
+                  { label: "Asset Type", value: details.asset_type },
+                  { label: "Current Price", value: `$${details.current_price}` },
                 ].map((stat, index) => (
-                  <div key={index} className="bg-gray-800 p-3 rounded-md">
-                    <div className="text-gray-400 text-sm">{stat.label}</div>
-                    <div className="text-xl font-bold break-words">{stat.value}</div>
+                  <div key={index} className="bg-gray-800 p-3 sm:p-4 rounded-md">
+                    <div className="text-gray-400 text-xs sm:text-sm mb-1">{stat.label}</div>
+                    <div className="text-sm sm:text-lg font-bold break-words">{stat.value}</div>
                   </div>
                 ))}
-                <div className="bg-gray-800 p-3 rounded-md">
-                  <div className="text-gray-400 text-sm">Price Change</div>
-                  <div className={`text-xl font-bold ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}>
-                    {details.price_change_percent < 0 ? "" : "+"}{details.price_change_percent}%
+                <div className="bg-gray-800 p-3 sm:p-4 rounded-md">
+                  <div className="text-gray-400 text-xs sm:text-sm mb-1">Price Change</div>
+                  <div
+                    className={`text-sm sm:text-lg font-bold ${details.price_change_percent < 0 ? "text-red-500" : "text-green-500"}`}
+                  >
+                    {details.price_change_percent < 0 ? "" : "+"}
+                    {details.price_change_percent}%
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Main content tabs */}
           <div className="container mx-auto px-4">
             <TooltipProvider>
               <Tabs
                 defaultValue="articles"
                 onValueChange={(value) => {
-                  if (value === 'similar' && !relatedLoaded) {
-                    fetchRelatedData();
+                  if (value === "similar" && !relatedLoaded) {
+                    fetchRelatedData()
                   }
                 }}
               >
-                <TabsList className="w-full bg-gray-900 overflow-x-auto">
-                  <TabsTrigger value="articles" className="!text-white data-[state=active]:!text-black">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Research Articles
-                  </TabsTrigger>
-                  <TabsTrigger value="similar" className="!text-white data-[state=active]:!text-black">
-                    <Layers className="h-4 w-4 mr-2" />
-                    Similar Assets and News
-                  </TabsTrigger>
-                </TabsList>
+                {/* Mobile-optimized tabs */}
+                <div className="mb-4 sm:mb-6">
+                  <TabsList className="w-full bg-gray-900 h-auto p-1 grid grid-cols-2 gap-1">
+                    <TabsTrigger
+                      value="articles"
+                      className="!text-white data-[state=active]:!text-black text-xs sm:text-sm py-2 sm:py-3 px-2 sm:px-4"
+                    >
+                      <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Research Articles</span>
+                      <span className="sm:hidden">Research</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="similar"
+                      className="!text-white data-[state=active]:!text-black text-xs sm:text-sm py-2 sm:py-3 px-2 sm:px-4"
+                    >
+                      <Layers className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Similar Assets</span>
+                      <span className="sm:hidden">Similar</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
                 <TabsContent value="articles">
                   <Card className="bg-gray-900 border-gray-800">
-                    <CardHeader>
-                      <CardTitle className="text-white flex flex-wrap items-center gap-2">
-                        {details.title}
-                        <Badge className="bg-zinc-700">{details.expertise_level}</Badge>
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="text-white flex flex-col sm:flex-row sm:items-center gap-2 text-lg sm:text-xl">
+                        <span className="break-words">{details.title}</span>
+                        <Badge className="bg-zinc-700 w-fit">{details.expertise_level}</Badge>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-4 sm:p-6 pt-0">
+                      {/* Key summary */}
                       <div className="mb-6 p-4 bg-gray-800 rounded-lg">
-                        <h3 className="text-blue-400 mb-2">Key Summary</h3>
-                        <p className="text-gray-300">{renderTooltipContent(details.summary)}</p>
+                        <h3 className="text-blue-400 mb-3 text-base sm:text-lg font-semibold">Key Summary</h3>
+                        <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
+                          {renderTooltipContent(details.summary)}
+                        </p>
                       </div>
 
+                      {/* Content sections */}
                       {details.sections?.map((section, index) => (
-                        <div key={index} className="mb-8 mt-10">
-                          <h3 className="text-xl text-blue-400 mb-3 flex items-center gap-2">
-                            {section.title}
+                        <div key={index} className="mb-6 sm:mb-8">
+                          <h3 className="text-lg sm:text-xl text-blue-400 mb-3 flex items-center gap-2">
+                            <span className="break-words">{section.title}</span>
                             <Tooltip>
                               <TooltipTrigger>
-                                <Info className="h-4 w-4" />
+                                <Info className="h-4 w-4 flex-shrink-0" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 Section {index + 1} of {details.sections?.length}
                               </TooltipContent>
                             </Tooltip>
                           </h3>
-                          <div className="text-gray-300 space-y-2">
+                          <div className="text-gray-300 text-sm sm:text-base leading-relaxed">
                             {renderTooltipContent(section.content)}
                           </div>
                         </div>
                       ))}
 
-                      <div className="mt-8 p-4 bg-gray-800 rounded-lg">
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3 gap-2">
-                          <h3 className="text-xl font-medium text-white">Final Recommendation</h3>
-                          <Badge className="bg-yellow-600">{details.recommendation.action}</Badge>
+                      {/* Final recommendation */}
+                      <div className="mt-6 sm:mt-8 p-4 bg-gray-800 rounded-lg">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 gap-2">
+                          <h3 className="text-lg sm:text-xl font-medium text-white">Final Recommendation</h3>
+                          <Badge className="bg-yellow-600 w-fit">{details.recommendation.action}</Badge>
                         </div>
-                        <p className="text-gray-300 mb-4">{details.recommendation.reasoning}</p>
-                        <div className="flex gap-4 flex-wrap">
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm text-gray-400">Risk:</span>
-                            <Badge variant="outline" className="text-red-400 border-red-800">
+                        <p className="text-gray-300 mb-4 text-sm sm:text-base leading-relaxed">
+                          {details.recommendation.reasoning}
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs sm:text-sm text-gray-400">Risk:</span>
+                            <Badge variant="outline" className="text-red-400 border-red-800 text-xs">
                               {details.recommendation.risk_level}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm text-gray-400">Timeframe:</span>
-                            <Badge variant="outline" className="text-blue-400 border-blue-800">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs sm:text-sm text-gray-400">Timeframe:</span>
+                            <Badge variant="outline" className="text-blue-400 border-blue-800 text-xs">
                               {details.recommendation.time_horizon}
                             </Badge>
                           </div>
@@ -391,35 +424,44 @@ export default function WatchlistDetails() {
 
                 <TabsContent value="similar">
                   <Card className="bg-gray-900 border-gray-800">
-                    <CardHeader>
-                      <CardTitle className="text-white">Alternative Investments and Recent News</CardTitle>
-                      <CardDescription className="text-gray-400">
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="text-white text-lg sm:text-xl">
+                        Alternative Investments and Recent News
+                      </CardTitle>
+                      <CardDescription className="text-gray-400 text-sm">
                         {details.similar_assets.length} similar assets and {details.recent_news.length} news
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-4 sm:p-6 pt-0">
                       {relatedLoaded ? (
                         <>
+                          {/* Recent news section */}
                           {details.recent_news?.length > 0 && (
-                            <div className="space-y-4">
-                              <h3 className="text-blue-400 text-lg font-semibold">Recent News</h3>
+                            <div className="space-y-4 mb-8">
+                              <h3 className="text-blue-400 text-base sm:text-lg font-semibold">Recent News</h3>
                               {details.recent_news.map((newsItem, idx) => (
                                 <div key={idx} className="p-4 bg-gray-800 rounded-lg">
-                                  <h4 className="text-white font-medium text-md mb-1">{newsItem.headline}</h4>
-                                  <p className="text-gray-300 text-sm mb-2">{newsItem.summary}</p>
-                                  <div className="text-gray-400 text-sm flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                                    <span>{newsItem.source} — {newsItem.date}</span>
+                                  <h4 className="text-white font-medium text-sm sm:text-base mb-2 leading-tight break-words">
+                                    {newsItem.headline}
+                                  </h4>
+                                  <p className="text-gray-300 text-xs sm:text-sm mb-3 leading-relaxed break-words">
+                                    {newsItem.summary}
+                                  </p>
+                                  <div className="text-gray-400 text-xs space-y-1 sm:space-y-0 sm:flex sm:justify-between sm:items-center">
+                                    <span className="block break-words">
+                                      {newsItem.source} — {newsItem.date}
+                                    </span>
                                     {newsItem.url ? (
                                       <a
                                         href={newsItem.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-blue-400 hover:underline cursor-pointer"
+                                        className="text-blue-400 hover:underline cursor-pointer inline-block break-words"
                                       >
                                         Read more
                                       </a>
                                     ) : (
-                                      <div className="text-blue-400">{newsItem.citation}</div>
+                                      <div className="text-blue-400 break-words">{newsItem.citation}</div>
                                     )}
                                   </div>
                                 </div>
@@ -427,44 +469,62 @@ export default function WatchlistDetails() {
                             </div>
                           )}
 
-                          <div className="space-y-6 mt-10">
-                            <h3 className="text-blue-400 text-lg font-semibold">Similar Assets</h3>
+                          {/* Similar assets section */}
+                          <div className="space-y-6">
+                            <h3 className="text-blue-400 text-base sm:text-lg font-semibold">Similar Assets</h3>
                             {details.similar_assets.length > 0 ? (
                               details.similar_assets.map((asset, index) => (
-                                <div key={index} className="border-b border-gray-800 pb-6">
-                                  <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3 gap-3">
-                                    <div>
-                                      <div className="font-medium text-lg text-white">{asset.name}</div>
-                                      <div className="text-gray-400">{asset.symbol}</div>
-                                      <span className="mt-2 text-sm text-white">{asset.similarity_reason}</span>
-                                    </div>
-                                    <div className="text-right text-green-400 font-bold text-lg">
-                                      ${asset.current_price}
-                                    </div>
-                                  </div>
-                                  {asset.comparison_points?.length > 0 && (
-                                    <div className="mt-3 space-y-2">
-                                      {asset.comparison_points.map((point: any, idx: number) => (
-                                        <div key={idx} className="bg-gray-800 p-3 rounded-md text-sm text-gray-300">
-                                          <div className="font-semibold text-white">{point.metric}</div>
-                                          <div>{point.description}</div>
-                                          <div className="text-green-400">{point.comparison}</div>
+                                <div key={index} className="border-b border-gray-800 pb-6 last:border-b-0">
+                                  <div className="space-y-3">
+                                    {/* Asset header - full width stack on mobile */}
+                                    <div className="flex flex-col gap-2">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0 flex-1">
+                                          <div className="font-medium text-base sm:text-lg text-white break-words leading-tight">
+                                            {asset.name}
+                                          </div>
+                                          <div className="text-gray-400 text-sm">{asset.symbol}</div>
                                         </div>
-                                      ))}
+                                        <div className="text-green-400 font-bold text-lg sm:text-xl flex-shrink-0">
+                                          ${asset.current_price}
+                                        </div>
+                                      </div>
+                                      <div className="text-xs sm:text-sm text-white break-words leading-relaxed">
+                                        {asset.similarity_reason}
+                                      </div>
                                     </div>
-                                  )}
+
+                                    {/* Comparison points with better mobile layout */}
+                                    {asset.comparison_points?.length > 0 && (
+                                      <div className="space-y-2">
+                                        {asset.comparison_points.map((point: any, idx: number) => (
+                                          <div key={idx} className="bg-gray-800 p-3 rounded-md">
+                                            <div className="font-semibold text-white mb-1 text-xs sm:text-sm break-words">
+                                              {point.metric}
+                                            </div>
+                                            <div className="text-gray-300 mb-1 text-xs sm:text-sm break-words leading-relaxed">
+                                              {point.description}
+                                            </div>
+                                            <div className="text-green-400 text-xs sm:text-sm break-words">
+                                              {point.comparison}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               ))
                             ) : (
-                              <div className="text-center text-white">No similar assets found.</div>
+                              <div className="text-center text-white py-8">No similar assets found.</div>
                             )}
                           </div>
                         </>
                       ) : (
                         <div className="space-y-4">
                           <Skeleton className="h-6 w-1/4 bg-gray-800" />
-                          <Skeleton className="h-6 w-1/4 bg-gray-800" />
-                          <Skeleton className="h-6 w-1/4 bg-gray-800" />
+                          <Skeleton className="h-6 w-1/2 bg-gray-800" />
+                          <Skeleton className="h-6 w-1/3 bg-gray-800" />
                         </div>
                       )}
                     </CardContent>
@@ -476,7 +536,7 @@ export default function WatchlistDetails() {
         </>
       ) : (
         <div className="container mx-auto px-4 text-center py-24 text-gray-400">
-          Failed to load asset details
+          <div className="text-base sm:text-lg">Failed to load asset details</div>
         </div>
       )}
     </div>
