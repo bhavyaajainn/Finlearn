@@ -277,29 +277,34 @@ const ProfilePage = () => {
                     <div key={weekIndex} className="flex flex-col gap-1">
                       {week.map((day, dayIndex) => {
                         const intensity = day ? getIntensityLevel(day.count) : 0
-                        return (
+                        const cell = (
+                          <div
+                            className={`w-3 h-3 rounded-sm border transition-all duration-200
+        ${day?.count ? "hover:ring-2 hover:ring-blue-400 hover:ring-opacity-50 cursor-pointer" : ""}
+        ${colors[intensity]}`}
+                          />
+                        )
+
+                        // Only wrap in Tooltip if there is activity
+                        return day?.count ? (
                           <Tooltip key={`${weekIndex}-${dayIndex}`}>
-                            <TooltipTrigger asChild>
-                              <div
-                                className={`w-3 h-3 rounded-sm border transition-all duration-200
-                                hover:ring-2 hover:ring-blue-400 hover:ring-opacity-50 cursor-pointer
-                                ${colors[intensity]}`}
-                              />
-                            </TooltipTrigger>
+                            <TooltipTrigger asChild>{cell}</TooltipTrigger>
                             <TooltipContent
                               side="top"
                               className="bg-gray-900 border-gray-700 text-white p-3 rounded-lg shadow-lg"
                             >
                               <div className="text-sm">
                                 <div className="font-medium">
-                                  {day ? `${day.count} article${day.count > 1 ? "s" : ""} read` : "No activity"}
+                                  {`${day.count} article${day.count > 1 ? "s" : ""} read`}
                                 </div>
                                 <div className="text-gray-400 text-xs mt-1">
-                                  {day ? formatDate(day.date) : "No date"}
+                                  {formatDate(day.date)}
                                 </div>
                               </div>
                             </TooltipContent>
                           </Tooltip>
+                        ) : (
+                          <div key={`${weekIndex}-${dayIndex}`}>{cell}</div>
                         )
                       })}
                     </div>
