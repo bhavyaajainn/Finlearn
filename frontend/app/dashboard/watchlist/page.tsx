@@ -163,23 +163,25 @@ export default function WatchlistPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Watchlist</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Watchlist</h1>
           <p className="text-gray-400 text-sm sm:text-base">Track & Analyze Your Assets</p>
         </header>
+
         {isLoading ? (
           <div className="flex justify-center items-center h-screen">
             <Loader2 className="h-12 w-12 text-blue-500" />
           </div>
         ) : (
           <div>
-            <div className="mb-6 flex gap-4 items-center">
-              <div className="relative flex-1">
+            {/* Controls */}
+            <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+              <div className="relative w-full sm:flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search watchlist..."
-                  className="pl-10 bg-gray-900 border-gray-800 focus:ring-blue-600 h-12"
+                  className="pl-10 bg-gray-900 border-gray-800 focus:ring-blue-600 h-12 w-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -187,13 +189,13 @@ export default function WatchlistPage() {
 
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="h-12 px-6 bg-blue-600 hover:bg-blue-700">
+                  <Button className="h-12 w-full sm:w-auto px-6 bg-blue-600 hover:bg-blue-700">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Add Asset
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                <DialogContent className="w-full max-w-md bg-gray-900 border-gray-800 text-white">
                   <DialogHeader>
                     <DialogTitle className="text-blue-400">Add New Asset</DialogTitle>
                     <DialogDescription className="text-gray-400">
@@ -263,8 +265,9 @@ export default function WatchlistPage() {
               </Dialog>
             </div>
 
-            <div className="bg-zinc-900 rounded-lg p-6 shadow-lg">
-              <Table>
+            {/* Table */}
+            <div className="bg-zinc-900 rounded-lg p-6 shadow-lg overflow-x-auto">
+              <Table className="min-w-[600px]">
                 <TableHeader className="bg-gray-900">
                   <TableRow>
                     <TableHead className="text-blue-400">Asset</TableHead>
@@ -315,7 +318,6 @@ export default function WatchlistPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-
                           <Button
                             variant="ghost"
                             size="icon"
@@ -342,8 +344,8 @@ export default function WatchlistPage() {
             </div>
           </div>
         )}
-
       </div>
     </div>
+
   );
 }

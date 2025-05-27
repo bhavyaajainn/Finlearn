@@ -235,27 +235,29 @@ export default function WatchlistDetails() {
           </Button>
         </Link>
       </div>
+
       <Dialog open={!!selectedTerm} onOpenChange={() => setSelectedTerm(null)}>
-        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-[90vw] sm:max-w-[600px]">
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-[95vw] sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="text-blue-400">{selectedTerm?.word}</DialogTitle>
+            <DialogTitle className="text-blue-400 break-words">{selectedTerm?.word}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-gray-100 text-lg">{selectedTerm?.tooltip}</p>
+            <p className="text-gray-100 text-lg break-words">{selectedTerm?.tooltip}</p>
             <div className="text-sm text-gray-400 mt-4">
               Click outside to close this explanation
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
       {details ? (
         <>
           <div className="container mx-auto px-4">
             <div className="bg-gray-900 rounded-lg p-6 mb-6">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-4">
+                <div className="flex items-start gap-4 flex-1">
                   <div>
-                    <h1 className="text-2xl font-bold">
+                    <h1 className="text-2xl font-bold break-words">
                       {details.name}
                       <Tooltip>
                         <TooltipTrigger className="ml-2">
@@ -272,7 +274,7 @@ export default function WatchlistDetails() {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end gap-2">
                   <div className="text-3xl font-bold">
                     ${details.current_price?.toFixed(2)}
                   </div>
@@ -286,7 +288,8 @@ export default function WatchlistDetails() {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 {[
                   { label: 'Symbol', value: details.symbol },
                   { label: 'Asset Type', value: details.asset_type },
@@ -294,7 +297,7 @@ export default function WatchlistDetails() {
                 ].map((stat, index) => (
                   <div key={index} className="bg-gray-800 p-3 rounded-md">
                     <div className="text-gray-400 text-sm">{stat.label}</div>
-                    <div className="text-xl font-bold">{stat.value}</div>
+                    <div className="text-xl font-bold break-words">{stat.value}</div>
                   </div>
                 ))}
                 <div className="bg-gray-800 p-3 rounded-md">
@@ -317,7 +320,7 @@ export default function WatchlistDetails() {
                   }
                 }}
               >
-                <TabsList className="w-full bg-gray-900">
+                <TabsList className="w-full bg-gray-900 overflow-x-auto">
                   <TabsTrigger value="articles" className="!text-white data-[state=active]:!text-black">
                     <FileText className="h-4 w-4 mr-2" />
                     Research Articles
@@ -331,29 +334,23 @@ export default function WatchlistDetails() {
                 <TabsContent value="articles">
                   <Card className="bg-gray-900 border-gray-800">
                     <CardHeader>
-                      <CardTitle className="text-white">
+                      <CardTitle className="text-white flex flex-wrap items-center gap-2">
                         {details.title}
-                        <Badge className="ml-2 bg-zinc-700">
-                          {details.expertise_level}
-                        </Badge>
+                        <Badge className="bg-zinc-700">{details.expertise_level}</Badge>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="mb-6 p-4 bg-gray-800 rounded-lg">
                         <h3 className="text-blue-400 mb-2">Key Summary</h3>
-                        <p className="text-gray-300">
-                          {renderTooltipContent(details.summary)}
-                        </p>
+                        <p className="text-gray-300">{renderTooltipContent(details.summary)}</p>
                       </div>
-
-
 
                       {details.sections?.map((section, index) => (
                         <div key={index} className="mb-8 mt-10">
-                          <h3 className="text-xl text-blue-400 mb-3">
+                          <h3 className="text-xl text-blue-400 mb-3 flex items-center gap-2">
                             {section.title}
                             <Tooltip>
-                              <TooltipTrigger className="ml-2">
+                              <TooltipTrigger>
                                 <Info className="h-4 w-4" />
                               </TooltipTrigger>
                               <TooltipContent>
@@ -368,17 +365,11 @@ export default function WatchlistDetails() {
                       ))}
 
                       <div className="mt-8 p-4 bg-gray-800 rounded-lg">
-                        <div className="flex justify-between items-center mb-3">
-                          <h3 className="text-xl font-medium text-white">
-                            Final Recommendation
-                          </h3>
-                          <Badge className="bg-yellow-600">
-                            {details.recommendation.action}
-                          </Badge>
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3 gap-2">
+                          <h3 className="text-xl font-medium text-white">Final Recommendation</h3>
+                          <Badge className="bg-yellow-600">{details.recommendation.action}</Badge>
                         </div>
-                        <p className="text-gray-300 mb-4">
-                          {details.recommendation.reasoning}
-                        </p>
+                        <p className="text-gray-300 mb-4">{details.recommendation.reasoning}</p>
                         <div className="flex gap-4 flex-wrap">
                           <div className="flex items-center gap-1">
                             <span className="text-sm text-gray-400">Risk:</span>
@@ -401,11 +392,9 @@ export default function WatchlistDetails() {
                 <TabsContent value="similar">
                   <Card className="bg-gray-900 border-gray-800">
                     <CardHeader>
-                      <CardTitle className="text-white">
-                        Alternative Investments and Recent News
-                      </CardTitle>
+                      <CardTitle className="text-white">Alternative Investments and Recent News</CardTitle>
                       <CardDescription className="text-gray-400">
-                        {details.similar_assets.length} similar assets and {details.recent_news.length} Recent News Found
+                        {details.similar_assets.length} similar assets and {details.recent_news.length} news
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -416,13 +405,9 @@ export default function WatchlistDetails() {
                               <h3 className="text-blue-400 text-lg font-semibold">Recent News</h3>
                               {details.recent_news.map((newsItem, idx) => (
                                 <div key={idx} className="p-4 bg-gray-800 rounded-lg">
-                                  <h4 className="text-white font-medium text-md mb-1">
-                                    {newsItem.headline}
-                                  </h4>
-                                  <p className="text-gray-300 text-sm mb-2">
-                                    {newsItem.summary}
-                                  </p>
-                                  <div className="text-gray-400 text-sm flex justify-between items-center">
+                                  <h4 className="text-white font-medium text-md mb-1">{newsItem.headline}</h4>
+                                  <p className="text-gray-300 text-sm mb-2">{newsItem.summary}</p>
+                                  <div className="text-gray-400 text-sm flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                                     <span>{newsItem.source} — {newsItem.date}</span>
                                     {newsItem.url ? (
                                       <a
@@ -434,9 +419,7 @@ export default function WatchlistDetails() {
                                         Read more
                                       </a>
                                     ) : (
-                                      <div className="text-blue-400 hover:underline max-w-3/4 text-sm mt-3">
-                                        <span>{newsItem.citation}</span>
-                                      </div>
+                                      <div className="text-blue-400">{newsItem.citation}</div>
                                     )}
                                   </div>
                                 </div>
@@ -449,24 +432,14 @@ export default function WatchlistDetails() {
                             {details.similar_assets.length > 0 ? (
                               details.similar_assets.map((asset, index) => (
                                 <div key={index} className="border-b border-gray-800 pb-6">
-                                  <div className="flex justify-between items-center mb-3">
-                                    <div className="flex items-center gap-3">
-                                      <div>
-                                        <div className="font-medium text-lg text-white">
-                                          {asset.name}
-                                        </div>
-                                        <div className="text-gray-400">
-                                          {asset.symbol}
-                                        </div>
-                                        <span className="mt-3 text-sm text-white">
-                                          {asset.similarity_reason}
-                                        </span>
-                                      </div>
+                                  <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3 gap-3">
+                                    <div>
+                                      <div className="font-medium text-lg text-white">{asset.name}</div>
+                                      <div className="text-gray-400">{asset.symbol}</div>
+                                      <span className="mt-2 text-sm text-white">{asset.similarity_reason}</span>
                                     </div>
-                                    <div className="text-right">
-                                      <div className="font-bold text-lg text-green-400">
-                                        ${asset.current_price}
-                                      </div>
+                                    <div className="text-right text-green-400 font-bold text-lg">
+                                      ${asset.current_price}
                                     </div>
                                   </div>
                                   {asset.comparison_points?.length > 0 && (
@@ -483,9 +456,7 @@ export default function WatchlistDetails() {
                                 </div>
                               ))
                             ) : (
-                              <div className="text-center text-white">
-                                No similar assets found.
-                              </div>
+                              <div className="text-center text-white">No similar assets found.</div>
                             )}
                           </div>
                         </>
@@ -509,5 +480,6 @@ export default function WatchlistDetails() {
         </div>
       )}
     </div>
+
   )
 }
