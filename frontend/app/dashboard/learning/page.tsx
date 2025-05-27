@@ -46,6 +46,7 @@ const LearningHub = () => {
   } = useAppSelector(state => state.learning);
   
   const { user } = useAppSelector(state => state.auth);
+  const { preferences } = useAppSelector(state => state.preferences);
   
   const [selectedTopicItem, setSelectedTopicItem] = useState<TopicItem | null>(null);
   const [topicDetail, setTopicDetail] = useState<any>(null);
@@ -57,6 +58,7 @@ const LearningHub = () => {
   const pendingCategoryRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef<boolean>(true);
   
+  
   useEffect(() => {
     if (user?.uid && Object.keys(topics).length === 0 && !loading && isInitialLoadRef.current) {
       isInitialLoadRef.current = false;
@@ -64,6 +66,12 @@ const LearningHub = () => {
       dispatch(fetchUserTopicsStatus(user.uid));
     }
   }, [dispatch, user, topics, loading]);
+
+  
+  useEffect(() => {
+    if (user?.uid ) {
+    dispatch(fetchTopics(user.uid))}
+  }, [preferences, user?.uid, dispatch]);
 
   useEffect(() => {
     return () => {
@@ -78,32 +86,25 @@ const LearningHub = () => {
   
   const handleCategoryChange = useCallback(async (category: string) => {
     if (!user?.uid) {
-
       return;
     }
-    
     
     if (filterLoading && pendingCategoryRef.current === category) {
       return;
     }
-    
     
     if (selectedCategory === category && !filterLoading) {
       return;
     }
     
     pendingCategoryRef.current = category;
-    
-    
     dispatch(setSelectedCategory(category));
     
     try {
-      
       await dispatch(fetchTopicsByCategory({ 
         userId: user.uid, 
         category: category 
       })).unwrap();
-      
     } catch (error) {
       console.error('Error fetching topics for category:', category, error);
     } finally {
