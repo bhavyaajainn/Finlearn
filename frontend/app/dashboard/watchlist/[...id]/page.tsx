@@ -451,7 +451,7 @@ export default function WatchlistDetails() {
                                     <span className="block break-words">
                                       {newsItem.source} — {newsItem.date}
                                     </span>
-                                    {newsItem.url ? (
+                                    {newsItem.url &&
                                       <a
                                         href={newsItem.url}
                                         target="_blank"
@@ -460,9 +460,7 @@ export default function WatchlistDetails() {
                                       >
                                         Read more
                                       </a>
-                                    ) : (
-                                      <div className="text-blue-400 break-words">{newsItem.citation}</div>
-                                    )}
+                                    }
                                   </div>
                                 </div>
                               ))}
